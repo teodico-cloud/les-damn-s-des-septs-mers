@@ -1,0 +1,15 @@
+# Godot
+.godot/
+*.tmp
+
+# Packs téléchargés et fichiers générés
+third_party/
+build/
+
+# Python
+__pycache__/
+*.pyc
+
+# Système
+.DS_Store
+Thumbs.db
