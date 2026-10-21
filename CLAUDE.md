@@ -52,6 +52,9 @@ Aucun serveur au MVP. Le projet Godot du jeu sera créé au jalon 0 (pas encore 
 - Les objets attachés à un os (chapeau, armes) sont placés en coordonnées monde de la pose de repos
   (`parent_world_rest`) ou dans le repère d'arme KayKit (`WEAPON_R`) ; la lanterne est orientée
   d'après la pose « Idle ».
+- Visages KayKit : chaque œil est un îlot sombre d'environ 66 faces (case c2r0) ; certaines têtes (Mage)
+  ont en plus de petits îlots de cils recourbés. Repérer les yeux comme les **deux plus gros** îlots,
+  jamais comme les deux plus hauts. Le menton = sommet de peau le plus bas sur l'axe du visage.
 - Couleurs KayKit : chaque texture est une grille de cases 8 × 4 (128 × 256 px). Recolorer une case
   change toutes les parties qui l'utilisent ; baisser le contraste de la peau évite les reflets blancs.
 - Rendus d'aperçu : sans carte graphique, ils utilisent le rendu Compatibility ; sur téléphone

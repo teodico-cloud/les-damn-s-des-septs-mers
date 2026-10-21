@@ -1,0 +1,10 @@
+{
+  "out": "../../../build/apercus/visages_gros_plan.png",
+  "dark": false,
+  "floor": false,
+  "items": [
+    {"glb": "../../../assets/models/heroes/Bretteur.glb", "anim": "Idle", "t": 0.6, "pos": [-0.6, 0, 0], "rot": 0},
+    {"glb": "../../../assets/models/heroes/Occultiste.glb", "anim": "Idle", "t": 0.6, "pos": [0.6, 0, 0], "rot": 0}
+  ],
+  "cam": {"target": [0, 1.95, 0], "dir": [0, 0.08, 1], "dist": 3.4, "fov": 30}
+}

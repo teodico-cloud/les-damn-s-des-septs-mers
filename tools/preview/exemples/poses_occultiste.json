@@ -1,0 +1,72 @@
+{
+  "out": "../../../build/apercus/poses_occultiste.png",
+  "dark": false,
+  "items": [
+    {
+      "glb": "../../../assets/models/heroes/Occultiste.glb",
+      "anim": "Running_A",
+      "t": 0.3,
+      "pos": [
+        -3.5999999999999996,
+        0,
+        0
+      ],
+      "rot": -30,
+      "label": "Course",
+      "label_h": 2.9
+    },
+    {
+      "glb": "../../../assets/models/heroes/Occultiste.glb",
+      "anim": "Spellcast_Shoot",
+      "t": 0.35,
+      "pos": [
+        -1.2,
+        0,
+        0
+      ],
+      "rot": -30,
+      "label": "Sort",
+      "label_h": 2.9
+    },
+    {
+      "glb": "../../../assets/models/heroes/Occultiste.glb",
+      "anim": "Spellcast_Raise",
+      "t": 0.6,
+      "pos": [
+        1.2,
+        0,
+        0
+      ],
+      "rot": -30,
+      "label": "Incantation",
+      "label_h": 2.9
+    },
+    {
+      "glb": "../../../assets/models/heroes/Occultiste.glb",
+      "anim": "Dodge_Forward",
+      "t": 0.25,
+      "pos": [
+        3.5999999999999996,
+        0,
+        0
+      ],
+      "rot": -30,
+      "label": "Esquive",
+      "label_h": 2.9
+    }
+  ],
+  "cam": {
+    "target": [
+      0,
+      1.3,
+      0
+    ],
+    "dir": [
+      0,
+      0.3,
+      1
+    ],
+    "dist": 13,
+    "fov": 32
+  }
+}

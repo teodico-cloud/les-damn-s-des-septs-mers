@@ -184,12 +184,14 @@ def face_parts(head):
     sw = {p.index: swatch_of_face(me, p) for p in me.polygons}
     dark = islands(me, lambda p: sw[p.index] == (2, 0))
     dark = sorted(dark, key=lambda i: -len(i))
-    # les deux plus gros îlots sombres situés en haut du visage sont les yeux
-    zs = sorted(dark, key=lambda i: -(isl_bbox(me, i)[0].z + isl_bbox(me, i)[1].z))
-    eyes = sorted(zs[:2], key=lambda i: isl_bbox(me, i)[0].x)
+    # les deux plus gros îlots sombres sont les yeux (chaque œil ≈ 66 faces) ; les petits îlots
+    # à hauteur des yeux sont des cils recourbés, ceux en dessous forment la bouche
+    eyes = sorted(dark[:2], key=lambda i: isl_bbox(me, i)[0].x)
     eye_top = max(isl_bbox(me, i)[1].z for i in eyes)
     eye_bot = min(isl_bbox(me, i)[0].z for i in eyes)
-    mouth = [i for i in dark if i not in eyes and isl_bbox(me, i)[1].z < eye_bot]
+    others = dark[2:]
+    mouth = [i for i in others if isl_bbox(me, i)[1].z < eye_bot]
+    lashes = [i for i in others if i not in mouth]
     hair = islands(me, lambda p: sw[p.index] == (1, 0))
     brows = []
     for i in hair:
@@ -197,12 +199,27 @@ def face_parts(head):
         c = (lo + hi) / 2
         if hi.x - lo.x < 0.25 and hi.z - lo.z < 0.12 and eye_top - 0.02 < c.z < eye_top + 0.16 and c.y < -0.12 and 0.02 < abs(c.x) < 0.3:
             brows.append(i)
-    return me, eyes, brows, mouth, eye_top
+    return me, eyes, brows, mouth, eye_top, lashes
+
+
+def delete_faces(me, faces):
+    if not faces:
+        return
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bm.faces.ensure_lookup_table()
+    bmesh.ops.delete(bm, geom=[bm.faces[i] for i in faces], context="FACES")
+    loose = [v for v in bm.verts if not v.link_faces]
+    bmesh.ops.delete(bm, geom=loose, context="VERTS")
+    bm.to_mesh(me)
+    bm.free()
 
 
 def harden_eyes_brows(head, squint=0.5, tilt=0.35, brow_tilt=0.55, brow_thick=1.0):
-    me, eyes, brows, mouth, eye_top = face_parts(head)
-    print("FACE eyes", len(eyes), "brows", len(brows), "mouth", len(mouth))
+    """Plisse et incline les yeux, fronce les sourcils, retire les cils recourbés.
+    Renvoie (yeux, bouche) recalculés après modification du maillage."""
+    me, eyes, brows, mouth, eye_top, lashes = face_parts(head)
+    print("FACE eyes", [len(i) for i in eyes], "brows", len(brows), "mouth", len(mouth), "lashes", len(lashes))
     new_top = {}
     for isl in eyes:
         vids = isl_verts(me, isl)
@@ -226,6 +243,8 @@ def harden_eyes_brows(head, squint=0.5, tilt=0.35, brow_tilt=0.55, brow_thick=1.
             dx, dz = v.x - c.x, v.z - c.z
             v.z = target_c + dz * brow_thick + brow_tilt * dx * side
             v.y -= 0.006
+    delete_faces(me, set().union(*lashes) if lashes else set())
+    _, eyes, _, mouth, _, _ = face_parts(head)
     return eyes, mouth
 
 
@@ -845,8 +864,8 @@ def build_occultiste():
         (0, 2): (96, 176, 128),   # liserés -> vert maladif
         (2, 1): (26, 52, 44),     # cape -> vert noyé
         (3, 2): (56, 42, 34),     # bottes
-        (0, 0): ((170, 172, 150), 0.4),  # peau de noyé, gris-vert
-        (7, 2): ((170, 172, 150), 0.4),  # mains de noyé
+        (0, 0): ((128, 136, 118), 0.35),  # peau de noyé, gris-vert
+        (7, 2): ((128, 136, 118), 0.35),  # mains de noyé
         (1, 1): (40, 74, 70),
     })
     hood_img = recolor(rogue_img, "occultiste_capuche", {(1, 1): (26, 46, 48)})
@@ -906,13 +925,20 @@ def build_occultiste():
     for isl in eyes:
         for fi in isl:
             me.polygons[fi].material_index = gi
-    hvs = [v.co for v in me.vertices]
-    hz0, hz1 = min(v.z for v in hvs), max(v.z for v in hvs)
-    Hh = hz1 - hz0
-    low = [v for v in hvs if hz0 + 0.17 * Hh < v.z < hz0 + 0.31 * Hh and abs(v.x) < 0.08]
-    chin = min(low, key=lambda v: v.y)
-    if mc is None:
-        mc = Vector((0, chin.y, chin.z + 0.06))
+    # menton = sommet de peau le plus bas sur l'axe du visage ; bouche à 38 % menton -> bas des yeux
+    C, A = head_frame(head)
+    skin = [me.vertices[i].co for p in me.polygons if swatch_of_face(me, p) == (0, 0) for i in p.vertices]
+    front = [v for v in skin if abs(v.x) < 0.06 and v.y < C.y - 0.55 * A.y]
+    chin = min(front, key=lambda v: v.z)
+    eye_bot = min(isl_bbox(me, i)[0].z for i in eyes)
+
+    def surf_y(x, z):
+        near = [v.y for v in skin if abs(v.x - x) < 0.03 and abs(v.z - z) < 0.03]
+        return min(near) if near else chin.y
+
+    mz = chin.z + 0.38 * (eye_bot - chin.z)
+    mc = Vector((0, surf_y(0, mz), mz))
+    print("OCC chin", tuple(round(x, 3) for x in chin), "bouche", tuple(round(x, 3) for x in mc), "bas des yeux", round(eye_bot, 3))
     b = Part()
     # moustache tombante
     for sd in (-1, 1):
@@ -922,11 +948,13 @@ def build_occultiste():
         for i in range(3):
             b.cyl(pts[i], pts[i + 1], rr[i], HAIR_BLACK, r1=rr[i + 1], segs=6)
     # barbe tressée et perle d'os
-    zc = chin.z + 0.01
-    for i, (r, dz) in enumerate([(0.034, 0.0), (0.03, -0.045), (0.026, -0.088), (0.021, -0.127)]):
-        b.ico((0, chin.y + 0.01, zc + dz), r, HAIR_BLACK, scale=(1, 0.8, 1.25), subdiv=1)
-    b.cyl((0, chin.y + 0.01, zc - 0.15), (0, chin.y + 0.01, zc - 0.185), 0.027, BONE, segs=8)
-    b.cyl((0, chin.y + 0.01, zc - 0.185), (0, chin.y + 0.01, zc - 0.23), 0.016, HAIR_BLACK, r1=0.0, segs=6)
+    # la tresse pend devant le col de la capuche (au ras du visage), pas sous la mâchoire
+    zc = chin.z + 0.035
+    cyb = mc.y + 0.012
+    for r, dz in [(0.034, 0.0), (0.03, -0.045), (0.026, -0.088), (0.021, -0.127)]:
+        b.ico((0, cyb, zc + dz), r, HAIR_BLACK, scale=(1, 0.8, 1.25), subdiv=1)
+    b.cyl((0, cyb, zc - 0.15), (0, cyb, zc - 0.185), 0.027, BONE, segs=8)
+    b.cyl((0, cyb, zc - 0.185), (0, cyb, zc - 0.23), 0.016, HAIR_BLACK, r1=0.0, segs=6)
     goatee = b.to_object("Occultiste_Barbe")
     parent_world_rest(goatee, rig, "head")
 
