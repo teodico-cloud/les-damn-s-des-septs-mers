@@ -1,0 +1,94 @@
+extends Control
+## Écran titre : nom du jeu, accès à la vitrine des héros, numéro de version.
+
+const SCENE_VITRINE := "res://game/vitrine/vitrine.tscn"
+const COULEUR_OS := Color("e2d6ba")
+const COULEUR_OR := Color("ac8036")
+
+var bouton_vitrine: Button
+
+
+func _ready() -> void:
+	get_tree().set_quit_on_go_back(true)
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	_construire()
+
+
+func _construire() -> void:
+	var fond := TextureRect.new()
+	var degrade := Gradient.new()
+	degrade.set_color(0, Color("1c3a32"))
+	degrade.set_color(1, Color("070c10"))
+	var tex := GradientTexture2D.new()
+	tex.gradient = degrade
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.4)
+	tex.fill_to = Vector2(1.1, 1.1)
+	fond.texture = tex
+	fond.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fond.stretch_mode = TextureRect.STRETCH_SCALE
+	add_child(fond)
+
+	var colonne := VBoxContainer.new()
+	colonne.set_anchors_preset(Control.PRESET_CENTER)
+	colonne.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	colonne.grow_vertical = Control.GROW_DIRECTION_BOTH
+	colonne.alignment = BoxContainer.ALIGNMENT_CENTER
+	colonne.add_theme_constant_override("separation", 28)
+	add_child(colonne)
+
+	var titre := Label.new()
+	titre.text = "Les Damnés des Sept Mers"
+	titre.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	titre.add_theme_font_size_override("font_size", 72)
+	titre.add_theme_color_override("font_color", COULEUR_OS)
+	titre.add_theme_color_override("font_outline_color", Color("0b1418"))
+	titre.add_theme_constant_override("outline_size", 12)
+	colonne.add_child(titre)
+
+	var sous_titre := Label.new()
+	sous_titre.text = "Prototype — jalon 0"
+	sous_titre.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sous_titre.add_theme_font_size_override("font_size", 30)
+	sous_titre.add_theme_color_override("font_color", Color("6cffa0"))
+	colonne.add_child(sous_titre)
+
+	var espace := Control.new()
+	espace.custom_minimum_size = Vector2(0, 30)
+	colonne.add_child(espace)
+
+	bouton_vitrine = _bouton("Voir les héros")
+	bouton_vitrine.pressed.connect(_ouvrir_vitrine)
+	var centre := CenterContainer.new()
+	centre.add_child(bouton_vitrine)
+	colonne.add_child(centre)
+
+	var version := Label.new()
+	version.text = "version %s" % ProjectSettings.get_setting("application/config/version", "?")
+	version.add_theme_font_size_override("font_size", 22)
+	version.add_theme_color_override("font_color", Color(COULEUR_OS, 0.6))
+	version.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	version.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	version.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	version.position -= Vector2(24, 16)
+	add_child(version)
+
+
+func _bouton(texte: String) -> Button:
+	var b := Button.new()
+	b.text = texte
+	b.custom_minimum_size = Vector2(440, 110)
+	b.add_theme_font_size_override("font_size", 38)
+	b.add_theme_color_override("font_color", COULEUR_OS)
+	for etat in ["normal", "hover", "pressed", "focus"]:
+		var s := StyleBoxFlat.new()
+		s.bg_color = {"normal": Color("3a2a20"), "hover": Color("4a3628"), "pressed": Color("24190f"), "focus": Color("3a2a20")}[etat]
+		s.border_color = COULEUR_OR
+		s.set_border_width_all(4)
+		s.set_corner_radius_all(14)
+		b.add_theme_stylebox_override(etat, s)
+	return b
+
+
+func _ouvrir_vitrine() -> void:
+	get_tree().change_scene_to_file(SCENE_VITRINE)

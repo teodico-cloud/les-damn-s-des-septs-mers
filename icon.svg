@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="fond" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#1f4a3c"/>
+      <stop offset="100%" stop-color="#0b1418"/>
+    </radialGradient>
+    <radialGradient id="lueur" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#6cffa0" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#6cffa0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#fond)"/>
+  <circle cx="256" cy="230" r="190" fill="url(#lueur)"/>
+  <!-- tibias croisés -->
+  <g stroke="#e2d6ba" stroke-width="34" stroke-linecap="round">
+    <line x1="120" y1="380" x2="392" y2="150"/>
+    <line x1="392" y1="380" x2="120" y2="150"/>
+  </g>
+  <g fill="#e2d6ba">
+    <circle cx="108" cy="392" r="26"/><circle cx="404" cy="392" r="26"/>
+    <circle cx="108" cy="138" r="26"/><circle cx="404" cy="138" r="26"/>
+  </g>
+  <!-- crâne -->
+  <path d="M256 120c-70 0-118 46-118 108 0 38 18 66 46 82v40h144v-40c28-16 46-44 46-82 0-62-48-108-118-108z" fill="#efe5cc"/>
+  <ellipse cx="210" cy="232" rx="30" ry="34" fill="#0b1418"/>
+  <ellipse cx="302" cy="232" rx="30" ry="34" fill="#0b1418"/>
+  <circle cx="210" cy="236" r="10" fill="#6cffa0"/>
+  <circle cx="302" cy="236" r="10" fill="#6cffa0"/>
+  <path d="M256 268l-16 30h32z" fill="#0b1418"/>
+  <g fill="#0b1418"><rect x="214" y="326" width="12" height="24"/><rect x="250" y="326" width="12" height="24"/><rect x="286" y="326" width="12" height="24"/></g>
+</svg>

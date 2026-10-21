@@ -1,0 +1,123 @@
+# Fabrique l'APK Android à chaque envoi sur main : tests d'abord, puis export, puis publication
+# sur la release « apk-test » (lien de téléchargement fixe).
+name: APK Android
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7.2
+  APK: build/android/damnes-des-sept-mers.apk
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Cache de Godot et des modèles d'export Android
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
+          key: godot-${{ env.GODOT_VERSION }}-android-v1
+
+      - name: Installer Godot et les modèles d'export Android
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -e
+          BASE=https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable
+          mkdir -p ~/godot && cd ~/godot
+          wget -q $BASE/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip
+          unzip -q Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip
+          mv Godot_v${GODOT_VERSION}-stable_linux.x86_64 godot && rm *.zip
+          wget -q $BASE/Godot_v${GODOT_VERSION}-stable_export_templates.tpz
+          TPL=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mkdir -p $TPL
+          # on ne garde que les fichiers Android (le paquet complet pèse plus d'1 Go)
+          unzip -q -j Godot_v${GODOT_VERSION}-stable_export_templates.tpz "templates/android_*" "templates/version.txt" -d $TPL
+          rm *.tpz
+          ls -la $TPL
+
+      - name: Réglages Android de Godot (chemins du SDK et de Java)
+        run: |
+          mkdir -p ~/.config/godot
+          for f in editor_settings-4.tres editor_settings-4.7.tres; do
+            cat > ~/.config/godot/$f <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          EOF
+          done
+          cat ~/.config/godot/editor_settings-4.7.tres
+          ls $ANDROID_HOME/build-tools | tail -3
+
+      - name: Importer le projet
+        run: ~/godot/godot --headless --path . --import
+
+      - name: Tests automatiques
+        run: ~/godot/godot --headless --path . -s addons/gut/gut_cmdln.gd
+
+      - name: Numéro de version (augmente à chaque fabrication)
+        run: |
+          BASE=$(sed -nE 's/^config\/version="([0-9]+\.[0-9]+)\.[0-9]+"/\1/p' project.godot)
+          VERSION="$BASE.${{ github.run_number }}"
+          sed -i -E "s/^config\/version=.*/config\/version=\"$VERSION\"/" project.godot
+          sed -i -E "s/^version\/code=.*/version\/code=${{ github.run_number }}/; s/^version\/name=.*/version\/name=\"$VERSION\"/" export_presets.cfg
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Version : $VERSION"
+
+      - name: Exporter l'APK
+        env:
+          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: ${{ github.workspace }}/android/cle_de_test.keystore
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: android
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ github.workspace }}/android/cle_de_test.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+        run: |
+          mkdir -p build/android
+          ~/godot/godot --headless --path . --export-release "Android" "$APK"
+          test -s "$APK"
+          ls -la "$APK"
+
+      - name: Vérifier l'APK (nom du paquet, version, signature)
+        run: |
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          $BT/aapt dump badging "$APK" | head -3
+          $BT/apksigner verify --print-certs "$APK" | head -3
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: damnes-des-sept-mers-${{ env.VERSION }}
+          path: ${{ env.APK }}
+
+      - name: Publier sur la release « apk-test »
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=apk-test
+          if ! gh release view $TAG >/dev/null 2>&1; then
+            gh release create $TAG --prerelease --target main --title "APK de test" --notes "Dernier APK de test."
+          fi
+          gh release upload $TAG "$APK" --clobber
+          gh release edit $TAG --notes "Version $VERSION · commit ${GITHUB_SHA::7} · $(date -u '+%d/%m/%Y %H:%M') UTC"

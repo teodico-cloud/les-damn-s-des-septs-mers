@@ -3,6 +3,7 @@
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 mkdir -p "$ROOT/third_party"
+touch "$ROOT/third_party/.gdignore"  # le projet Godot du jeu ignore ce dossier
 for r in KayKit-Character-Pack-Adventures-1.0 KayKit-Character-Pack-Skeletons-1.0 KayKit-Dungeon-Remastered-1.0; do
   if [ ! -d "$ROOT/third_party/$r" ]; then
     git clone --depth 1 "https://github.com/KayKit-Game-Assets/$r" "$ROOT/third_party/$r"
