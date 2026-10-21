@@ -5,18 +5,25 @@ name: APK Android
 on:
   push:
     branches: [main]
+    paths-ignore: ["**.md", "docs/**"]   # une modification de la doc seule ne refabrique pas l'APK
   workflow_dispatch:
 
 permissions:
   contents: write
 
+# Une fabrication en cours n'est jamais annulée (sinon le lien de l'APK peut rester cassé pendant
+# l'envoi) ; seule la plus récente des fabrications en attente est gardée.
 concurrency:
   group: apk
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   GODOT_VERSION: 4.7.2
   APK: build/android/damnes-des-sept-mers.apk
+
+defaults:
+  run:
+    shell: bash   # active pipefail : une commande qui échoue avant un « | » fait échouer l'étape
 
 jobs:
   apk:
@@ -24,6 +31,8 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-java@v4
         with:
@@ -74,8 +83,19 @@ jobs:
       - name: Importer le projet
         run: ~/godot/godot --headless --path . --import
 
+      - name: Vérifier la syntaxe de tous les scripts du jeu et des tests
+        run: |
+          for f in $(git ls-files '*.gd' ':!addons/**' ':!tools/**'); do
+            ~/godot/godot --headless --path . --check-only -s "res://$f" || { echo "Script en erreur : $f"; exit 1; }
+          done
+
       - name: Tests automatiques
-        run: ~/godot/godot --headless --path . -s addons/gut/gut_cmdln.gd
+        run: |
+          ~/godot/godot --headless --path . -s addons/gut/gut_cmdln.gd 2>&1 | tee gut.log
+          # GUT ignore un fichier de test qui ne se charge pas sans échouer : on le refuse ici
+          if grep -qE "Parse Error|Failed to load script|Ignoring script" gut.log; then
+            echo "Un fichier de test n'a pas pu être chargé"; exit 1
+          fi
 
       - name: Numéro de version (augmente à chaque fabrication)
         run: |
@@ -112,6 +132,8 @@ jobs:
           path: ${{ env.APK }}
 
       - name: Publier sur la release « apk-test »
+        # seulement depuis main : une autre branche ne doit pas remplacer l'APK de Téo
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

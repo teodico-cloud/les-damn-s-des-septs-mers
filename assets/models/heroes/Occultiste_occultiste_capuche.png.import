@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://brfpdtx0bbyrh"
-path="res://.godot/imported/Occultiste_occultiste_capuche.png-03732600c765a636c15d529010d97ef4.ctex"
+path.s3tc="res://.godot/imported/Occultiste_occultiste_capuche.png-03732600c765a636c15d529010d97ef4.s3tc.ctex"
+path.etc2="res://.godot/imported/Occultiste_occultiste_capuche.png-03732600c765a636c15d529010d97ef4.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "0ad8fcb14c72b84e23afa403109a7217"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/heroes/Occultiste_occultiste_capuche.png"
-dest_files=["res://.godot/imported/Occultiste_occultiste_capuche.png-03732600c765a636c15d529010d97ef4.ctex"]
+dest_files=["res://.godot/imported/Occultiste_occultiste_capuche.png-03732600c765a636c15d529010d97ef4.s3tc.ctex", "res://.godot/imported/Occultiste_occultiste_capuche.png-03732600c765a636c15d529010d97ef4.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -43,6 +43,7 @@ var label_fps: Label
 var label_action: Label
 var appui_pos := Vector2.ZERO
 var appui_actif := false
+var doigt := -1
 var a_glisse := false
 var compteur_fps := 0.0
 
@@ -252,16 +253,20 @@ func _label(taille: int, couleur: Color) -> Label:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Seul le premier doigt posé compte ; un toucher annulé par le système (geste retour,
+	# barre d'état) ne déclenche pas d'action.
 	if event is InputEventScreenTouch:
 		if event.pressed:
-			appui_actif = true
-			a_glisse = false
-			appui_pos = event.position
-		elif appui_actif:
+			if not appui_actif:
+				appui_actif = true
+				doigt = event.index
+				a_glisse = false
+				appui_pos = event.position
+		elif appui_actif and event.index == doigt:
 			appui_actif = false
-			if not a_glisse:
+			if not a_glisse and not event.canceled:
 				action_suivante()
-	elif event is InputEventScreenDrag and appui_actif:
+	elif event is InputEventScreenDrag and appui_actif and event.index == doigt:
 		if event.position.distance_to(appui_pos) > SEUIL_GLISSER:
 			a_glisse = true
 		if a_glisse:

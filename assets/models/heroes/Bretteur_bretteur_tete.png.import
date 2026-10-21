@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dk56igwnqqaw1"
-path="res://.godot/imported/Bretteur_bretteur_tete.png-75dc19d315731f3301e338cbe0206d22.ctex"
+path.s3tc="res://.godot/imported/Bretteur_bretteur_tete.png-75dc19d315731f3301e338cbe0206d22.s3tc.ctex"
+path.etc2="res://.godot/imported/Bretteur_bretteur_tete.png-75dc19d315731f3301e338cbe0206d22.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "03693bd79811605adff067815c3d6a17"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/heroes/Bretteur_bretteur_tete.png"
-dest_files=["res://.godot/imported/Bretteur_bretteur_tete.png-75dc19d315731f3301e338cbe0206d22.ctex"]
+dest_files=["res://.godot/imported/Bretteur_bretteur_tete.png-75dc19d315731f3301e338cbe0206d22.s3tc.ctex", "res://.godot/imported/Bretteur_bretteur_tete.png-75dc19d315731f3301e338cbe0206d22.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
