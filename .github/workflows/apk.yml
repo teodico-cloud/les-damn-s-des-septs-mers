@@ -27,14 +27,14 @@ defaults:
 
 jobs:
   apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # figé : ubuntu-latest change de version en octobre 2026
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -121,17 +121,22 @@ jobs:
           ls -la "$APK"
 
       - name: Vérifier l'APK (nom du paquet, version, signature)
-        # Les sorties vont dans des fichiers : un « | head » couperait la commande et, avec pipefail,
-        # ferait échouer l'étape à tort.
+        # Les résultats sont écrits en annotations (::notice:: / ::error::), lisibles via l'API GitHub.
+        # Les sorties passent par des fichiers : un « | head » ferait échouer l'étape à cause de pipefail.
         run: |
           BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
-          "$BT/aapt" dump badging "$APK" > badging.txt
-          grep -E "^(package|sdkVersion|targetSdkVersion|application-label):" badging.txt
-          grep -q "name='fr.teodico.damnes'" badging.txt || { echo "Mauvais nom de paquet"; exit 1; }
-          grep -q "versionName='$VERSION'" badging.txt || { echo "Mauvais numéro de version"; exit 1; }
-          "$BT/apksigner" verify --print-certs "$APK" > certs.txt
-          grep -E "Signer #1 certificate (DN|SHA-256)" certs.txt
-          grep -q "Les Damnes des Sept Mers (test)" certs.txt || { echo "APK non signé avec la clé de test"; exit 1; }
+          echo "::notice::build-tools : $(basename "$BT")"
+          "$BT/aapt" dump badging "$APK" > badging.txt 2> aapt_err.txt \
+            || echo "::warning::aapt a signalé : $(tr '\n' ' ' < aapt_err.txt | cut -c1-300)"
+          echo "::notice::$(grep -m1 '^package:' badging.txt || echo 'aapt : aucune ligne package')"
+          ERR=""
+          grep -q "name='fr.teodico.damnes'" badging.txt || ERR="$ERR nom de paquet ;"
+          grep -q "versionName='$VERSION'" badging.txt || ERR="$ERR version (attendue $VERSION) ;"
+          "$BT/apksigner" verify --print-certs "$APK" > certs.txt 2> signer_err.txt \
+            || ERR="$ERR signature refusée ($(tr '\n' ' ' < signer_err.txt | cut -c1-200)) ;"
+          echo "::notice::$(grep -m1 'certificate DN' certs.txt || echo 'aucun certificat lu')"
+          grep -q "Les Damnes des Sept Mers (test)" certs.txt || ERR="$ERR clé de test absente ;"
+          if [ -n "$ERR" ]; then echo "::error::Vérification de l'APK :$ERR"; exit 1; fi
 
       - uses: actions/upload-artifact@v4
         with:
