@@ -65,6 +65,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   fabrications en attente est gardée. Une modification de `*.md` ou `docs/` seule ne relance rien.
   **Ne jamais renommer `apk.yml`** : le numéro de version Android (= numéro de fabrication) repartirait
   à 1 et le téléphone de Téo refuserait la mise à jour. Ne pas relancer une ancienne fabrication.
+- Workflow en `shell: bash` (pipefail) : ne jamais faire `commande | head` dans une étape — la coupure
+  de `head` fait échouer la commande. Écrire la sortie dans un fichier, puis l'afficher.
 - `tools/` contient un `.gdignore` versionné ; `third_party/` et `build/` en reçoivent un créé par
   `fetch_kaykit.sh` / `render.sh`. Sans lui, Godot importerait des milliers d'assets KayKit.
   Tout nouveau dossier d'outils doit avoir son `.gdignore`.

@@ -121,10 +121,17 @@ jobs:
           ls -la "$APK"
 
       - name: Vérifier l'APK (nom du paquet, version, signature)
+        # Les sorties vont dans des fichiers : un « | head » couperait la commande et, avec pipefail,
+        # ferait échouer l'étape à tort.
         run: |
           BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
-          $BT/aapt dump badging "$APK" | head -3
-          $BT/apksigner verify --print-certs "$APK" | head -3
+          "$BT/aapt" dump badging "$APK" > badging.txt
+          grep -E "^(package|sdkVersion|targetSdkVersion|application-label):" badging.txt
+          grep -q "name='fr.teodico.damnes'" badging.txt || { echo "Mauvais nom de paquet"; exit 1; }
+          grep -q "versionName='$VERSION'" badging.txt || { echo "Mauvais numéro de version"; exit 1; }
+          "$BT/apksigner" verify --print-certs "$APK" > certs.txt
+          grep -E "Signer #1 certificate (DN|SHA-256)" certs.txt
+          grep -q "Les Damnes des Sept Mers (test)" certs.txt || { echo "APK non signé avec la clé de test"; exit 1; }
 
       - uses: actions/upload-artifact@v4
         with:
