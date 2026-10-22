@@ -26,6 +26,8 @@ func test_ecran_titre_se_charge() -> void:
 	assert_eq(ecran.bouton_vitrine.text, "Voir les héros")
 	assert_not_null(ecran.bouton_combat, "Le bouton « Combat d'entraînement » doit exister")
 	assert_eq(ecran.bouton_combat.text, "Combat d'entraînement")
+	assert_not_null(ecran.bouton_coop, "Le bouton « Jouer à deux » doit exister")
+	assert_eq(ecran.bouton_coop.text, "Jouer à deux")
 
 
 func test_scene_vitrine_existe() -> void:
@@ -69,3 +71,20 @@ func test_l_arene_cree_le_heros_choisi() -> void:
 	assert_true(arene.heros is Occultiste, "L'arène crée l'Occultiste choisi")
 	assert_eq(arene.hud.bouton_competence_2.texte, "Chaînes", "Ses boutons portent ses compétences")
 	Engine.time_scale = 1.0
+
+
+func test_ecran_jouer_a_deux() -> void:
+	var ecran = load("res://ui/screens/coop.tscn").instantiate()
+	ecran.changer_de_scene = false
+	add_child_autofree(ecran)
+	await wait_process_frames(2)
+	assert_eq(ecran.vue, ecran.Vue.ACCUEIL, "Accueil : Héberger / Rejoindre")
+	ecran.choisir_rejoindre()
+	assert_eq(ecran.vue, ecran.Vue.RECHERCHE, "Rejoindre : recherche + saisie du code")
+	ecran.champ_code.text = "999"
+	ecran.rejoindre_par_code()
+	assert_eq(ecran.vue, ecran.Vue.RECHERCHE, "Code invalide : on reste sur la recherche")
+	assert_string_contains(ecran.message.text, "Code invalide")
+	ecran.retour()
+	assert_eq(Partie.mode, Partie.Mode.SOLO, "Retour : on repart en solo")
+	assert_false(Reseau.est_en_coop())

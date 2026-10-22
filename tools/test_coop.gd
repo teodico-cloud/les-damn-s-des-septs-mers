@@ -42,6 +42,17 @@ func _echec(raison: String) -> void:
 	quit(1)
 
 
+## Capture d'écran si CAPTURE_DIR est défini (lancer alors avec un affichage : xvfb-run, rendu Compatibility).
+func _capture(nom: String) -> void:
+	if not OS.has_environment("CAPTURE_DIR") or DisplayServer.get_name() == "headless":
+		return
+	await RenderingServer.frame_post_draw
+	var chemin := OS.get_environment("CAPTURE_DIR").path_join(nom)
+	DirAccess.make_dir_recursive_absolute(OS.get_environment("CAPTURE_DIR"))
+	root.get_texture().get_image().save_png(chemin)
+	print("MESURE %s capture %s" % [role, chemin])
+
+
 func _verifier(condition: bool, texte: String) -> void:
 	if condition:
 		print("VERIF ok %s : %s" % [role, texte])
@@ -116,20 +127,33 @@ func _derouler(args: PackedStringArray) -> void:
 
 
 func _hote() -> void:
-	# l'hôte ne bouge pas ; il note toutes les secondes ce qu'il voit
+	# l'hôte ne bouge pas ; il note toutes les secondes ce qu'il voit. À 3 s, il met le héros de
+	# l'invité à terre puis va se placer à côté de lui pour le relever.
 	var partenaire_x_max := -INF
+	arene.heros.sante.rendre_invulnerable(100.0)   # que les squelettes ne gâchent pas l'essai
 	for i in 9:
 		await _attendre(1.0)
 		_mesurer()
+		if i == 2 and is_instance_valid(arene.heros_partenaire):
+			arene.heros_partenaire.recevoir_coup(500.0, null, false)
+			print("MESURE hote met l'invité à terre")
+		if i >= 2 and i <= 6 and is_instance_valid(arene.heros_partenaire):
+			arene.heros.global_position = arene.heros_partenaire.global_position + Vector3(-0.6, 0, 0)
+		if i == 4:
+			await _capture("coop_hote.png")
 		if is_instance_valid(arene.heros_partenaire):
 			partenaire_x_max = maxf(partenaire_x_max, arene.heros_partenaire.global_position.x)
-	_verifier(partenaire_x_max > 4.0, "le héros de l'invité s'est déplacé vers la droite chez l'hôte (x max %.2f)" % partenaire_x_max)
+	# départ en x = 1,2 ; au moins 1,5 m vers la droite (moins qu'en vrai : sans carte graphique, le jeu
+	# peut tourner plus lentement que le temps réel quand il dessine des images)
+	_verifier(partenaire_x_max > 2.7, "le héros de l'invité s'est déplacé vers la droite chez l'hôte (x max %.2f)" % partenaire_x_max)
 	var ennemis: Array = arene.generateur.get_children()
 	var touches := 0
 	for e in ennemis:
 		if e.get("sante") and e.sante.pv < e.sante.pv_max:
 			touches += 1
 	print("MESURE hote fin ennemis=%d touches_par_projectiles=%d invite_pos=%s" % [ennemis.size(), touches, _p(arene.heros_partenaire)])
+	if is_instance_valid(arene.heros_partenaire):
+		_verifier(arene.heros_partenaire.est_vivant(), "le héros de l'invité a été relevé")
 	_verifier(touches >= 1, "les tirs de l'invité ont touché des squelettes chez l'hôte (%d touchés)" % touches)
 	_verifier(arene.generateur.nombre == 3, "3 squelettes gardés en vie à deux (%d)" % arene.generateur.nombre)
 
@@ -144,16 +168,26 @@ func _invite() -> void:
 	h.commandes.deplacement = Vector3.ZERO
 	await _attendre(0.6)
 	_mesurer()
-	_verifier(h.global_position.x > 4.0, "notre héros a bougé tout de suite chez nous (x %.2f)" % h.global_position.x)
+	_verifier(h.global_position.x > 2.7, "notre héros a bougé tout de suite chez nous (x %.2f)" % h.global_position.x)
 	_comparer_avec_l_hote(h)
 	# 2) tirer pendant 4 s (doigt gardé sur Attaque) en surveillant la fluidité de l'affichage :
 	#    plus grand saut d'une image à l'autre du héros de l'hôte et des squelettes
 	fin = Time.get_ticks_msec() + 4000
+	var capture_faite := false
+	var vu_a_terre := false
+	var vu_releve := false
 	var avant := {}
 	var plus_grand_saut := 0.0
 	while Time.get_ticks_msec() < fin:
 		h.commandes.demander(&"attaque", h.horloge)
 		await physics_frame
+		if h.etat == 7:   # MORT : à terre
+			vu_a_terre = true
+		elif vu_a_terre:
+			vu_releve = true
+		if not capture_faite and Time.get_ticks_msec() > fin - 3000:
+			capture_faite = true
+			await _capture("coop_invite.png")
 		for n in [arene.heros_partenaire] + arene.generateur.get_children():
 			if not is_instance_valid(n):
 				continue
@@ -163,6 +197,15 @@ func _invite() -> void:
 			avant[n.name] = p
 	print("MESURE invite fluidite plus_grand_saut_par_image=%.3f m recalages=%d plus_grand_recalage=%.2f m" % [plus_grand_saut, arene.synchro.recalages, arene.synchro.plus_grand_recalage])
 	_verifier(plus_grand_saut < 0.4, "affichage fluide du monde de l'hôte (saut max %.2f m par image)" % plus_grand_saut)
+	var fin_attente := Time.get_ticks_msec() + 4000
+	while Time.get_ticks_msec() < fin_attente and not vu_releve:
+		await physics_frame
+		if h.etat == 7:
+			vu_a_terre = true
+		elif vu_a_terre:
+			vu_releve = true
+	_verifier(vu_a_terre, "l'hôte a mis notre héros à terre (vu chez nous)")
+	_verifier(vu_releve, "puis notre partenaire nous a relevés (vu chez nous)")
 	await _attendre(1.0)
 	_mesurer()
 	print("MESURE invite fin coups_affiches=%d pos_locale=%s" % [coups_recus, _p(h)])

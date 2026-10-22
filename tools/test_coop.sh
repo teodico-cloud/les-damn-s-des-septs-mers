@@ -7,11 +7,14 @@ cd "$(dirname "$0")/.."
 GODOT="${GODOT:-godot}"
 SORTIE="build/test_coop"
 mkdir -p "$SORTIE"
+touch build/.gdignore   # que Godot n'importe pas ce dossier
 SCRIPT="$PWD/tools/test_coop.gd"
-timeout 60 "$GODOT" --headless --path . -s "$SCRIPT" -- hote > "$SORTIE/hote.log" 2>&1 &
+# AFFICHAGE="xvfb-run -a" + OPTIONS_RENDU : pour des captures (CAPTURE_DIR), sinon sans écran
+LANCER="${AFFICHAGE:-} $GODOT ${OPTIONS_RENDU:---headless} --path ."
+timeout 60 $LANCER -s "$SCRIPT" -- hote > "$SORTIE/hote.log" 2>&1 &
 PID_HOTE=$!
 sleep 2
-timeout 60 "$GODOT" --headless --path . -s "$SCRIPT" -- invite "${1:-127.0.0.1}" > "$SORTIE/invite.log" 2>&1
+timeout 60 $LANCER -s "$SCRIPT" -- invite "${1:-127.0.0.1}" > "$SORTIE/invite.log" 2>&1
 CODE_INVITE=$?
 wait $PID_HOTE
 CODE_HOTE=$?

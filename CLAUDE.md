@@ -29,11 +29,14 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 
 ## Arborescence actuelle
 - `project.godot`, `export_presets.cfg` (Android arm64, paquet `fr.teodico.damnes`), `icon.svg`.
-- `ui/screens/` : écrans (écran titre `demarrage.tscn` = scène principale ; `choix_heros.tscn` avant l'arène).
+- `ui/screens/` : écrans (écran titre `demarrage.tscn` = scène principale ; `choix_heros.tscn` avant l'arène ;
+  `coop.tscn` « Jouer à deux » : héberger / rejoindre, parties trouvées sur le Wi-Fi, code de secours).
 - `game/vitrine/` : vitrine des héros (jalon 0) : héros, salle, actions au toucher, compteur d'images.
 - Combat (jalon 1) :
   - `autoload/event_bus.gd` : signaux globaux (`coup_porte`, `ennemi_vaincu`, `heros_mort`, `heros_reapparu`).
-  - `autoload/partie.gd` : état de la partie partagé entre écrans (héros choisi ; plus tard mode coop).
+  - `autoload/partie.gd` : état de la partie partagé entre écrans (héros choisi, mode solo / hôte / invité).
+  - `autoload/reseau.gd` (Reseau) : session de coop (ENet, port 34778 ; annonces UDP 34779 ; code = dernier
+    nombre de l'adresse de l'hôte). Les messages de l'invité pendant le combat passent par lui.
   - `data/equilibrage.tres` (+ `core/resources/equilibrage.gd`) : **toutes** les valeurs de réglage du combat.
   - `core/components/` : `Sante` (PV, invulnérabilité), `Recharge` (temps de recharge).
   - `game/combat/` : `Combat` (couches de collision, zones de coup, `porter_coup`), `CameraCombat`,
@@ -43,7 +46,11 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
     par archétype (`Bretteur`, `Occultiste` ; `Heros.creer(&"occultiste")`) et `CommandesHeros` (ce que
     le joueur demande : seule entrée du héros, pour que le réseau puisse la remplir plus tard).
   - `game/enemies/` : `Ennemi` (Matelot squelette), `GenerateurEnnemis`.
-  - `game/arene/` : arène d'entraînement, tout construit par code.
+  - `game/arene/` : arène d'entraînement, tout construit par code ; `regles_coop.gd` (hôte) : réanimation
+    du partenaire, retour au départ si les deux tombent.
+  - `game/reseau/synchro_arene.gd` (nœud « Synchro » de l'arène) : l'hôte simule tout et envoie 30
+    instantanés/s + les événements ; l'invité prédit son héros et affiche le reste en « marionnettes »
+    (`marionnette = true` sur Heros et Ennemi : affichés d'après l'hôte, sans règles).
   - `ui/hud/` : `HudCombat`, `JoystickFlottant`, `BoutonAction`.
   - `assets/models/enemies/` : squelette et lame KayKit ; `assets/materials/` : matières partagées.
 - `tests/unit/` : tests GUT (`test_*.gd`) ; `addons/gut/` : GUT 9.7.1 (exclu de l'APK).
@@ -70,7 +77,12 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   `xvfb-run -a godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720 -s "$PWD/tools/capture_scene.gd" -- res://game/vitrine/vitrine.tscn build/apercus/vitrine.png [nb_actions] [nb_images]`
 - Captures mises en scène du combat (annonce, coup, fente) + état du combat dans la console :
   `xvfb-run -a godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720 -s "$PWD/tools/capture_combat.gd" -- build/apercus`
-  (même chose pour l'Occultiste : `tools/capture_occultiste.gd`)
+  (même chose pour l'Occultiste : `tools/capture_occultiste.gd` ; écran « Jouer à deux » : `tools/capture_coop_ecrans.gd`)
+- Essai de la coop (hôte + invité sur cette machine, vérifications automatiques, aussi dans le CI) :
+  `GODOT=<godot> tools/test_coop.sh [127.0.0.1|auto]` ; Wi-Fi imparfait simulé : préfixer
+  `LATENCE_MS=30 GIGUE_MS=20 PERTE_PCT=3` ; captures des deux écrans : ajouter
+  `CAPTURE_DIR=$PWD/build/apercus AFFICHAGE="xvfb-run -a" OPTIONS_RENDU="--rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720"`
+  (avec le rendu, le jeu tourne ici plus lentement que le temps réel : distances plus courtes, c'est normal)
 - Suivre la fabrication de l'APK : `gh api repos/teodico-cloud/les-damn-s-des-septs-mers/actions/runs`
 - Diagnostics d'une fabrication (les journaux bruts ne sont pas lisibles d'ici, le workflow écrit ses
   diagnostics en annotations) : `gh api repos/teodico-cloud/les-damn-s-des-septs-mers/check-runs/<id du job>/annotations`
@@ -133,6 +145,17 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   animation au début : `play()` puis `seek(0, true)` (voir `_jouer`).
 - Recul des squelettes : la valeur de `equilibrage.tres` est une distance en mètres ; la vitesse de départ
   est `sqrt(2 × freinage × distance)`.
+- Coop : un message envoyé à un nœud que l'autre téléphone n'a pas encore (arène pas encore ouverte)
+  est perdu ET casse le cache des chemins de Godot (erreurs « Node not found » en rafale). L'invité
+  passe donc par l'autoload `Reseau` (présent partout dès le démarrage) et n'envoie rien d'autre que
+  « prêt » avant le premier instantané de l'hôte ; l'hôte n'envoie rien avant ce « prêt ».
+- Coop, recalage de l'invité : après une correction, corriger aussi l'historique **à partir du même
+  n°** d'entrée (`>= ack`), sinon un instantané suivant portant le même n° refait la correction et le
+  héros dérive sans fin (vu : 322 km quand le jeu ralentit).
+- Coop : chez l'invité, `Combat.porter_coup` ne fait rien (l'hôte décide de tous les coups). Une règle
+  de jeu ne doit jamais tourner sur une marionnette (Heros/Ennemi `marionnette = true`).
+- Coop : tout nouvel état visible (marque, chaînes, invisible…) doit passer dans `instantane()` et
+  `appliquer_instantane()` des deux côtés, sinon l'invité ne le voit pas.
 - Aperçus (rendu Compatibility) : l'erreur « Dual paraboloid shadow mode not supported » est normale
   (ombre de torche) ; sur téléphone (rendu Mobile) ce mode marche.
 - Blender en script : ne jamais nommer un fichier comme un module Python standard (`inspect.py`…) :

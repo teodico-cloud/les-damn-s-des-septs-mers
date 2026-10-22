@@ -30,8 +30,11 @@ var point_reapparition := Vector3.ZERO
 var horloge := 0.0          ## temps de jeu écoulé (sert au tampon des commandes)
 ## Coop : héros de l'autre téléphone affiché chez soi, sans simulation (positions reçues par le réseau).
 var marionnette := false
-## Coop, invité : son propre héros ne réapparaît que sur ordre de l'hôte.
+## Coop : pas de réapparition toute seule (le partenaire relève, ou retour au départ si les deux tombent).
 var reapparition_auto := true
+## Coop : progression de la réanimation (0 à 1) quand ce héros est à terre.
+var progres_reanimation := 0.0
+var _zone_reanimation: Node3D
 
 var _t := 0.0               ## temps passé dans l'état courant
 var _direction := Vector3.BACK   ## direction de l'action en cours
@@ -303,6 +306,8 @@ func _etat_mort() -> void:
 
 func reapparaitre(ou: Variant = null) -> void:
 	global_position = ou if ou is Vector3 else point_reapparition
+	progres_reanimation = 0.0
+	afficher_reanimation(0.0, false)
 	collision_layer = Combat.COUCHE_HEROS
 	_collisions_normales()
 	sante.soigner_completement()
@@ -326,11 +331,13 @@ func temps_avant_reapparition() -> float:
 ## Ce que l'hôte envoie de ce héros à chaque instantané (voir SynchroArene).
 func instantane() -> Array:
 	var nom_anim := String(anim.current_animation)
-	return [global_position, rotation.y, int(etat), nom_anim, anim.get_playing_speed(), sante.pv, visuel.visible]
+	return [global_position, rotation.y, int(etat), nom_anim, anim.get_playing_speed(), sante.pv, visuel.visible,
+			progres_reanimation]
 
 
 ## Marionnette : applique ce que l'hôte a envoyé (la position est posée à part, lissée).
-func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: float, visible_recu: bool) -> void:
+func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: float, visible_recu: bool, progres := 0.0) -> void:
+	afficher_reanimation(progres, etat_recu == int(Etat.MORT))
 	if etat_recu != int(etat):
 		etat = etat_recu as Etat
 		_t = 0.0
@@ -366,6 +373,56 @@ func evenement_autorite(type: String, pv: float, point: Vector3) -> void:
 				_on_mort(null)
 		"reapparu":
 			reapparaitre(point)
+			sante.definir_pv(pv)   # relevé par le partenaire : seulement une partie des PV
+
+
+## Coop (hôte) : le partenaire l'a relevé ; il repart avec une partie de ses PV.
+func relever(part_pv: float) -> void:
+	afficher_reanimation(0.0, false)
+	collision_layer = Combat.COUCHE_HEROS
+	_collisions_normales()
+	sante.soigner_completement()
+	sante.definir_pv(sante.pv_max * part_pv)
+	sante.rendre_invulnerable(EQ.reanimation_invulnerable)
+	commandes.vider()
+	_reinitialiser()
+	_jouer("Idle", 1.0, 0.2, true)
+	_changer(Etat.LIBRE)
+	EventBus.heros_reapparu.emit(self)
+
+
+## Coop : zone verte au sol autour du héros à terre (où se placer pour le relever) qui se remplit.
+func afficher_reanimation(progres: float, visible_zone: bool) -> void:
+	progres_reanimation = progres
+	if not visible_zone:
+		if _zone_reanimation:
+			_zone_reanimation.visible = false
+		return
+	if _zone_reanimation == null:
+		_zone_reanimation = Node3D.new()
+		for i in 2:
+			var m := MeshInstance3D.new()
+			var disque := CylinderMesh.new()
+			disque.top_radius = EQ.reanimation_rayon
+			disque.bottom_radius = EQ.reanimation_rayon
+			disque.height = 0.02
+			disque.radial_segments = 32
+			disque.rings = 1
+			m.mesh = disque
+			var mat := StandardMaterial3D.new()
+			mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mat.albedo_color = Color(0.35, 1.0, 0.55, 0.18 if i == 0 else 0.5)
+			mat.render_priority = i
+			m.material_override = mat
+			m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			m.position.y = 0.09 + 0.004 * i
+			m.name = "Zone" if i == 0 else "Remplissage"
+			_zone_reanimation.add_child(m)
+		add_child(_zone_reanimation)
+	_zone_reanimation.visible = true
+	var f := maxf(progres, 0.01)
+	(_zone_reanimation.get_node("Remplissage") as Node3D).scale = Vector3(f, 1, f)
 
 
 ## La parade du Bretteur a réussi chez l'hôte : on joue la riposte chez soi aussi.

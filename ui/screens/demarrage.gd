@@ -74,7 +74,7 @@ func _construire() -> void:
 	colonne.add_child(centre_coop)
 
 	bouton_vitrine = _bouton("Voir les héros")
-	bouton_vitrine.custom_minimum_size = Vector2(440, 80)
+	bouton_vitrine.custom_minimum_size = Vector2(500, 80)
 	bouton_vitrine.add_theme_font_size_override("font_size", 32)
 	bouton_vitrine.pressed.connect(_ouvrir_vitrine)
 	var centre := CenterContainer.new()
@@ -95,7 +95,7 @@ func _construire() -> void:
 func _bouton(texte: String) -> Button:
 	var b := Button.new()
 	b.text = texte
-	b.custom_minimum_size = Vector2(440, 96)
+	b.custom_minimum_size = Vector2(500, 96)
 	b.add_theme_font_size_override("font_size", 38)
 	b.add_theme_color_override("font_color", COULEUR_OS)
 	for etat in ["normal", "hover", "pressed", "focus"]:

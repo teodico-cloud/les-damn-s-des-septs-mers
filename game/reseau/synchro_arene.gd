@@ -267,6 +267,7 @@ func _recaler(heros: Dictionary, ack: int) -> void:
 		return
 	var donnees: Array = heros[cle]
 	heros_local.sante.definir_pv(donnees[5])
+	heros_local.afficher_reanimation(donnees[7], heros_local.etat == Heros.Etat.MORT)
 	if not _historique.has(ack):
 		return
 	var ecart: Vector3 = donnees[0] - _historique[ack]
@@ -278,9 +279,12 @@ func _recaler(heros: Dictionary, ack: int) -> void:
 	plus_grand_recalage = maxf(plus_grand_recalage, ecart.length())
 	if ecart.length() < SEUIL_SAUT:
 		_decalage_visuel -= ecart   # l'image reste où elle était, puis rejoint le corps
+	# les prédictions à partir de ce n° partaient de la mauvaise position : on les corrige aussi.
+	# (Y compris celle de ce n° : sinon un instantané suivant portant le même n° — l'hôte n'a rien
+	# reçu de neuf entre-temps — referait la même correction, et le héros dériverait.)
 	for s in _historique:
-		if s > ack:
-			_historique[s] += ecart   # les prédictions suivantes partaient de la mauvaise position
+		if s >= ack:
+			_historique[s] += ecart
 
 
 func _creer_ou_retirer_ennemis(ennemis: Dictionary) -> void:
@@ -323,7 +327,7 @@ func _afficher_monde() -> void:
 			var db: Array = b[1][cle]
 			heros_partenaire.global_position = (da[0] as Vector3).lerp(db[0], f)
 			heros_partenaire.rotation.y = lerp_angle(da[1], db[1], f)
-			heros_partenaire.appliquer_instantane(db[2], db[3], db[4], db[5], db[6])
+			heros_partenaire.appliquer_instantane(db[2], db[3], db[4], db[5], db[6], db[7])
 	# squelettes (marionnettes)
 	for e in generateur.get_children():
 		if not (e is Ennemi):

@@ -33,6 +33,15 @@ func _faire_apparaitre() -> void:
 	ennemi_cree.emit(e)
 
 
+## Coop, les deux héros tombés : on repart à zéro (tous les squelettes remplacés).
+func reinitialiser() -> void:
+	for e in get_children():
+		if e is Ennemi:
+			e.queue_free()
+	for i in nombre:
+		_faire_apparaitre()
+
+
 func _point_libre() -> Vector3:
 	var heros := get_tree().get_nodes_in_group("heros")
 	for essai in 30:

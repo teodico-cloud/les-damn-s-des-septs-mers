@@ -153,9 +153,11 @@ func _afficher(v: Vue) -> void:
 			r.pressed.connect(choisir_rejoindre)
 			zone.add_child(r)
 		Vue.ATTENTE_HOTE:
-			titre.text = "Tu héberges — code %d" % Reseau.code_local()
-			message.text = "Tu joues %s. En attente de ton partenaire…\nS'il ne voit pas ta partie, il tape le code %d." \
-					% [NOMS.get(Partie.heros_local, "?"), Reseau.code_local()]
+			var code := Reseau.code_local()
+			titre.text = "Tu héberges — code %d" % code if code > 0 else "Tu héberges"
+			message.text = "Tu joues %s. En attente de ton partenaire…\n" % NOMS.get(Partie.heros_local, "?")
+			message.text += "S'il ne voit pas ta partie, il tape le code %d." % code if code > 0 \
+					else "Aucun Wi-Fi détecté : vérifie que le téléphone y est connecté."
 			bouton_lancer = _bouton("Lancer le combat", 520)
 			bouton_lancer.disabled = true
 			bouton_lancer.pressed.connect(lancer)
@@ -173,6 +175,14 @@ func _afficher(v: Vue) -> void:
 			champ_code.add_theme_font_size_override("font_size", 40)
 			champ_code.alignment = HORIZONTAL_ALIGNMENT_CENTER
 			champ_code.max_length = 3
+			for etat in ["normal", "focus"]:
+				var st := StyleBoxFlat.new()
+				st.bg_color = Color("1a120d")
+				st.border_color = COULEUR_OR
+				st.set_border_width_all(3 if etat == "normal" else 5)
+				st.set_corner_radius_all(14)
+				champ_code.add_theme_stylebox_override(etat, st)
+			champ_code.add_theme_color_override("font_color", COULEUR_OS)
 			ligne.add_child(champ_code)
 			var ok := _bouton("Rejoindre", 300)
 			ok.pressed.connect(rejoindre_par_code)

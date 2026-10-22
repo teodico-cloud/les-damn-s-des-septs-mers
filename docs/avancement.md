@@ -7,8 +7,9 @@ Dernière mise à jour : 22 octobre 2026.
 - **Héros : validés par Téo.** Bretteur et Occultiste, visages durs et détails pirates.
 - **Jalon 0 : validé par Téo** (« Tout marche » ; la vitrine tourne à 120 images/s sur son téléphone).
 - **Jalon 1 (combat solo du Bretteur) : validé par Téo.**
-- **Jalon 2 (coop Wi-Fi) en cours.** Étape 1 faite (Occultiste jouable, choix du héros, yeux rouges des
-  squelettes) : relue, corrigée, 75 tests ; APK intermédiaire envoyé à Téo. Étape 2 (coop) commencée.
+- **Jalon 2 (coop Wi-Fi) : écrit et testé ici, en relecture avant APK.** Étape 1 (Occultiste, choix du héros,
+  yeux rouges) envoyée à Téo en APK intermédiaire (0.2.6). Étapes 2 et 3 (coop, réanimation) : 89 tests
+  automatiques + essai à deux copies du jeu (Wi-Fi parfait, moyen et mauvais simulés).
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -26,6 +27,27 @@ Matelots squelettes qui reviennent sans fin.
 - Tests automatiques : 53 au total (règles du combat chronométrées dans un petit monde de test, PV,
   recharges, arrêt sur image, toucher à plusieurs doigts, arène qui se construit, chargement de tous
   les scripts).
+
+## Coop (jalon 2) : comment ça marche
+- Écran titre → « Jouer à deux ». Un téléphone **héberge** (il choisit son héros, voit un code), l'autre
+  **rejoint** : la partie apparaît d'elle-même sur le même Wi-Fi ; sinon il tape le code de l'hôte.
+  L'invité prend l'autre héros. L'hôte appuie sur « Lancer le combat ».
+- L'hôte décide de tout (coups, squelettes, morts) et envoie 30 « instantanés » par seconde. L'invité
+  bouge son héros tout de suite chez lui (pas de retard ressenti) ; s'il s'écarte de ce que l'hôte a
+  décidé, il est recalé en douceur. Le reste est affiché avec 0,1 s de retard pour être fluide.
+- 3 squelettes à deux ; anneau doré sous son héros, vert sous celui du partenaire ; arrêt sur image
+  seulement sur le frappeur et sa cible ; la caméra ne tremble que pour ses propres coups.
+- À terre : le partenaire reste 3 s dans la zone verte pour relever (moitié des PV). Les deux à terre :
+  « Vous êtes tombés… », retour au départ et squelettes remis à zéro.
+- Si l'invité part : l'hôte continue seul. Si l'hôte part : l'invité revient au menu avec un message.
+
+## Ce que Téo devra vérifier sur l'APK du jalon 2 (deux téléphones sur le même Wi-Fi)
+1. « Jouer à deux » : héberger sur l'un, rejoindre sur l'autre (la partie apparaît, ou avec le code).
+2. Les deux héros, les mêmes squelettes aux mêmes endroits sur les deux écrans ; ça reste fluide.
+3. Chacun bouge et frappe sans retard ressenti ; les coups de l'un se voient chez l'autre.
+4. La Marque de l'Occultiste fait plus mal aux coups du Bretteur ; les Chaînes bloquent pour les deux.
+5. Tomber, être relevé par l'autre ; tomber tous les deux → retour au départ.
+6. Quitter d'un côté (bouton Menu) : l'autre est prévenu.
 
 ## Ce que Téo devra vérifier sur l'APK du jalon 1
 1. « Combat d'entraînement » ouvre l'arène ; deux squelettes sortent de terre.
@@ -115,11 +137,9 @@ Matelots squelettes qui reviennent sans fin.
 - Ennemis : noms stables nécessaires pour la réplication.
 
 ## Prochaines étapes
-1. Essai de l'Occultiste par Téo (APK intermédiaire).
-2. Jalon 2, étape 2 : coop sur le même Wi-Fi (héberger / rejoindre, synchro des deux héros et des
-   squelettes, anneau coloré, 3 squelettes à deux).
-3. Jalon 2, étape 3 : réanimation du partenaire, « les deux tombent = retour au départ », arrêt sur
-   image propre à chaque joueur. Puis relecture de fin de jalon et APK.
+1. Relecture de fin de jalon 2, corrections, APK.
+2. Essai de Téo sur deux téléphones (jalon « porte » : on corrige avant d'avancer).
+3. Jalon 3 : raid jouable (salles, 3 ennemis, mini-boss, malédiction, extraction).
 
 ## Points à trancher plus tard
 - Clé de signature définitive : passer à la vraie clé (secrète) **avant** que les sauvegardes comptent,

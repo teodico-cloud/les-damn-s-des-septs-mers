@@ -102,6 +102,14 @@ extends Resource
 @export_group("Arène d'entraînement")
 @export var arene_nb_ennemis := 2
 @export var arene_nb_ennemis_coop := 3         ## à deux (choix de Téo)
+
+@export_group("Coop : réanimation")
+@export var reanimation_rayon := 1.8           ## mètres : le partenaire doit rester aussi près
+@export var reanimation_duree := 3.0           ## secondes près du héros à terre pour le relever
+@export var reanimation_pv := 0.5              ## part des PV rendus (0,5 = la moitié)
+@export var reanimation_invulnerable := 1.5    ## secondes intouchable en se relevant
+@export var reanimation_oubli := 0.5           ## la progression redescend à cette vitesse s'il s'éloigne
+@export var coop_delai_retour := 3.0           ## les deux à terre : secondes avant le retour au départ
 @export var arene_delai_apparition := 1.6
 @export var arene_distance_apparition_min := 4.5
 

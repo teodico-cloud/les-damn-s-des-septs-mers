@@ -234,12 +234,18 @@ func quitter() -> void:
 
 
 # ---------------------------------------------------------------- adresse et code
-## Adresse de ce téléphone sur le Wi-Fi (adresse privée IPv4), ou "" s'il n'y en a pas.
+## Adresse de ce téléphone sur le Wi-Fi (IPv4) : de préférence une adresse privée de box
+## (192.168…, 10…, 172.16 à 31…), sinon toute autre adresse IPv4 utilisable ; "" s'il n'y en a pas.
 func adresse_locale() -> String:
+	var autre := ""
 	for a in IP.get_local_addresses():
+		if a.count(".") != 3 or a.begins_with("127.") or a.begins_with("169.254."):
+			continue
 		if a.begins_with("192.168.") or a.begins_with("10.") or _est_172_prive(a):
 			return a
-	return ""
+		if autre == "":
+			autre = a
+	return autre
 
 
 func _est_172_prive(a: String) -> bool:

@@ -95,6 +95,21 @@ jobs:
             exit 1
           fi
 
+      - name: Essai de la coop (un hôte et un invité sur la même machine)
+        run: |
+          # deux copies du jeu se connectent, jouent ensemble et vérifient qu'elles voient la même chose,
+          # sur un Wi-Fi parfait puis sur un Wi-Fi moyen simulé (retard, irrégularité, pertes)
+          ECHEC=0
+          GODOT=~/godot/godot tools/test_coop.sh > coop.txt 2>&1 || ECHEC=1
+          LATENCE_MS=30 GIGUE_MS=20 PERTE_PCT=3 GODOT=~/godot/godot tools/test_coop.sh > coop_wifi_moyen.txt 2>&1 || ECHEC=1
+          cat coop.txt coop_wifi_moyen.txt
+          if [ "$ECHEC" = 1 ]; then
+            grep -hE "ECHEC" coop.txt coop_wifi_moyen.txt > erreurs_coop.txt || true
+            while read -r l; do echo "::error::$l"; done < erreurs_coop.txt
+            echo "::error::Essai de la coop en échec"
+            exit 1
+          fi
+
       - name: Numéro de version (augmente à chaque fabrication)
         run: |
           BASE=$(sed -nE 's/^config\/version="([0-9]+\.[0-9]+)\.[0-9]+"/\1/p' project.godot)

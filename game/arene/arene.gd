@@ -13,6 +13,7 @@ const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 var heros: Heros               ## le héros de ce téléphone
 var heros_partenaire: Heros    ## coop : celui de l'autre téléphone
 var synchro: SynchroArene
+var regles: ReglesCoop         ## coop, hôte : réanimation et retour au départ
 var camera: CameraCombat
 var effets: EffetsCombat
 var generateur: GenerateurEnnemis
@@ -70,6 +71,11 @@ func _ready() -> void:
 		generateur.nombre = EQ.arene_nb_ennemis
 	add_child(generateur)
 
+	if coop and hote:
+		regles = ReglesCoop.new()
+		regles.name = "Regles"
+		regles.configurer(heros, heros_partenaire, generateur)
+		add_child(regles)
 	if coop:
 		synchro = SynchroArene.new()
 		synchro.name = "Synchro"
@@ -79,6 +85,8 @@ func _ready() -> void:
 
 	hud = HudCombat.new()
 	hud.heros = heros
+	hud.heros_partenaire = heros_partenaire
+	hud.regles = regles
 	hud.camera = camera
 	hud.menu_demande.connect(retour_menu)
 	add_child(hud)
@@ -110,6 +118,12 @@ func _on_partenaire_parti(raison: String) -> void:
 		if synchro:
 			synchro.queue_free()
 			synchro = null
+		if regles:
+			regles.queue_free()
+			regles = null
+		hud.heros_partenaire = null
+		hud.regles = null
+		heros.reapparition_auto = true   # seul : il réapparaît de nouveau tout seul
 		effets.en_coop = false
 		hud.afficher_message(raison + "\nTu continues seul.", 4.0)
 		Reseau.quitter()

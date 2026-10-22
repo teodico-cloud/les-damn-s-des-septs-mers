@@ -9,6 +9,8 @@ signal menu_demande
 const COULEUR_OS := Color("e2d6ba")
 
 var heros: Heros
+var heros_partenaire: Heros    ## coop (sinon nul)
+var regles: Node               ## coop, hôte : ReglesCoop (compte à rebours quand les deux sont à terre)
 var camera: CameraCombat
 var joystick: JoystickFlottant
 var bouton_attaque: BoutonAction
@@ -18,6 +20,8 @@ var bouton_competence_2: BoutonAction
 var barre_vie: Control
 var label_mort: Label
 var label_message: Label
+var label_partenaire: Label
+var _les_deux_a_terre_depuis := -1.0
 var bouton_menu: Button
 var _boutons: Array[BoutonAction] = []
 var _actions := {}   ## BoutonAction -> nom d'action
@@ -78,6 +82,15 @@ func _ready() -> void:
 	label_mort.visible = false
 	label_mort.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	racine.add_child(label_mort)
+
+	label_partenaire = label_mort.duplicate() as Label
+	label_partenaire.add_theme_color_override("font_color", Color("6cffa0"))
+	label_partenaire.add_theme_font_size_override("font_size", 30)
+	label_partenaire.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	label_partenaire.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	label_partenaire.position.y = 80
+	label_partenaire.text = "Ton partenaire est à terre : reste près de lui pour le relever !"
+	racine.add_child(label_partenaire)
 
 	label_message = label_mort.duplicate() as Label
 	label_message.add_theme_color_override("font_color", Color("e2d6ba"))
@@ -212,9 +225,30 @@ func _process(_delta: float) -> void:
 		v = clavier
 	heros.commandes.deplacement = camera.joystick_vers_monde(v) if camera else Vector3(v.x, 0, v.y)
 
-	label_mort.visible = not heros.est_vivant()
-	if label_mort.visible:
+	_textes_a_terre()
+
+
+## Textes quand un héros est à terre (solo : compte à rebours ; coop : réanimation ou retour au départ).
+func _textes_a_terre() -> void:
+	var moi_a_terre := not heros.est_vivant()
+	var coop := heros_partenaire != null and is_instance_valid(heros_partenaire)
+	var lui_a_terre := coop and not heros_partenaire.est_vivant()
+	label_partenaire.visible = coop and lui_a_terre and not moi_a_terre
+	label_mort.visible = moi_a_terre
+	if not moi_a_terre:
+		_les_deux_a_terre_depuis = -1.0
+		return
+	if not coop:
 		label_mort.text = "Vous êtes tombé…\nRetour dans %d s" % ceili(heros.temps_avant_reapparition())
+	elif not lui_a_terre:
+		_les_deux_a_terre_depuis = -1.0
+		label_mort.text = "Tu es à terre !\nTon partenaire peut te relever (%d %%)" % roundi(heros.progres_reanimation * 100.0)
+	else:
+		var t := Time.get_ticks_msec() / 1000.0
+		if _les_deux_a_terre_depuis < 0.0:
+			_les_deux_a_terre_depuis = t
+		var reste: float = regles.temps_avant_retour if regles else heros.EQ.coop_delai_retour - (t - _les_deux_a_terre_depuis)
+		label_mort.text = "Vous êtes tombés…\nRetour au départ dans %d s" % maxi(ceili(reste), 0)
 
 
 func _dessiner_vie() -> void:
