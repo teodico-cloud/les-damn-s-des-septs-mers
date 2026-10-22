@@ -52,6 +52,34 @@ extends Resource
 @export var fente_rayon := 1.2
 @export var fente_recharge := 5.0
 
+@export_group("Occultiste")
+@export var occ_pv_max := 80.0                 ## plus fragile : il doit garder ses distances
+@export var occ_tir_animation := "Spellcast_Shoot"
+@export var occ_tir_vitesse_animation := 1.6
+@export var occ_tir_instant := 0.27            ## secondes dans l'animation (baguette tendue)
+@export var occ_tir_cadence := 0.45            ## secondes minimum entre deux tirs (≈ 2 par seconde)
+@export var occ_tir_degats := 9.0
+@export var occ_tir_portee := 9.0              ## mètres (aussi la portée de la visée assistée)
+@export var occ_tir_vitesse := 14.0            ## m/s
+@export var occ_tir_rayon := 0.35              ## taille de la zone qui touche
+@export var occ_tele_distance := 4.0
+@export var occ_tele_duree := 0.12             ## secondes « disparu » pendant le saut
+@export var occ_tele_invulnerabilite := 0.3
+@export var occ_tele_recharge := 1.2
+@export var occ_marque_duree := 6.0
+@export var occ_marque_bonus_partenaire := 0.4 ## +40 % de dégâts du partenaire sur la cible
+@export var occ_marque_bonus_soi := 0.15       ## +15 % pour l'Occultiste lui-même
+@export var occ_marque_portee := 9.0
+@export var occ_marque_recharge := 8.0
+@export var occ_marque_instant := 0.15         ## secondes après l'appui où la marque se pose
+@export var occ_marque_duree_geste := 0.35     ## secondes immobile pendant le geste
+@export var occ_chaines_rayon := 2.5
+@export var occ_chaines_duree := 2.0           ## secondes d'immobilisation
+@export var occ_chaines_portee := 8.0          ## distance max du centre de la zone
+@export var occ_chaines_recharge := 10.0
+@export var occ_chaines_instant := 0.28
+@export var occ_chaines_duree_geste := 0.55
+
 @export_group("Matelot squelette")
 @export var squelette_pv_max := 60.0
 @export var squelette_vitesse := 2.9

@@ -8,7 +8,7 @@ var heros: Heros
 func before_each() -> void:
 	var monde := Node3D.new()
 	add_child_autofree(monde)
-	heros = Heros.new()
+	heros = Bretteur.new()
 	monde.add_child(heros)
 	var camera := CameraCombat.new()
 	camera.cible = heros
@@ -52,8 +52,8 @@ func test_joystick_et_attaque_en_meme_temps() -> void:
 func test_chaque_bouton_demande_son_action() -> void:
 	var attendus := {
 		hud.bouton_esquive: &"esquive",
-		hud.bouton_parade: &"competence_1",
-		hud.bouton_fente: &"competence_2",
+		hud.bouton_competence_1: &"competence_1",
+		hud.bouton_competence_2: &"competence_2",
 	}
 	var i := 0
 	for b in attendus:

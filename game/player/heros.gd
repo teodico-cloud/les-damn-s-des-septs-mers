@@ -1,36 +1,41 @@
 class_name Heros
 extends CharacterBody3D
-## Héros jouable (jalon 1 : le Bretteur). Il obéit à ses CommandesHeros (remplies par l'interface,
-## plus tard reçues du réseau) et gère ses états : libre, attaque en combo, esquive, parade, riposte,
-## fente, touché, mort. Les valeurs de réglage viennent de data/equilibrage.tres.
+## Base commune des héros jouables (Bretteur, Occultiste…). Elle obéit aux CommandesHeros (remplies
+## par l'interface, plus tard reçues du réseau) et gère ce qui est commun : déplacement, visée assistée,
+## temps de recharge, coup reçu, mort et réapparition. Chaque archétype (bretteur.gd, occultiste.gd)
+## ajoute son attaque, son esquive et ses deux compétences. Réglages : data/equilibrage.tres.
 
 const EQ: Equilibrage = preload("res://data/equilibrage.tres")
+const ARCHETYPES := {
+	&"bretteur": "res://game/player/bretteur.gd",
+	&"occultiste": "res://game/player/occultiste.gd",
+}
 
-enum Etat { LIBRE, ATTAQUE, ESQUIVE, PARADE, RIPOSTE, FENTE, TOUCHE, MORT }
+## Tous les états possibles ; chaque archétype n'en utilise qu'une partie.
+enum Etat { LIBRE, ATTAQUE, ESQUIVE, PARADE, RIPOSTE, FENTE, TOUCHE, MORT, INCANTATION }
 
 signal etat_change(etat: Etat)
 
-@export var modele: PackedScene = preload("res://assets/models/heroes/Bretteur.glb")
-
+var archetype := &""
+var modele: PackedScene
 var etat: Etat = Etat.LIBRE
 var commandes := CommandesHeros.new()
 var sante: Sante
 var anim: AnimationPlayer
 var visuel: Node3D
-var recharge_esquive := Recharge.new(EQ.esquive_recharge)
-var recharge_parade := Recharge.new(EQ.parade_recharge)
-var recharge_fente := Recharge.new(EQ.fente_recharge)
+var recharge_esquive: Recharge
+var recharge_competence_1: Recharge
+var recharge_competence_2: Recharge
 var point_reapparition := Vector3.ZERO
 var horloge := 0.0          ## temps de jeu écoulé (sert au tampon des commandes)
 
 var _t := 0.0               ## temps passé dans l'état courant
 var _direction := Vector3.BACK   ## direction de l'action en cours
-var _combo := -1            ## coup du combo en cours (0, 1, 2)
-var _fin_dernier_coup := -10.0
-var _impact_fait := false
-var _duree_action := 0.0
-var _cible_riposte: Node3D
-var _deja_touches: Array[Node3D] = []
+
+
+## Crée le héros d'un archétype (&"bretteur", &"occultiste"), prêt à être placé puis ajouté.
+static func creer(nom: StringName) -> Heros:
+	return load(ARCHETYPES[nom]).new()
 
 
 func _ready() -> void:
@@ -53,16 +58,62 @@ func _ready() -> void:
 		anim.get_animation(boucle).loop_mode = Animation.LOOP_LINEAR
 
 	sante = Sante.new()
-	sante.pv_max = EQ.heros_pv_max
+	sante.pv_max = pv_max()
 	add_child(sante)
 	sante.mort.connect(_on_mort)
 
 	point_reapparition = global_position
 	_jouer("Idle")
+	_pret()
 
 
 func avant() -> Vector3:
 	return global_transform.basis.z
+
+
+# ---------------------------------------------------------------- à fournir par chaque archétype
+func pv_max() -> float:
+	return EQ.heros_pv_max
+
+
+## Textes des 4 boutons de l'interface.
+func noms_boutons() -> Dictionary:
+	return {&"attaque": "Attaque", &"esquive": "Esquive", &"competence_1": "", &"competence_2": ""}
+
+
+func _pret() -> void:
+	pass
+
+
+func _commencer_attaque() -> void:
+	pass
+
+
+func _commencer_esquive() -> bool:
+	return false
+
+
+func _commencer_competence_1() -> bool:
+	return false
+
+
+func _commencer_competence_2() -> bool:
+	return false
+
+
+## États propres à l'archétype (attaque, esquive, compétences).
+func _etat_specifique(_delta: float) -> void:
+	_changer(Etat.LIBRE)
+
+
+## Vrai si l'archétype absorbe ce coup (ex. parade du Bretteur).
+func _intercepter_coup(_source: Node3D) -> bool:
+	return false
+
+
+## Remise à zéro des actions propres (combo…) à la réapparition.
+func _reinitialiser() -> void:
+	pass
 
 
 # ---------------------------------------------------------------- boucle
@@ -70,18 +121,14 @@ func _physics_process(delta: float) -> void:
 	horloge += delta
 	_t += delta
 	recharge_esquive.avancer(delta)
-	recharge_parade.avancer(delta)
-	recharge_fente.avancer(delta)
+	recharge_competence_1.avancer(delta)
+	recharge_competence_2.avancer(delta)
 
 	match etat:
 		Etat.LIBRE: _etat_libre(delta)
-		Etat.ATTAQUE: _etat_attaque(delta)
-		Etat.ESQUIVE: _etat_esquive()
-		Etat.PARADE: _etat_parade()
-		Etat.RIPOSTE: _etat_riposte()
-		Etat.FENTE: _etat_fente()
 		Etat.TOUCHE: _etat_touche()
 		Etat.MORT: _etat_mort()
+		_: _etat_specifique(delta)
 
 	if is_on_floor():
 		velocity.y = -0.5
@@ -96,18 +143,27 @@ func _changer(nouvel: Etat) -> void:
 	etat_change.emit(etat)
 
 
-## Essaie de lancer une action défensive ou une compétence demandée ; vrai si l'une est partie.
+## Essaie de lancer l'esquive ou une compétence demandée ; vrai si l'une est partie.
+## Une compétence sans cible possible n'est pas consommée (la demande reste en attente un instant).
 func _essayer_actions_prioritaires() -> bool:
-	if recharge_esquive.prete() and commandes.prendre(&"esquive", horloge):
-		_commencer_esquive()
+	if recharge_esquive.prete() and commandes.en_attente(&"esquive", horloge) and _commencer_esquive():
+		commandes.prendre(&"esquive", horloge)
+		recharge_esquive.declencher()
 		return true
-	if recharge_parade.prete() and commandes.prendre(&"competence_1", horloge):
-		_commencer_parade()
+	if recharge_competence_1.prete() and commandes.en_attente(&"competence_1", horloge) and _commencer_competence_1():
+		commandes.prendre(&"competence_1", horloge)
+		recharge_competence_1.declencher()
 		return true
-	if recharge_fente.prete() and commandes.prendre(&"competence_2", horloge):
-		_commencer_fente()
+	if recharge_competence_2.prete() and commandes.en_attente(&"competence_2", horloge) and _commencer_competence_2():
+		commandes.prendre(&"competence_2", horloge)
+		recharge_competence_2.declencher()
 		return true
 	return false
+
+
+## Remet les collisions normales (après une esquive ou une ruée qui traverse les ennemis).
+func _collisions_normales() -> void:
+	collision_mask = Combat.COUCHE_MONDE | Combat.COUCHE_ENNEMIS
 
 
 # ---------------------------------------------------------------- libre
@@ -115,8 +171,7 @@ func _etat_libre(delta: float) -> void:
 	if _essayer_actions_prioritaires():
 		return
 	if commandes.prendre(&"attaque", horloge):
-		var suivant := _combo + 1 if (horloge - _fin_dernier_coup <= EQ.combo_fenetre and _combo < 2) else 0
-		_commencer_coup(suivant)
+		_commencer_attaque()
 		return
 	var dir := commandes.deplacement
 	if dir.length() > 1.0:
@@ -140,162 +195,49 @@ func _faire_face(dir: Vector3) -> void:
 		rotation.y = atan2(dir.x, dir.z)
 
 
+func _immobile() -> void:
+	velocity.x = 0.0
+	velocity.z = 0.0
+
+
 # ---------------------------------------------------------------- visée assistée
+## Ennemi visé : sans joystick, le plus proche ; avec le joystick poussé, celui le plus proche de sa
+## direction (dans un cône de 60°). Jamais un squelette qui sort encore de terre. Null si aucun.
+func cible_visee(portee := EQ.visee_portee) -> Node3D:
+	var joy := Vector3(commandes.deplacement.x, 0, commandes.deplacement.z)
+	var avec_joystick := joy.length() > 0.25
+	var meilleur: Node3D = null
+	var meilleur_score := INF
+	for e in get_tree().get_nodes_in_group("ennemis"):
+		if not (e is Node3D and e.has_method("est_ciblable") and e.est_ciblable()):
+			continue
+		var d := global_position.distance_to(e.global_position)
+		if d > portee:
+			continue
+		var score := d
+		if avec_joystick:
+			var angle := rad_to_deg(joy.normalized().angle_to(Combat.direction_plate(global_position, e.global_position)))
+			if angle > 60.0:
+				continue
+			score = angle + d   # surtout l'angle, la distance départage
+		if score < meilleur_score:
+			meilleur_score = score
+			meilleur = e
+	return meilleur
+
+
 ## Direction de l'action : le joystick s'il est poussé, sinon l'ennemi ciblable le plus proche
 ## (s'il est assez près ; pas un squelette qui sort encore de terre), sinon droit devant.
-func direction_visee() -> Vector3:
+func direction_visee(portee := EQ.visee_portee) -> Vector3:
 	var joy := commandes.deplacement
 	if joy.length() > 0.25:
 		return Vector3(joy.x, 0, joy.z).normalized()
-	var meilleur: Node3D = null
-	var meilleure_dist := EQ.visee_portee
-	for e in get_tree().get_nodes_in_group("ennemis"):
-		if e is Node3D and e.has_method("est_ciblable") and e.est_ciblable():
-			var d := global_position.distance_to(e.global_position)
-			if d < meilleure_dist:
-				meilleure_dist = d
-				meilleur = e
-	if meilleur:
-		var v := Combat.direction_plate(global_position, meilleur.global_position)
+	var cible := cible_visee(portee)
+	if cible:
+		var v := Combat.direction_plate(global_position, cible.global_position)
 		if v != Vector3.ZERO:
 			return v
 	return Vector3(avant().x, 0, avant().z).normalized()
-
-
-# ---------------------------------------------------------------- combo d'attaque
-func _commencer_coup(index: int) -> void:
-	_combo = index
-	_direction = direction_visee()
-	_faire_face(_direction)
-	_impact_fait = false
-	var nom: String = EQ.combo_animations[index]
-	_duree_action = anim.get_animation(nom).length / EQ.combo_vitesse_animation
-	_jouer(nom, EQ.combo_vitesse_animation, 0.08, true)
-	_changer(Etat.ATTAQUE)
-
-
-func _etat_attaque(_delta: float) -> void:
-	var impact: float = EQ.combo_instant_impact[_combo] / EQ.combo_vitesse_animation
-	# petit pas en avant jusqu'à l'impact, puis immobile
-	var pas := EQ.combo_pas_en_avant / maxf(impact, 0.05) if _t < impact else 0.0
-	velocity.x = _direction.x * pas
-	velocity.z = _direction.z * pas
-	if commandes.en_attente(&"esquive", horloge) and recharge_esquive.prete():
-		_essayer_actions_prioritaires()   # l'esquive peut interrompre un coup à tout moment
-		return
-	if not _impact_fait and _t >= impact:
-		_impact_fait = true
-		_frapper_combo()
-	if _impact_fait:
-		if _essayer_actions_prioritaires():
-			return
-		if _combo < 2 and _t >= impact + 0.08 and commandes.prendre(&"attaque", horloge):
-			_commencer_coup(_combo + 1)
-			return
-	if _t >= _duree_action:
-		_fin_dernier_coup = horloge
-		_changer(Etat.LIBRE)
-
-
-func _frapper_combo() -> void:
-	var centre := global_position + _direction * EQ.combo_portee + Vector3.UP
-	var lourd: bool = EQ.combo_lourd[_combo]
-	for cible in Combat.cibles_dans_sphere(get_world_3d(), centre, EQ.combo_rayon, Combat.COUCHE_ENNEMIS, [self]):
-		Combat.porter_coup(self, cible, EQ.combo_degats[_combo], lourd)
-
-
-# ---------------------------------------------------------------- esquive
-func _commencer_esquive() -> void:
-	recharge_esquive.declencher()
-	var joy := commandes.deplacement
-	_direction = Vector3(joy.x, 0, joy.z).normalized() if joy.length() > 0.2 else Vector3(avant().x, 0, avant().z).normalized()
-	_faire_face(_direction)
-	sante.rendre_invulnerable(EQ.esquive_invulnerabilite)
-	collision_mask = Combat.COUCHE_MONDE   # on roule à travers les ennemis
-	var duree_anim := anim.get_animation("Dodge_Forward").length
-	_jouer("Dodge_Forward", duree_anim / EQ.esquive_duree, 0.05, true)
-	_changer(Etat.ESQUIVE)
-
-
-func _etat_esquive() -> void:
-	var v := EQ.esquive_distance / EQ.esquive_duree
-	velocity.x = _direction.x * v
-	velocity.z = _direction.z * v
-	if _t >= EQ.esquive_duree:
-		collision_mask = Combat.COUCHE_MONDE | Combat.COUCHE_ENNEMIS
-		velocity.x = 0
-		velocity.z = 0
-		_changer(Etat.LIBRE)
-
-
-# ---------------------------------------------------------------- parade-riposte
-func _commencer_parade() -> void:
-	recharge_parade.declencher()
-	_faire_face(direction_visee())
-	velocity.x = 0
-	velocity.z = 0
-	_jouer("Block", 1.0, 0.05, true)
-	_changer(Etat.PARADE)
-
-
-func _etat_parade() -> void:
-	velocity.x = 0
-	velocity.z = 0
-	if _t >= EQ.parade_fenetre:
-		_changer(Etat.LIBRE)
-
-
-func _riposter(source: Node3D) -> void:
-	_cible_riposte = source
-	_faire_face(Combat.direction_plate(global_position, source.global_position))
-	_impact_fait = false
-	_duree_action = anim.get_animation("Block_Attack").length / EQ.riposte_vitesse_animation
-	sante.rendre_invulnerable(_duree_action)
-	_jouer("Block_Attack", EQ.riposte_vitesse_animation, 0.04, true)
-	_changer(Etat.RIPOSTE)
-
-
-func _etat_riposte() -> void:
-	velocity.x = 0
-	velocity.z = 0
-	if not _impact_fait and _t >= EQ.riposte_instant_impact / EQ.riposte_vitesse_animation:
-		_impact_fait = true
-		if is_instance_valid(_cible_riposte) and _cible_riposte.has_method("est_vivant") and _cible_riposte.est_vivant() \
-				and global_position.distance_to(_cible_riposte.global_position) < EQ.riposte_distance_max:
-			Combat.porter_coup(self, _cible_riposte, EQ.riposte_degats, true)
-			if _cible_riposte.has_method("etourdir"):
-				_cible_riposte.etourdir(EQ.riposte_etourdissement)
-	if _t >= _duree_action:
-		_changer(Etat.LIBRE)
-
-
-# ---------------------------------------------------------------- fente
-func _commencer_fente() -> void:
-	recharge_fente.declencher()
-	_direction = direction_visee()
-	_faire_face(_direction)
-	_deja_touches.clear()
-	collision_mask = Combat.COUCHE_MONDE   # la fente traverse les ennemis
-	_jouer("1H_Melee_Attack_Stab", 3.0, 0.04, true)
-	_changer(Etat.FENTE)
-
-
-func _etat_fente() -> void:
-	var v := EQ.fente_distance / EQ.fente_duree
-	if _t < EQ.fente_duree:
-		velocity.x = _direction.x * v
-		velocity.z = _direction.z * v
-		var centre := global_position + Vector3.UP + _direction * 0.4
-		for cible in Combat.cibles_dans_sphere(get_world_3d(), centre, EQ.fente_rayon, Combat.COUCHE_ENNEMIS, [self]):
-			if not _deja_touches.has(cible):
-				_deja_touches.append(cible)
-				Combat.porter_coup(self, cible, EQ.fente_degats, true)
-	else:
-		velocity.x = 0
-		velocity.z = 0
-		collision_mask = Combat.COUCHE_MONDE | Combat.COUCHE_ENNEMIS
-		if _t >= EQ.fente_duree + 0.15:
-			_changer(Etat.LIBRE)
 
 
 # ---------------------------------------------------------------- dégâts reçus
@@ -303,8 +245,7 @@ func _etat_fente() -> void:
 func recevoir_coup(degats: float, source: Node3D, _lourd: bool) -> float:
 	if etat == Etat.MORT:
 		return 0.0
-	if etat == Etat.PARADE and source and Combat.est_devant(self, source, EQ.parade_angle):
-		_riposter(source)
+	if _intercepter_coup(source):
 		return 0.0
 	var reel := sante.subir(degats, source)
 	if reel <= 0.0:
@@ -313,11 +254,17 @@ func recevoir_coup(degats: float, source: Node3D, _lourd: bool) -> float:
 	if sante.est_mort:
 		return reel
 	sante.rendre_invulnerable(EQ.heros_invulnerable_apres_coup)
-	collision_mask = Combat.COUCHE_MONDE | Combat.COUCHE_ENNEMIS
+	_quitter_action()
+	_collisions_normales()
 	_direction = Combat.direction_plate(source.global_position, global_position) if source else -avant()
 	_jouer("Hit_A", 1.3, 0.04, true)
 	_changer(Etat.TOUCHE)
 	return reel
+
+
+## Appelé quand une action est coupée (coup reçu, mort) : l'archétype remet son visuel en ordre.
+func _quitter_action() -> void:
+	pass
 
 
 func _etat_touche() -> void:
@@ -331,14 +278,14 @@ func _etat_touche() -> void:
 func _on_mort(_source: Node) -> void:
 	velocity = Vector3.ZERO
 	collision_layer = 0
+	_quitter_action()
 	_jouer("Death_A", 1.0, 0.05, true)
 	_changer(Etat.MORT)
 	EventBus.heros_mort.emit(self)
 
 
 func _etat_mort() -> void:
-	velocity.x = 0
-	velocity.z = 0
+	_immobile()
 	if _t >= EQ.heros_delai_reapparition:
 		reapparaitre()
 
@@ -346,11 +293,11 @@ func _etat_mort() -> void:
 func reapparaitre() -> void:
 	global_position = point_reapparition
 	collision_layer = Combat.COUCHE_HEROS
-	collision_mask = Combat.COUCHE_MONDE | Combat.COUCHE_ENNEMIS
+	_collisions_normales()
 	sante.soigner_completement()
 	sante.rendre_invulnerable(EQ.heros_invulnerable_reapparition)
 	commandes.vider()
-	_combo = -1
+	_reinitialiser()
 	_jouer("Idle", 1.0, 0.0, true)
 	_changer(Etat.LIBRE)
 	EventBus.heros_reapparu.emit(self)

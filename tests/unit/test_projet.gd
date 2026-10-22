@@ -46,3 +46,26 @@ func test_arene_se_construit_et_fait_venir_les_squelettes() -> void:
 	assert_eq(get_tree().get_nodes_in_group("ennemis").size(), eq.arene_nb_ennemis, "Les squelettes arrivent")
 	assert_eq(Engine.time_scale, 1.0, "Le jeu tourne à vitesse normale (pas d'arrêt sur image bloqué)")
 	Engine.time_scale = 1.0
+
+
+func test_choix_du_heros() -> void:
+	var ecran = load("res://ui/screens/choix_heros.tscn").instantiate()
+	ecran.changer_de_scene = false
+	add_child_autofree(ecran)
+	await wait_process_frames(2)
+	assert_eq(ecran.cartes.size(), 2, "Une carte par héros")
+	ecran.cartes[&"occultiste"].pressed.emit()
+	assert_eq(Partie.heros_local, &"occultiste")
+	ecran.cartes[&"bretteur"].pressed.emit()
+	assert_eq(Partie.heros_local, &"bretteur")
+
+
+func test_l_arene_cree_le_heros_choisi() -> void:
+	Partie.heros_local = &"occultiste"
+	var arene = load("res://game/arene/arene.tscn").instantiate()
+	add_child_autofree(arene)
+	await wait_process_frames(2)
+	Partie.heros_local = &"bretteur"
+	assert_true(arene.heros is Occultiste, "L'arène crée l'Occultiste choisi")
+	assert_eq(arene.hud.bouton_competence_2.texte, "Chaînes", "Ses boutons portent ses compétences")
+	Engine.time_scale = 1.0

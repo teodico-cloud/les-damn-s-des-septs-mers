@@ -22,7 +22,7 @@ func before_each() -> void:
 	sol.add_child(forme)
 	sol.position.y = -0.1
 	monde.add_child(sol)
-	heros = Heros.new()
+	heros = Bretteur.new()
 	monde.add_child(heros)
 	await wait_physics_frames(3)
 
@@ -169,7 +169,7 @@ func test_parade_ne_protege_pas_du_dos() -> void:
 func test_parade_a_un_temps_de_recharge() -> void:
 	_demander(&"competence_1")
 	await wait_physics_frames(2)
-	assert_false(heros.recharge_parade.prete())
+	assert_false(heros.recharge_competence_1.prete())
 	await _secondes(EQ.parade_fenetre + 0.1)
 	_demander(&"competence_1")
 	await wait_physics_frames(2)
@@ -188,7 +188,7 @@ func test_fente_traverse_et_touche_plusieurs_ennemis() -> void:
 	assert_eq(e1.sante.pv, EQ.squelette_pv_max - EQ.fente_degats, "1er ennemi touché une seule fois")
 	assert_eq(e2.sante.pv, EQ.squelette_pv_max - EQ.fente_degats, "2e ennemi touché aussi")
 	assert_gt(heros.global_position.z, 3.5, "Le héros est passé à travers")
-	assert_false(heros.recharge_fente.prete(), "La fente est en recharge")
+	assert_false(heros.recharge_competence_2.prete(), "La fente est en recharge")
 
 
 # ---------------------------------------------------------------- squelette
@@ -202,6 +202,17 @@ func test_le_squelette_annonce_puis_frappe() -> void:
 	assert_eq(heros.sante.pv, EQ.heros_pv_max, "Pas encore de dégâts pendant l'annonce")
 	await _secondes(EQ.squelette_preparation)
 	assert_eq(heros.sante.pv, EQ.heros_pv_max - EQ.squelette_degats, "Puis le coup porte")
+
+
+func test_les_yeux_rougeoient_pendant_l_annonce() -> void:
+	heros.set_physics_process(false)
+	var e := _ennemi(Vector3(0, 0, 1.6), false)
+	assert_null(e._yeux.material_override, "Yeux normaux au départ")
+	await _secondes(0.2)
+	assert_eq(e.etat, Ennemi.Etat.PREPARATION)
+	assert_not_null(e._yeux.material_override, "Yeux rouges pendant l'annonce")
+	await _secondes(EQ.squelette_preparation + EQ.squelette_duree_frappe)
+	assert_null(e._yeux.material_override, "Redeviennent normaux après le coup")
 
 
 func test_coup_leger_n_interrompt_pas_l_annonce_mais_coup_lourd_oui() -> void:

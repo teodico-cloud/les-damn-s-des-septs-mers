@@ -13,8 +13,8 @@ var camera: CameraCombat
 var joystick: JoystickFlottant
 var bouton_attaque: BoutonAction
 var bouton_esquive: BoutonAction
-var bouton_parade: BoutonAction
-var bouton_fente: BoutonAction
+var bouton_competence_1: BoutonAction
+var bouton_competence_2: BoutonAction
 var barre_vie: Control
 var label_mort: Label
 var bouton_menu: Button
@@ -34,10 +34,11 @@ func _ready() -> void:
 	joystick = JoystickFlottant.new()
 	racine.add_child(joystick)
 
-	bouton_attaque = _bouton(racine, "Attaque", 96.0, null, Vector2(-170, -170), &"attaque")
-	bouton_esquive = _bouton(racine, "Esquive", 62.0, heros.recharge_esquive, Vector2(-345, -105), &"esquive")
-	bouton_parade = _bouton(racine, "Parade", 62.0, heros.recharge_parade, Vector2(-330, -285), &"competence_1")
-	bouton_fente = _bouton(racine, "Fente", 62.0, heros.recharge_fente, Vector2(-170, -365), &"competence_2")
+	var noms: Dictionary = heros.noms_boutons()
+	bouton_attaque = _bouton(racine, noms[&"attaque"], 96.0, null, Vector2(-170, -170), &"attaque")
+	bouton_esquive = _bouton(racine, noms[&"esquive"], 62.0, heros.recharge_esquive, Vector2(-345, -105), &"esquive")
+	bouton_competence_1 = _bouton(racine, noms[&"competence_1"], 62.0, heros.recharge_competence_1, Vector2(-330, -285), &"competence_1")
+	bouton_competence_2 = _bouton(racine, noms[&"competence_2"], 62.0, heros.recharge_competence_2, Vector2(-170, -365), &"competence_2")
 
 	barre_vie = Control.new()
 	barre_vie.position = Vector2(24, 20)

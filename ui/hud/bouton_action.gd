@@ -57,7 +57,8 @@ func _draw() -> void:
 			var a := -PI / 2.0 + TAU * f * i / pas
 			points.append(c + Vector2(cos(a), sin(a)) * rayon)
 		draw_colored_polygon(points, Color(0, 0, 0, 0.55))
-		var s := "%.1f" % recharge.restant if recharge.restant < 10.0 else str(ceili(recharge.restant))
+		# arrondi au dixième supérieur : jamais « 0.0 » tant que ce n'est pas prêt
+		var s := "%.1f" % (ceilf(recharge.restant * 10.0) / 10.0) if recharge.restant < 10.0 else str(ceili(recharge.restant))
 		var ts := police.get_string_size(s, HORIZONTAL_ALIGNMENT_CENTER, -1, taille_police + 6)
 		draw_string_outline(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, taille_police + 6, 6, Color.BLACK)
 		draw_string(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, taille_police + 6, Color.WHITE)

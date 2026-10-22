@@ -1,8 +1,8 @@
 extends Control
-## Écran titre : nom du jeu, accès à la vitrine des héros, numéro de version.
+## Écran titre : nom du jeu, combat d'entraînement (via le choix du héros), vitrine, version.
 
 const SCENE_VITRINE := "res://game/vitrine/vitrine.tscn"
-const SCENE_ARENE := "res://game/arene/arene.tscn"
+const SCENE_CHOIX := "res://ui/screens/choix_heros.tscn"
 const COULEUR_OS := Color("e2d6ba")
 const COULEUR_OR := Color("ac8036")
 
@@ -49,7 +49,7 @@ func _construire() -> void:
 	colonne.add_child(titre)
 
 	var sous_titre := Label.new()
-	sous_titre.text = "Prototype — jalon 1"
+	sous_titre.text = "Prototype — jalon 2"
 	sous_titre.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sous_titre.add_theme_font_size_override("font_size", 30)
 	sous_titre.add_theme_color_override("font_color", Color("6cffa0"))
@@ -101,7 +101,7 @@ func _bouton(texte: String) -> Button:
 
 
 func _ouvrir_arene() -> void:
-	get_tree().change_scene_to_file(SCENE_ARENE)
+	get_tree().change_scene_to_file(SCENE_CHOIX)
 
 
 func _ouvrir_vitrine() -> void:

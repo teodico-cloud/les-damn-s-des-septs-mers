@@ -8,7 +8,10 @@ const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 const MODELE := preload("res://assets/models/enemies/Skeleton_Minion.glb")
 const LAME := preload("res://assets/models/enemies/Skeleton_Blade.gltf")
 
-enum Etat { APPARITION, POURSUITE, PREPARATION, FRAPPE, RECUPERATION, TOUCHE, ETOURDI, MORT }
+enum Etat { APPARITION, POURSUITE, PREPARATION, FRAPPE, RECUPERATION, TOUCHE, ETOURDI, MORT, ENCHAINE }
+
+static var _mat_yeux_rouges: StandardMaterial3D
+static var _mat_chaine: StandardMaterial3D
 
 signal vaincu(ennemi: Ennemi)
 
@@ -25,6 +28,11 @@ var _recharge_attaque := 0.0
 var _impact_fait := false
 var _recul := Vector3.ZERO
 var _apparition_rapide := false
+var _yeux: MeshInstance3D           ## yeux du squelette : rougeoient pendant l'annonce du coup
+var _marque_par: Node3D             ## Occultiste qui l'a marqué (Marque maudite)
+var _marque_restant := 0.0
+var _rune: Node3D                   ## rune verte au-dessus de la tête quand il est marqué
+var _chaines: Node3D                ## chaînes spectrales visibles quand il est immobilisé
 
 
 ## Crée un ennemi prêt à être ajouté à la scène. `rapide` saute l'animation de sortie de terre (tests).
@@ -56,6 +64,7 @@ func _ready() -> void:
 		anim.get_animation(boucle).loop_mode = Animation.LOOP_LINEAR
 	_attacher_lame()
 	_creer_marque()
+	_yeux = visuel.find_child("Skeleton_Minion_Eyes", true, false) as MeshInstance3D
 
 	sante = Sante.new()
 	sante.pv_max = EQ.squelette_pv_max
@@ -126,6 +135,10 @@ func _changer(nouvel: Etat, duree := 0.0) -> void:
 	_duree_etat = duree
 	if nouvel != Etat.PREPARATION and nouvel != Etat.FRAPPE:
 		marque.visible = false
+		_yeux_rouges(false)
+	if nouvel != Etat.ENCHAINE and _chaines:
+		_chaines.queue_free()
+		_chaines = null
 
 
 # ---------------------------------------------------------------- boucle
@@ -142,12 +155,18 @@ func _physics_process(delta: float) -> void:
 		Etat.POURSUITE: _poursuivre(delta)
 		Etat.PREPARATION: _preparer()
 		Etat.FRAPPE: _frapper()
-		Etat.RECUPERATION, Etat.TOUCHE, Etat.ETOURDI:
+		Etat.RECUPERATION, Etat.TOUCHE, Etat.ETOURDI, Etat.ENCHAINE:
 			if _t >= _duree_etat:
 				_changer(Etat.POURSUITE)
 		Etat.MORT:
 			if _t >= EQ.squelette_duree_corps:
 				queue_free()
+	if _marque_restant > 0.0:
+		_marque_restant -= delta
+		if _rune:
+			_rune.rotate_y(3.0 * delta)
+		if _marque_restant <= 0.0:
+			_effacer_marque()
 	# recul après un coup reçu
 	if _recul.length() > 0.01:
 		velocity.x += _recul.x
@@ -195,6 +214,7 @@ func _commencer_preparation(dir: Vector3) -> void:
 	var vitesse := EQ.squelette_impact_animation / EQ.squelette_preparation
 	_jouer("1H_Melee_Attack_Chop", vitesse, 0.08, true)
 	marque.visible = true
+	_yeux_rouges(true)
 	_changer(Etat.PREPARATION, EQ.squelette_preparation)
 
 
@@ -226,23 +246,129 @@ func _frapper() -> void:
 func recevoir_coup(degats: float, source: Node3D, lourd: bool) -> float:
 	if etat == Etat.MORT or etat == Etat.APPARITION:
 		return 0.0
-	var reel := sante.subir(degats, source)
+	var reel := sante.subir(degats * multiplicateur_degats(source), source)
 	if reel <= 0.0:
 		return 0.0
 	EventBus.coup_porte.emit(global_position + Vector3.UP * 2.1, reel, lourd, false)
 	Combat.flash(visuel)
-	if source:
+	if source and etat != Etat.ENCHAINE:   # enchaîné : il ne bouge pas, même frappé
 		var distance := EQ.squelette_recul_coup_lourd if lourd else EQ.squelette_recul_quand_touche
 		# vitesse de départ pour parcourir exactement `distance` mètres en freinant
 		var vitesse := sqrt(2.0 * EQ.squelette_freinage_recul * distance)
 		_recul = Combat.direction_plate(source.global_position, global_position) * vitesse
-	if sante.est_mort or etat == Etat.ETOURDI:
+	if sante.est_mort or etat == Etat.ETOURDI or etat == Etat.ENCHAINE:
 		return reel
 	var en_attaque := etat == Etat.PREPARATION or etat == Etat.FRAPPE
 	if lourd or not en_attaque:
 		_jouer("Hit_A", 1.4, 0.04, true)
 		_changer(Etat.TOUCHE, EQ.squelette_duree_touche_lourd if lourd else EQ.squelette_duree_touche)
 	return reel
+
+
+## Bonus de dégâts de la Marque maudite : +40 % pour les coups du partenaire, +15 % pour ceux de
+## l'Occultiste qui l'a posée (réglages occ_marque_bonus_*).
+func multiplicateur_degats(source: Node) -> float:
+	if _marque_restant <= 0.0:
+		return 1.0
+	if source != null and source == _marque_par:
+		return 1.0 + EQ.occ_marque_bonus_soi
+	return 1.0 + EQ.occ_marque_bonus_partenaire
+
+
+func est_marque() -> bool:
+	return _marque_restant > 0.0
+
+
+## Marque maudite posée par un Occultiste.
+func marquer(par: Node3D, duree: float) -> void:
+	if etat == Etat.MORT:
+		return
+	_marque_par = par
+	_marque_restant = duree
+	if _rune == null:
+		_rune = Node3D.new()
+		var anneau := MeshInstance3D.new()
+		var tore := TorusMesh.new()
+		tore.inner_radius = 0.26
+		tore.outer_radius = 0.38
+		tore.rings = 20
+		tore.ring_segments = 6
+		anneau.mesh = tore
+		anneau.material_override = EffetsMagie.mat_rune()
+		anneau.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		anneau.rotation.x = PI / 2.0   # debout, face à la caméra quand il tourne
+		_rune.add_child(anneau)
+		var coeur := MeshInstance3D.new()
+		var losange := SphereMesh.new()
+		losange.radius = 0.11
+		losange.height = 0.34
+		losange.radial_segments = 4
+		losange.rings = 2
+		coeur.mesh = losange
+		coeur.material_override = EffetsMagie.mat_rune()
+		coeur.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_rune.add_child(coeur)
+		_rune.position = Vector3(0, 2.55, 0)
+		add_child(_rune)
+	_rune.visible = true
+
+
+func _effacer_marque() -> void:
+	_marque_restant = 0.0
+	_marque_par = null
+	if _rune:
+		_rune.visible = false
+
+
+## Chaînes spectrales : immobilisé (ni déplacement ni attaque) ; coupe un coup en préparation.
+func immobiliser(duree: float) -> void:
+	if etat == Etat.MORT or etat == Etat.APPARITION:
+		return
+	_recul = Vector3.ZERO
+	_jouer("Idle_Combat", 0.25, 0.1)
+	_changer(Etat.ENCHAINE, duree)
+	if _chaines:   # déjà enchaîné : on remplace les anciennes chaînes
+		_chaines.queue_free()
+	_chaines = _creer_chaines()
+	add_child(_chaines)
+
+
+func _creer_chaines() -> Node3D:
+	if _mat_chaine == null:
+		_mat_chaine = StandardMaterial3D.new()
+		_mat_chaine.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_mat_chaine.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_mat_chaine.albedo_color = Color(0.4, 1.0, 0.55, 0.8)
+	var groupe := Node3D.new()
+	var maillon := CylinderMesh.new()
+	maillon.top_radius = 0.06
+	maillon.bottom_radius = 0.06
+	maillon.height = 1.5
+	maillon.radial_segments = 6
+	maillon.rings = 1
+	for i in 6:
+		var c := MeshInstance3D.new()
+		c.mesh = maillon
+		c.material_override = _mat_chaine
+		c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var a := TAU * i / 6.0 + PI / 6.0
+		# du sol à 0,8 m autour de lui jusqu'à sa taille : penchée vers lui
+		c.position = Vector3(cos(a) * 0.45, 0.65, sin(a) * 0.45)
+		c.rotation = Vector3(sin(a) * 0.55, 0, -cos(a) * 0.55)
+		groupe.add_child(c)
+	return groupe
+
+
+func _yeux_rouges(actif: bool) -> void:
+	if _yeux == null:
+		return
+	if actif and _mat_yeux_rouges == null:
+		_mat_yeux_rouges = StandardMaterial3D.new()
+		_mat_yeux_rouges.albedo_color = Color(0.6, 0.02, 0.0)
+		_mat_yeux_rouges.emission_enabled = true
+		_mat_yeux_rouges.emission = Color(1.0, 0.08, 0.02)
+		_mat_yeux_rouges.emission_energy_multiplier = 4.0
+	_yeux.material_override = _mat_yeux_rouges if actif else null
 
 
 func etourdir(duree: float) -> void:
@@ -253,6 +379,7 @@ func etourdir(duree: float) -> void:
 
 
 func _on_mort(_source: Node) -> void:
+	_effacer_marque()
 	collision_layer = 0
 	collision_mask = Combat.COUCHE_MONDE
 	_jouer("Death_C_Skeletons", 1.0, 0.05, true)

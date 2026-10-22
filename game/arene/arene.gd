@@ -21,7 +21,7 @@ func _ready() -> void:
 	get_tree().set_quit_on_go_back(false)
 	_ambiance()
 	_salle()
-	heros = Heros.new()
+	heros = Heros.creer(Partie.heros_local)
 	heros.position = Vector3(0, 0, 1.5)
 	add_child(heros)
 	heros.rotation.y = PI * 0.25
