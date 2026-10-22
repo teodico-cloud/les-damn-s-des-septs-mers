@@ -83,18 +83,16 @@ jobs:
       - name: Importer le projet
         run: ~/godot/godot --headless --path . --import
 
-      - name: Vérifier la syntaxe de tous les scripts du jeu et des tests
-        run: |
-          for f in $(git ls-files '*.gd' ':!addons/**' ':!tools/**'); do
-            ~/godot/godot --headless --path . --check-only -s "res://$f" || { echo "Script en erreur : $f"; exit 1; }
-          done
-
       - name: Tests automatiques
         run: |
           ~/godot/godot --headless --path . -s addons/gut/gut_cmdln.gd 2>&1 | tee gut.log
-          # GUT ignore un fichier de test qui ne se charge pas sans échouer : on le refuse ici
-          if grep -qE "Parse Error|Failed to load script|Ignoring script" gut.log; then
-            echo "Un fichier de test n'a pas pu être chargé"; exit 1
+          # GUT ignore un fichier de test qui ne se charge pas sans échouer : on le refuse ici.
+          # (Les scripts du jeu sont tous chargés par tests/unit/test_scripts.gd.)
+          if grep -qE "Parse Error|Failed to load script|Ignoring script|SCRIPT ERROR" gut.log; then
+            echo "::error::Un script ou un fichier de test n'a pas pu être chargé"
+            grep -E "Parse Error|Failed to load script|Ignoring script|SCRIPT ERROR" gut.log | head -5 > erreurs.txt || true
+            while read -r l; do echo "::error::$l"; done < erreurs.txt
+            exit 1
           fi
 
       - name: Numéro de version (augmente à chaque fabrication)

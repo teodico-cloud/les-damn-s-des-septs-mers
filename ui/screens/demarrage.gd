@@ -2,10 +2,12 @@ extends Control
 ## Écran titre : nom du jeu, accès à la vitrine des héros, numéro de version.
 
 const SCENE_VITRINE := "res://game/vitrine/vitrine.tscn"
+const SCENE_ARENE := "res://game/arene/arene.tscn"
 const COULEUR_OS := Color("e2d6ba")
 const COULEUR_OR := Color("ac8036")
 
 var bouton_vitrine: Button
+var bouton_combat: Button
 
 
 func _ready() -> void:
@@ -47,17 +49,25 @@ func _construire() -> void:
 	colonne.add_child(titre)
 
 	var sous_titre := Label.new()
-	sous_titre.text = "Prototype — jalon 0"
+	sous_titre.text = "Prototype — jalon 1"
 	sous_titre.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sous_titre.add_theme_font_size_override("font_size", 30)
 	sous_titre.add_theme_color_override("font_color", Color("6cffa0"))
 	colonne.add_child(sous_titre)
 
 	var espace := Control.new()
-	espace.custom_minimum_size = Vector2(0, 30)
+	espace.custom_minimum_size = Vector2(0, 10)
 	colonne.add_child(espace)
 
+	bouton_combat = _bouton("Combat d'entraînement")
+	bouton_combat.pressed.connect(_ouvrir_arene)
+	var centre_combat := CenterContainer.new()
+	centre_combat.add_child(bouton_combat)
+	colonne.add_child(centre_combat)
+
 	bouton_vitrine = _bouton("Voir les héros")
+	bouton_vitrine.custom_minimum_size = Vector2(440, 90)
+	bouton_vitrine.add_theme_font_size_override("font_size", 32)
 	bouton_vitrine.pressed.connect(_ouvrir_vitrine)
 	var centre := CenterContainer.new()
 	centre.add_child(bouton_vitrine)
@@ -88,6 +98,10 @@ func _bouton(texte: String) -> Button:
 		s.set_corner_radius_all(14)
 		b.add_theme_stylebox_override(etat, s)
 	return b
+
+
+func _ouvrir_arene() -> void:
+	get_tree().change_scene_to_file(SCENE_ARENE)
 
 
 func _ouvrir_vitrine() -> void:

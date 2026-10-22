@@ -31,7 +31,20 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - `project.godot`, `export_presets.cfg` (Android arm64, paquet `fr.teodico.damnes`), `icon.svg`.
 - `ui/screens/` : écrans (écran titre `demarrage.tscn` = scène principale).
 - `game/vitrine/` : vitrine des héros (jalon 0) : héros, salle, actions au toucher, compteur d'images.
+- Combat (jalon 1) :
+  - `autoload/event_bus.gd` : signaux globaux (`coup_porte`, `ennemi_vaincu`, `heros_mort`, `heros_reapparu`).
+  - `data/equilibrage.tres` (+ `core/resources/equilibrage.gd`) : **toutes** les valeurs de réglage du combat.
+  - `core/components/` : `Sante` (PV, invulnérabilité), `Recharge` (temps de recharge).
+  - `game/combat/` : `Combat` (couches de collision, zones de coup, `porter_coup`), `CameraCombat`,
+    `EffetsCombat` (chiffres, arrêt sur image, secousse).
+  - `game/player/` : `Heros` (machine d'états) et `CommandesHeros` (ce que le joueur demande : seule
+    entrée du héros, pour que le réseau puisse la remplir plus tard).
+  - `game/enemies/` : `Ennemi` (Matelot squelette), `GenerateurEnnemis`.
+  - `game/arene/` : arène d'entraînement, tout construit par code.
+  - `ui/hud/` : `HudCombat`, `JoystickFlottant`, `BoutonAction`.
+  - `assets/models/enemies/` : squelette et lame KayKit ; `assets/materials/` : matières partagées.
 - `tests/unit/` : tests GUT (`test_*.gd`) ; `addons/gut/` : GUT 9.7.1 (exclu de l'APK).
+  `test_scripts.gd` charge tous les scripts du jeu (remplace `--check-only`, voir pièges).
 - `android/cle_de_test.keystore` : clé de signature **de test** (mot de passe « android »), commune à
   tous les APK pour que les mises à jour s'installent. Jamais pour le Play Store.
 - `.github/workflows/apk.yml` : à chaque envoi sur main, tests puis APK publié sur la release `apk-test` ;
@@ -49,10 +62,14 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Tests : `godot --headless --path . -s addons/gut/gut_cmdln.gd` (réglages dans `.gutconfig.json` ;
   code de sortie ≠ 0 si un test échoue, MAIS un fichier de test qui ne se charge pas est ignoré en silence :
   vérifier qu'aucune ligne « Ignoring script » / « Parse Error » n'apparaît — le CI le fait)
-- Vérifier la syntaxe d'un script : `godot --headless --path . --check-only -s res://chemin/script.gd`
+- Vérifier qu'un script se charge : lancer les tests (`test_scripts.gd` charge tous les scripts du jeu).
 - Capture d'une scène du jeu (sans téléphone) :
   `xvfb-run -a godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720 -s "$PWD/tools/capture_scene.gd" -- res://game/vitrine/vitrine.tscn build/apercus/vitrine.png [nb_actions] [nb_images]`
+- Captures mises en scène du combat (annonce, coup, fente) + état du combat dans la console :
+  `xvfb-run -a godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720 -s "$PWD/tools/capture_combat.gd" -- build/apercus`
 - Suivre la fabrication de l'APK : `gh api repos/teodico-cloud/les-damn-s-des-septs-mers/actions/runs`
+- Diagnostics d'une fabrication (les journaux bruts ne sont pas lisibles d'ici, le workflow écrit ses
+  diagnostics en annotations) : `gh api repos/teodico-cloud/les-damn-s-des-septs-mers/check-runs/<id du job>/annotations`
 - Préparer les packs : `tools/fetch_kaykit.sh`
 - Blender en module Python : `pip install bpy` (testé avec bpy 5.2.2 LTS, Python 3.13)
 - Refabriquer les héros : `python tools/blender/build_heroes.py all` (ou `bretteur`, `occultiste`)
@@ -81,6 +98,21 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   il se fait uniquement sur GitHub.
 - Les animations KayKit importées ne bouclent pas : mettre `loop_mode = LOOP_LINEAR` sur « Idle » (et la
   course) avant de les jouer en continu.
+- `--check-only` et les scripts lancés par `-s` (outils `extends SceneTree`) ne connaissent pas les
+  services globaux (EventBus) : un script qui en dépend y « échoue » alors qu'il marche dans le jeu.
+  Dans ces outils, ne pas typer avec les classes du jeu ; charger par `load("res://...gd")`.
+- Placer un combattant **avant** `add_child` (`e.position = …` puis `add_child(e)`) : ajouté puis déplacé,
+  il apparaît un instant à l'origine et peut soulever ou décaler un personnage qui s'y trouve.
+- Les ennemis n'ont pas la couche des héros dans leur masque de collision (sinon une roulade ou une
+  fente pousse l'ennemi au lieu de le traverser).
+- Ressource lue par `const EQ = preload(...)` : la modifier à l'exécution (par une autre variable) n'est
+  pas vue par les scripts qui la lisent par leur constante (constaté en 4.7.2). Les tests utilisent donc
+  les vraies valeurs de `equilibrage.tres` ; un futur menu de réglage en jeu devra passer par une variable.
+- Tests du combat : 60 images de physique = 1 s de jeu ; les dégâts arrivent à l'instant d'impact de
+  l'animation (pas à l'appui). Un coup peut être perdu si le héros est « touché » (0,4 s) plus longtemps
+  que le tampon des commandes (0,25 s) : c'est voulu.
+- Aperçus (rendu Compatibility) : l'erreur « Dual paraboloid shadow mode not supported » est normale
+  (ombre de torche) ; sur téléphone (rendu Mobile) ce mode marche.
 - Blender en script : ne jamais nommer un fichier comme un module Python standard (`inspect.py`…) :
   Blender plante au démarrage.
 - `build_heroes.py` : tout ce qui touche la tête est multiplié par `HEAD_K`. Ne jamais réutiliser `k`
