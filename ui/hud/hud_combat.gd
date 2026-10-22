@@ -20,6 +20,8 @@ var label_mort: Label
 var bouton_menu: Button
 var _boutons: Array[BoutonAction] = []
 var _actions := {}   ## BoutonAction -> nom d'action
+var _doigt_menu := -1      ## doigt posé sur le bouton Menu
+var _menu_demande := false
 
 
 func _ready() -> void:
@@ -60,7 +62,7 @@ func _ready() -> void:
 		st.set_corner_radius_all(10)
 		bouton_menu.add_theme_stylebox_override(etat, st)
 	bouton_menu.add_theme_color_override("font_color", COULEUR_OS)
-	bouton_menu.pressed.connect(func(): menu_demande.emit())
+	bouton_menu.pressed.connect(_demander_menu)   # clic souris (ordinateur) ou 1er doigt
 	racine.add_child(bouton_menu)
 
 	label_mort = Label.new()
@@ -121,8 +123,11 @@ func _actions_clavier() -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
+			# le Menu est géré ici aussi : Godot ne transforme en clic que le 1er doigt posé, et le
+			# pouce gauche est souvent déjà sur le joystick
 			if bouton_menu.get_global_rect().has_point(event.position):
-				return   # laissé au bouton Menu
+				_doigt_menu = event.index
+				return
 			for b in _boutons:
 				if b.doigt == -1 and b.contient(event.position):
 					b.doigt = event.index
@@ -134,6 +139,10 @@ func _input(event: InputEvent) -> void:
 				joystick.commencer(event.index, event.position)
 				get_viewport().set_input_as_handled()
 		else:
+			if _doigt_menu == event.index:
+				_doigt_menu = -1
+				if not event.canceled and bouton_menu.get_global_rect().has_point(event.position):
+					_demander_menu()
 			for b in _boutons:
 				if b.doigt == event.index:
 					b.doigt = -1
@@ -144,6 +153,28 @@ func _input(event: InputEvent) -> void:
 		if joystick.actif and joystick.doigt == event.index:
 			joystick.deplacer(event.position)
 			get_viewport().set_input_as_handled()
+
+
+func _demander_menu() -> void:
+	if not _menu_demande:   # une seule fois, même si le clic et le toucher arrivent tous les deux
+		_menu_demande = true
+		menu_demande.emit()
+
+
+## Si l'appli passe en arrière-plan (appel, notification…), Android n'envoie pas toujours la levée
+## des doigts : on relâche tout pour ne pas retrouver une attaque bloquée ou un joystick collé.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
+		relacher_tout()
+
+
+func relacher_tout() -> void:
+	for b in _boutons:
+		b.doigt = -1
+		b.appuye = false
+	_doigt_menu = -1
+	if joystick:
+		joystick.relacher()
 
 
 func _demander(action: StringName) -> void:

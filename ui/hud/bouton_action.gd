@@ -12,6 +12,8 @@ var rayon := 60.0
 var recharge: Recharge
 var appuye := false
 var doigt := -1
+var _etait_appuye := false
+var _etait_en_recharge := false
 
 
 func configurer(t: String, r: float, rec: Recharge = null) -> void:
@@ -31,8 +33,13 @@ func contient(point: Vector2) -> bool:
 	return point.distance_to(centre_ecran()) <= rayon * 1.15
 
 
+## Ne redessine que si l'affichage change : pendant une recharge, ou quand l'état bascule.
 func _process(_delta: float) -> void:
-	queue_redraw()
+	var en_recharge := recharge != null and not recharge.prete()
+	if en_recharge or en_recharge != _etait_en_recharge or appuye != _etait_appuye:
+		queue_redraw()
+	_etait_en_recharge = en_recharge
+	_etait_appuye = appuye
 
 
 func _draw() -> void:

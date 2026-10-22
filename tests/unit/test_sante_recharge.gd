@@ -31,6 +31,19 @@ func test_invulnerable_ne_perd_rien() -> void:
 	assert_eq(sante.pv, 50.0)
 
 
+func test_invulnerabilite_en_temps_de_jeu() -> void:
+	# pendant un arrêt sur image le jeu est presque figé : l'invulnérabilité doit l'être aussi
+	# (sinon une esquive lancée juste après un coup lourd durait moins longtemps)
+	sante.set_physics_process(false)   # on fait avancer son horloge de jeu à la main
+	sante.rendre_invulnerable(0.1)
+	OS.delay_msec(150)                 # du temps réel passe, mais aucun temps de jeu
+	assert_true(sante.est_invulnerable(), "Le temps réel seul ne fait pas finir l'invulnérabilité")
+	sante._physics_process(0.06)
+	assert_true(sante.est_invulnerable(), "Toujours invulnérable après 0,06 s de jeu")
+	sante._physics_process(0.06)
+	assert_false(sante.est_invulnerable(), "Plus invulnérable après 0,12 s de jeu")
+
+
 func test_degats_negatifs_ignores() -> void:
 	assert_eq(sante.subir(-5.0), 0.0)
 	assert_eq(sante.pv, 50.0)

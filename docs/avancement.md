@@ -1,12 +1,12 @@
 # Avancement
 
-Dernière mise à jour : 21 octobre 2026.
+Dernière mise à jour : 22 octobre 2026.
 
 ## Où on en est
 - **Phase A (conception) : terminée et validée.** Voir `docs/conception.md`.
 - **Héros : validés par Téo.** Bretteur et Occultiste, visages durs et détails pirates.
 - **Jalon 0 : validé par Téo** (« Tout marche » ; la vitrine tourne à 120 images/s sur son téléphone).
-- **Jalon 1 (combat solo du Bretteur) : écrit et testé dans l'espace de travail, en relecture avant APK.**
+- **Jalon 1 (combat solo du Bretteur) : relu, corrigé, APK envoyé à Téo pour essai.**
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -21,17 +21,21 @@ Matelots squelettes qui reviennent sans fin.
 - Impacts : chiffres de dégâts, arrêt sur image, recul, éclair blanc, secousse de caméra.
 - Mort du héros : « Vous êtes tombé… », retour au point de départ après 2,5 s.
 - Toutes les valeurs de réglage sont dans `data/equilibrage.tres`.
-- Tests automatiques : 40 au total (règles du combat chronométrées dans un petit monde de test, PV,
-  recharges, arène qui se construit, chargement de tous les scripts).
+- Tests automatiques : 53 au total (règles du combat chronométrées dans un petit monde de test, PV,
+  recharges, arrêt sur image, toucher à plusieurs doigts, arène qui se construit, chargement de tous
+  les scripts).
 
 ## Ce que Téo devra vérifier sur l'APK du jalon 1
 1. « Combat d'entraînement » ouvre l'arène ; deux squelettes sortent de terre.
 2. Le joystick apparaît là où le pouce se pose et déplace le héros sans à-coups.
 3. Garder « Attaque » enfoncé enchaîne les 3 coups ; les chiffres de dégâts s'affichent.
 4. Pendant l'annonce rouge au sol, « Esquive » permet de rouler à travers le squelette sans être touché.
-5. « Parade » juste avant le coup d'un squelette déclenche la riposte (le squelette est sonné).
+5. « Parade » juste avant le coup d'un squelette déclenche la riposte (le squelette est sonné et
+   reste à portée : on a le temps de le punir).
 6. « Fente » traverse les squelettes ; les boutons affichent leur recharge.
 7. Fluidité avec 2 squelettes, lisibilité des boutons et de l'annonce, sensation des coups.
+8. « Menu » marche même avec le pouce gauche sur le joystick ; après un appel ou un retour à l'accueil,
+   rien ne reste enfoncé.
 
 ## Journal des décisions
 | Date | Décision |
@@ -70,16 +74,41 @@ Matelots squelettes qui reviennent sans fin.
 - Quitter l'arène juste après un coup ou une victoire faisait reprendre du code sur un objet détruit
   (réapparition des squelettes, fin de l'arrêt sur image) : branché proprement sur les minuteries.
 
+## Relecture du jalon 1 (agent relecteur) et corrections
+- **Bloquant, corrigé :** l'arrêt sur image ne se terminait jamais (jeu à 5 % de vitesse après le
+  premier coup). Cause : minuterie déclenchée une image en avance. Remplacé par un compteur ; 2 tests.
+- Invulnérabilité comptée en temps de jeu (avant : temps réel, donc une esquive juste après un coup
+  lourd ne durait que 0,25 s au lieu de 0,32). Test ajouté.
+- Riposte : le squelette sonné le reste même s'il est frappé, et n'est plus repoussé à plus de 4 m
+  (le recul est maintenant une vraie distance en mètres : 0,45 m coup léger, 1,1 m coup lourd). 3 tests.
+- Visée assistée : ignore un squelette qui sort encore de terre (intouchable). Test ajouté.
+- Bouton Menu utilisable avec un 2e doigt ; tout est relâché si l'appli passe en arrière-plan. 6 tests
+  du toucher.
+- Fondus d'animation réparés (la pose sautait d'un coup) ; texture du squelette avec mipmaps ;
+  réglages restants déplacés dans `equilibrage.gd` ; boutons redessinés seulement si besoin.
+
+## Questions pour Téo (après son essai)
+- Parade et Fente pendant l'élan d'un coup : aujourd'hui seule l'Esquive peut couper un coup avant
+  l'impact ; une Parade demandée trop tôt est perdue. Faut-il que la Parade puisse aussi couper le coup ?
+- Annonce des coups ennemis : si la zone au sol reste difficile à voir, ajouter un signe sur le
+  squelette lui-même (lueur rouge des yeux, éclair).
+
+## À prévoir pour la coop (jalon réseau, rien à faire maintenant)
+- L'arrêt sur image ralentit tout le jeu de l'hôte : il devra devenir un effet seulement visuel et local.
+- Commandes horodatées par l'horloge locale du héros : passer à des numéros de séquence ; l'attaque
+  maintenue devra être un état « appuyé » plutôt qu'une demande à chaque image.
+- `EventBus.coup_porte` devra dire quel héros est touché (secousse de la bonne caméra).
+- Effets (éclair, chiffres) déclenchés par les règles : à rejouer chez l'invité à partir des événements.
+- Ennemis : noms stables nécessaires pour la réplication.
+
 ## Prochaines étapes
-1. Relecture du jalon 1 par l'agent relecteur, corrections, puis APK.
+1. Essai de l'APK du jalon 1 par Téo.
 2. Retour de Téo sur la sensation du combat ; réglages dans `data/equilibrage.tres`.
 3. Jalon 2 (selon `docs/conception.md`).
 
 ## Points à trancher plus tard
 - Clé de signature définitive : passer à la vraie clé (secrète) **avant** que les sauvegardes comptent,
   car changer de clé oblige à désinstaller le jeu, ce qui efface les parties.
-- Annonce des coups ennemis : si la zone au sol reste difficile à voir sur téléphone, ajouter un signe
-  sur le squelette lui-même (lueur rouge des yeux, éclair) — à proposer à Téo après son essai.
 
 ## Informations utiles
 - Dépôt GitHub : teodico-cloud/les-damn-s-des-septs-mers (public pour l'instant ; Téo peut le passer en privé).

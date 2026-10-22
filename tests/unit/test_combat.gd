@@ -86,6 +86,16 @@ func test_visee_assistee_tourne_vers_l_ennemi() -> void:
 	assert_lt(e.sante.pv, EQ.squelette_pv_max, "Et le toucher")
 
 
+func test_la_visee_ignore_un_squelette_qui_sort_de_terre() -> void:
+	var sortant := Ennemi.creer()   # animation de sortie de terre : intouchable pendant ~2 s
+	sortant.position = Vector3(-1.5, 0, 0)
+	monde.add_child(sortant)
+	sortant.set_physics_process(false)
+	_ennemi(Vector3(3.0, 0, 0))     # actif, plus loin
+	assert_eq(sortant.etat, Ennemi.Etat.APPARITION)
+	assert_almost_eq(heros.direction_visee().x, 1.0, 0.05, "On vise le squelette actif, pas celui qui sort de terre")
+
+
 func test_le_joystick_a_priorite_sur_la_visee() -> void:
 	_ennemi(Vector3(1.6, 0, 0))
 	heros.commandes.deplacement = Vector3(0, 0, -1)
@@ -203,6 +213,49 @@ func test_coup_leger_n_interrompt_pas_l_annonce_mais_coup_lourd_oui() -> void:
 	assert_eq(e.etat, Ennemi.Etat.PREPARATION, "Un coup léger n'interrompt pas l'annonce")
 	Combat.porter_coup(heros, e, 5.0, true)
 	assert_eq(e.etat, Ennemi.Etat.TOUCHE, "Un coup lourd l'interrompt")
+
+
+func test_un_squelette_etourdi_le_reste_meme_frappe() -> void:
+	heros.set_physics_process(false)
+	var e := _ennemi(Vector3(0, 0, 3), false)
+	await wait_physics_frames(2)
+	e.etourdir(EQ.riposte_etourdissement)
+	Combat.porter_coup(heros, e, 5.0, false)
+	Combat.porter_coup(heros, e, 5.0, true)
+	await _secondes(EQ.squelette_duree_touche_lourd + 0.1)
+	assert_eq(e.etat, Ennemi.Etat.ETOURDI, "Frappé pendant qu'il est sonné, il reste sonné")
+	await _secondes(EQ.riposte_etourdissement - EQ.squelette_duree_touche_lourd)
+	assert_ne(e.etat, Ennemi.Etat.ETOURDI, "Puis il se reprend à la fin de l'étourdissement")
+
+
+func test_le_recul_du_squelette_est_en_metres() -> void:
+	heros.set_physics_process(false)
+	for lourd in [false, true]:
+		var e := _ennemi(Vector3(0, 0, 3), false)
+		await wait_physics_frames(2)
+		var depart := e.global_position
+		Combat.porter_coup(heros, e, 1.0, lourd)
+		var attendu: float = EQ.squelette_recul_coup_lourd if lourd else EQ.squelette_recul_quand_touche
+		# mesuré à la fin du recul, avant qu'il ne reparte à l'attaque
+		await _secondes(EQ.squelette_duree_touche_lourd - 0.05 if lourd else EQ.squelette_duree_touche - 0.05)
+		assert_almost_eq(e.global_position.distance_to(depart), attendu, 0.12,
+			"Recul d'un coup %s" % ("lourd" if lourd else "léger"))
+		e.queue_free()
+		await wait_physics_frames(1)
+
+
+func test_la_riposte_laisse_le_temps_de_punir() -> void:
+	# après la riposte, le squelette sonné reste à portée du combo
+	var e := _ennemi(Vector3(0, 0, 1.5), false)
+	e.rotation.y = PI
+	_demander(&"competence_1")
+	await wait_physics_frames(2)
+	Combat.porter_coup(e, heros, 15.0, false)   # son coup, paré de face
+	await _secondes(EQ.riposte_instant_impact / EQ.riposte_vitesse_animation + EQ.squelette_duree_touche_lourd)
+	assert_eq(e.etat, Ennemi.Etat.ETOURDI)
+	var portee_combo := EQ.combo_portee + EQ.combo_pas_en_avant + EQ.combo_rayon + 0.45
+	assert_lt(heros.global_position.distance_to(e.global_position), portee_combo,
+		"Le squelette sonné n'est pas repoussé hors de portée")
 
 
 func test_le_squelette_meurt_une_seule_fois() -> void:

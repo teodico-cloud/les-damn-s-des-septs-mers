@@ -111,6 +111,20 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Tests du combat : 60 images de physique = 1 s de jeu ; les dégâts arrivent à l'instant d'impact de
   l'animation (pas à l'appui). Un coup peut être perdu si le héros est « touché » (0,4 s) plus longtemps
   que le tampon des commandes (0,25 s) : c'est voulu.
+- Une minuterie (`create_timer`) créée pendant l'image de physique se déclenche **une image en avance**
+  (elle est déjà décomptée dans la même boucle). Ne jamais vérifier « l'heure réelle est-elle passée ? »
+  à son déclenchement : l'arrêt sur image est resté bloqué à 5 % de vitesse à cause de ça. Compter les
+  arrêts en cours à la place (`EffetsCombat`).
+- Tout ce qui compte une durée de jeu (invulnérabilité, recharges, états) utilise le **temps de jeu**
+  (delta de physique), jamais `Time.get_ticks_msec()` : sinon l'arrêt sur image raccourcit l'esquive.
+  `Sante` a sa propre horloge de jeu (priorité de physique -10 pour avancer avant les combattants).
+- En mode test sans écran, les images de physique ne suivent pas le temps réel (9 images en 45 ms ou
+  en 170 ms selon `time_scale`) : un test qui mêle temps réel et images de physique ne prouve rien.
+- Animations : ne pas appeler `anim.stop()` avant `play(nom, fondu)` : le fondu partirait de rien et la
+  pose sauterait d'un coup (mesuré : jambe de 31° à 1° en une image). Pour reprendre la même
+  animation au début : `play()` puis `seek(0, true)` (voir `_jouer`).
+- Recul des squelettes : la valeur de `equilibrage.tres` est une distance en mètres ; la vitesse de départ
+  est `sqrt(2 × freinage × distance)`.
 - Aperçus (rendu Compatibility) : l'erreur « Dual paraboloid shadow mode not supported » est normale
   (ombre de torche) ; sur téléphone (rendu Mobile) ce mode marche.
 - Blender en script : ne jamais nommer un fichier comme un module Python standard (`inspect.py`…) :

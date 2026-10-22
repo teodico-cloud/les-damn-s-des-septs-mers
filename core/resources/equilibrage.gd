@@ -12,6 +12,8 @@ extends Resource
 @export var heros_invulnerable_apres_coup := 0.5   ## évite d'être enchaîné sans pouvoir réagir
 @export var heros_invulnerable_reapparition := 1.5
 @export var heros_recul_quand_touche := 0.6    ## mètres
+@export var heros_duree_recul := 0.2           ## secondes pour parcourir ce recul
+@export var heros_duree_touche := 0.4          ## secondes sans pouvoir agir après un coup reçu
 
 @export_group("Attaque du Bretteur (combo de 3 coups)")
 @export var combo_animations: PackedStringArray = ["1H_Melee_Attack_Slice_Diagonal", "1H_Melee_Attack_Slice_Horizontal", "1H_Melee_Attack_Chop"]
@@ -39,7 +41,9 @@ extends Resource
 @export var parade_recharge := 6.0
 @export var riposte_degats := 30.0
 @export var riposte_etourdissement := 1.4
-@export var riposte_instant_impact := 0.36
+@export var riposte_instant_impact := 0.36     ## secondes dans l'animation (avant accélération)
+@export var riposte_vitesse_animation := 1.2
+@export var riposte_distance_max := 3.0        ## au-delà, la riposte frappe dans le vide
 
 @export_group("Compétence : Fente")
 @export var fente_distance := 5.0
@@ -59,8 +63,13 @@ extends Resource
 @export var squelette_zone_rayon := 1.0
 @export var squelette_recuperation := 0.7      ## moment vulnérable après son coup
 @export var squelette_recharge_attaque := 1.6
-@export var squelette_recul_quand_touche := 0.45
-@export var squelette_recul_coup_lourd := 1.1
+@export var squelette_recul_quand_touche := 0.45   ## mètres
+@export var squelette_recul_coup_lourd := 1.1      ## mètres (aussi pour la riposte)
+@export var squelette_freinage_recul := 12.0       ## m/s² : plus c'est haut, plus le recul est sec
+@export var squelette_duree_frappe := 0.12         ## secondes où la zone reste affichée après le coup
+@export var squelette_duree_touche := 0.35         ## secondes interrompu par un coup reçu
+@export var squelette_duree_touche_lourd := 0.55
+@export var squelette_duree_corps := 3.0           ## secondes avant que le corps disparaisse
 
 @export_group("Arène d'entraînement")
 @export var arene_nb_ennemis := 2
@@ -70,6 +79,7 @@ extends Resource
 @export_group("Ressenti des impacts")
 @export var arret_image := 0.055        ## arrêt sur image à chaque coup porté (secondes)
 @export var arret_image_lourd := 0.09
+@export var arret_image_vitesse := 0.05 ## vitesse du jeu pendant l'arrêt (0,05 = presque figé)
 @export var secousse_coup := 0.12
 @export var secousse_coup_lourd := 0.25
 @export var secousse_touche := 0.3

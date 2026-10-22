@@ -115,6 +115,11 @@ func est_vivant() -> bool:
 	return etat != Etat.MORT
 
 
+## Vrai si on peut le viser et le toucher (pas mort, ni encore en train de sortir de terre).
+func est_ciblable() -> bool:
+	return etat != Etat.MORT and etat != Etat.APPARITION
+
+
 func _changer(nouvel: Etat, duree := 0.0) -> void:
 	etat = nouvel
 	_t = 0.0
@@ -141,13 +146,13 @@ func _physics_process(delta: float) -> void:
 			if _t >= _duree_etat:
 				_changer(Etat.POURSUITE)
 		Etat.MORT:
-			if _t >= 3.0:
+			if _t >= EQ.squelette_duree_corps:
 				queue_free()
 	# recul après un coup reçu
 	if _recul.length() > 0.01:
 		velocity.x += _recul.x
 		velocity.z += _recul.z
-		_recul = _recul.move_toward(Vector3.ZERO, 12.0 * delta)
+		_recul = _recul.move_toward(Vector3.ZERO, EQ.squelette_freinage_recul * delta)
 	velocity.y = -0.5 if is_on_floor() else velocity.y - 25.0 * delta
 	move_and_slide()
 
@@ -208,7 +213,7 @@ func _frapper() -> void:
 		var centre := global_position + global_transform.basis.z * EQ.squelette_zone_avant + Vector3.UP
 		for cible in Combat.cibles_dans_sphere(get_world_3d(), centre, EQ.squelette_zone_rayon, Combat.COUCHE_HEROS, [self]):
 			Combat.porter_coup(self, cible, EQ.squelette_degats, false)
-	if _t >= 0.12:
+	if _t >= EQ.squelette_duree_frappe:
 		marque.visible = false
 		_recharge_attaque = EQ.squelette_recharge_attaque
 		_changer(Etat.RECUPERATION, EQ.squelette_recuperation)
@@ -216,7 +221,8 @@ func _frapper() -> void:
 
 # ---------------------------------------------------------------- dégâts reçus
 ## Appelé par Combat.porter_coup. Un coup léger n'interrompt pas un squelette qui prépare ou porte
-## son coup ; un coup lourd (3e coup du combo, fente, riposte) interrompt tout.
+## son coup ; un coup lourd (3e coup du combo, fente, riposte) interrompt tout. Un squelette étourdi
+## (riposte) le reste jusqu'au bout, même s'il est frappé : c'est le moment de le punir.
 func recevoir_coup(degats: float, source: Node3D, lourd: bool) -> float:
 	if etat == Etat.MORT or etat == Etat.APPARITION:
 		return 0.0
@@ -226,14 +232,16 @@ func recevoir_coup(degats: float, source: Node3D, lourd: bool) -> float:
 	EventBus.coup_porte.emit(global_position + Vector3.UP * 2.1, reel, lourd, false)
 	Combat.flash(visuel)
 	if source:
-		var recul := EQ.squelette_recul_coup_lourd if lourd else EQ.squelette_recul_quand_touche
-		_recul = Combat.direction_plate(source.global_position, global_position) * recul * 8.0
-	if sante.est_mort:
+		var distance := EQ.squelette_recul_coup_lourd if lourd else EQ.squelette_recul_quand_touche
+		# vitesse de départ pour parcourir exactement `distance` mètres en freinant
+		var vitesse := sqrt(2.0 * EQ.squelette_freinage_recul * distance)
+		_recul = Combat.direction_plate(source.global_position, global_position) * vitesse
+	if sante.est_mort or etat == Etat.ETOURDI:
 		return reel
 	var en_attaque := etat == Etat.PREPARATION or etat == Etat.FRAPPE
 	if lourd or not en_attaque:
 		_jouer("Hit_A", 1.4, 0.04, true)
-		_changer(Etat.TOUCHE, 0.35 if not lourd else 0.55)
+		_changer(Etat.TOUCHE, EQ.squelette_duree_touche_lourd if lourd else EQ.squelette_duree_touche)
 	return reel
 
 
@@ -254,7 +262,10 @@ func _on_mort(_source: Node) -> void:
 	EventBus.ennemi_vaincu.emit(self)
 
 
+## Joue une animation en fondu depuis la pose actuelle ; `rejouer` la reprend au début si c'est
+## déjà celle-ci. (Ne pas appeler anim.stop() avant : le fondu partirait de rien et la pose sauterait.)
 func _jouer(nom: String, vitesse := 1.0, fondu := 0.12, rejouer := false) -> void:
-	if rejouer or anim.current_animation != nom:
-		anim.stop()
+	var deja := anim.current_animation == nom
 	anim.play(nom, fondu, vitesse)
+	if deja and rejouer:
+		anim.seek(0.0, true)

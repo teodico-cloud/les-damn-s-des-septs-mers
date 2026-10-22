@@ -6,7 +6,7 @@ extends Node3D
 const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 
 var camera: CameraCombat
-var _fin_arret := 0.0
+var _arrets_en_cours := 0
 var _cote := 1.0   ## les chiffres successifs partent une fois à gauche, une fois à droite
 
 
@@ -29,16 +29,19 @@ func _on_coup_porte(position_coup: Vector3, degats: float, lourd: bool, cible_es
 			camera.secouer(EQ.secousse_coup_lourd if lourd else EQ.secousse_coup)
 
 
+## Fige presque le jeu pendant `duree` secondes réelles. Un compteur suit les arrêts en cours :
+## la vitesse normale revient quand le dernier se termine. (Ne pas comparer à l'heure réelle :
+## une minuterie créée pendant l'image de physique se déclenche une image en avance.)
 func arret_sur_image(duree: float) -> void:
-	var maintenant := Time.get_ticks_msec() / 1000.0
-	_fin_arret = max(_fin_arret, maintenant + duree)
-	Engine.time_scale = 0.05
+	_arrets_en_cours += 1
+	Engine.time_scale = EQ.arret_image_vitesse
 	# minuterie en temps réel (ignore le ralenti), branchée sur ce nœud : rien ne reprend s'il a disparu
 	get_tree().create_timer(duree, true, false, true).timeout.connect(_fin_arret_sur_image)
 
 
 func _fin_arret_sur_image() -> void:
-	if Time.get_ticks_msec() / 1000.0 >= _fin_arret - 0.001:
+	_arrets_en_cours = maxi(_arrets_en_cours - 1, 0)
+	if _arrets_en_cours == 0:
 		Engine.time_scale = 1.0
 
 

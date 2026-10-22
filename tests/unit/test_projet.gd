@@ -44,4 +44,5 @@ func test_arene_se_construit_et_fait_venir_les_squelettes() -> void:
 	var eq: Equilibrage = load("res://data/equilibrage.tres")
 	await wait_seconds(eq.arene_delai_apparition + 0.5)
 	assert_eq(get_tree().get_nodes_in_group("ennemis").size(), eq.arene_nb_ennemis, "Les squelettes arrivent")
+	assert_eq(Engine.time_scale, 1.0, "Le jeu tourne à vitesse normale (pas d'arrêt sur image bloqué)")
 	Engine.time_scale = 1.0

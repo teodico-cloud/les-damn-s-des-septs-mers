@@ -141,8 +141,8 @@ func _faire_face(dir: Vector3) -> void:
 
 
 # ---------------------------------------------------------------- visée assistée
-## Direction de l'action : le joystick s'il est poussé, sinon l'ennemi vivant le plus proche
-## (s'il est assez près), sinon droit devant.
+## Direction de l'action : le joystick s'il est poussé, sinon l'ennemi ciblable le plus proche
+## (s'il est assez près ; pas un squelette qui sort encore de terre), sinon droit devant.
 func direction_visee() -> Vector3:
 	var joy := commandes.deplacement
 	if joy.length() > 0.25:
@@ -150,7 +150,7 @@ func direction_visee() -> Vector3:
 	var meilleur: Node3D = null
 	var meilleure_dist := EQ.visee_portee
 	for e in get_tree().get_nodes_in_group("ennemis"):
-		if e is Node3D and e.has_method("est_vivant") and e.est_vivant():
+		if e is Node3D and e.has_method("est_ciblable") and e.est_ciblable():
 			var d := global_position.distance_to(e.global_position)
 			if d < meilleure_dist:
 				meilleure_dist = d
@@ -249,19 +249,19 @@ func _riposter(source: Node3D) -> void:
 	_cible_riposte = source
 	_faire_face(Combat.direction_plate(global_position, source.global_position))
 	_impact_fait = false
-	_duree_action = anim.get_animation("Block_Attack").length / 1.2
+	_duree_action = anim.get_animation("Block_Attack").length / EQ.riposte_vitesse_animation
 	sante.rendre_invulnerable(_duree_action)
-	_jouer("Block_Attack", 1.2, 0.04, true)
+	_jouer("Block_Attack", EQ.riposte_vitesse_animation, 0.04, true)
 	_changer(Etat.RIPOSTE)
 
 
 func _etat_riposte() -> void:
 	velocity.x = 0
 	velocity.z = 0
-	if not _impact_fait and _t >= EQ.riposte_instant_impact / 1.2:
+	if not _impact_fait and _t >= EQ.riposte_instant_impact / EQ.riposte_vitesse_animation:
 		_impact_fait = true
 		if is_instance_valid(_cible_riposte) and _cible_riposte.has_method("est_vivant") and _cible_riposte.est_vivant() \
-				and global_position.distance_to(_cible_riposte.global_position) < 3.0:
+				and global_position.distance_to(_cible_riposte.global_position) < EQ.riposte_distance_max:
 			Combat.porter_coup(self, _cible_riposte, EQ.riposte_degats, true)
 			if _cible_riposte.has_method("etourdir"):
 				_cible_riposte.etourdir(EQ.riposte_etourdissement)
@@ -321,10 +321,10 @@ func recevoir_coup(degats: float, source: Node3D, _lourd: bool) -> float:
 
 
 func _etat_touche() -> void:
-	var v := EQ.heros_recul_quand_touche / 0.2 if _t < 0.2 else 0.0
+	var v := EQ.heros_recul_quand_touche / EQ.heros_duree_recul if _t < EQ.heros_duree_recul else 0.0
 	velocity.x = _direction.x * v
 	velocity.z = _direction.z * v
-	if _t >= 0.4:
+	if _t >= EQ.heros_duree_touche:
 		_changer(Etat.LIBRE)
 
 
@@ -365,10 +365,10 @@ func temps_avant_reapparition() -> float:
 
 
 # ---------------------------------------------------------------- animations
+## Joue une animation en fondu depuis la pose actuelle ; `rejouer` la reprend au début si c'est
+## déjà celle-ci. (Ne pas appeler anim.stop() avant : le fondu partirait de rien et la pose sauterait.)
 func _jouer(nom: String, vitesse := 1.0, fondu := 0.12, rejouer := false) -> void:
-	if rejouer or anim.current_animation != nom:
-		anim.stop()
-		anim.play(nom, fondu, vitesse)
-	else:
-		anim.speed_scale = 1.0
-		anim.play(nom, fondu, vitesse)
+	var deja := anim.current_animation == nom
+	anim.play(nom, fondu, vitesse)
+	if deja and rejouer:
+		anim.seek(0.0, true)

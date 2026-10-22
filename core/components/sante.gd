@@ -11,14 +11,22 @@ signal change(pv: float, pv_max: float)
 var pv := 100.0
 var invulnerable_jusqua := 0.0   ## horloge (secondes) jusqu'à laquelle on ne peut pas être touché
 var est_mort := false
+var _horloge := 0.0              ## temps de JEU écoulé : ralentit avec l'arrêt sur image, comme le reste
 
 
 func _ready() -> void:
 	pv = pv_max
+	# avance avant les combattants : une invulnérabilité donnée pendant une image dure exactement
+	# le nombre d'images voulu
+	process_physics_priority = -10
+
+
+func _physics_process(delta: float) -> void:
+	_horloge += delta
 
 
 func maintenant() -> float:
-	return Time.get_ticks_msec() / 1000.0
+	return _horloge
 
 
 func est_invulnerable() -> bool:
@@ -26,7 +34,7 @@ func est_invulnerable() -> bool:
 
 
 func rendre_invulnerable(duree: float) -> void:
-	invulnerable_jusqua = max(invulnerable_jusqua, maintenant() + duree)
+	invulnerable_jusqua = maxf(invulnerable_jusqua, maintenant() + duree)
 
 
 ## Inflige des dégâts. Renvoie les dégâts réellement subis (0 si invulnérable ou déjà mort).
