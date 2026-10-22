@@ -51,6 +51,15 @@ func subir(degats: float, source: Node = null) -> float:
 	return reel
 
 
+## Fixe les PV tels que l'hôte les a décidés (coop, côté invité).
+func definir_pv(valeur: float) -> void:
+	valeur = clampf(valeur, 0.0, pv_max)
+	if is_equal_approx(valeur, pv):
+		return
+	pv = valeur
+	change.emit(pv, pv_max)
+
+
 func soigner_completement() -> void:
 	pv = pv_max
 	est_mort = false

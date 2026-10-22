@@ -17,6 +17,7 @@ var bouton_competence_1: BoutonAction
 var bouton_competence_2: BoutonAction
 var barre_vie: Control
 var label_mort: Label
+var label_message: Label
 var bouton_menu: Button
 var _boutons: Array[BoutonAction] = []
 var _actions := {}   ## BoutonAction -> nom d'action
@@ -77,6 +78,12 @@ func _ready() -> void:
 	label_mort.visible = false
 	label_mort.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	racine.add_child(label_mort)
+
+	label_message = label_mort.duplicate() as Label
+	label_message.add_theme_color_override("font_color", Color("e2d6ba"))
+	label_message.add_theme_font_size_override("font_size", 36)
+	label_message.position.y -= 160
+	racine.add_child(label_message)
 
 
 func _bouton(parent: Control, texte: String, rayon: float, rec: Recharge, decalage: Vector2, action: StringName) -> BoutonAction:
@@ -154,6 +161,13 @@ func _input(event: InputEvent) -> void:
 		if joystick.actif and joystick.doigt == event.index:
 			joystick.deplacer(event.position)
 			get_viewport().set_input_as_handled()
+
+
+## Message au centre de l'écran pendant `duree` secondes (partenaire parti…).
+func afficher_message(texte: String, duree: float) -> void:
+	label_message.text = texte
+	label_message.visible = true
+	get_tree().create_timer(duree).timeout.connect(func(): if is_instance_valid(label_message): label_message.visible = false)
 
 
 func _demander_menu() -> void:

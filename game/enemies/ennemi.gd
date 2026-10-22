@@ -2,7 +2,8 @@ class_name Ennemi
 extends CharacterBody3D
 ## Ennemi de corps-à-corps (jalon 1 : le Matelot squelette). Il sort de terre, poursuit le héros le
 ## plus proche, annonce son coup (marque au sol), frappe, puis reste un instant vulnérable.
-## En coop, seul l'hôte fera tourner cette logique ; l'autre téléphone recevra les positions.
+## En coop, seul l'hôte fait tourner cette logique ; chez l'invité, l'ennemi est une « marionnette » qui
+## affiche ce que l'hôte envoie (position, état, animation, marque) et n'agit sur rien.
 
 const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 const MODELE := preload("res://assets/models/enemies/Skeleton_Minion.glb")
@@ -34,6 +35,7 @@ var _marque_par: Node3D             ## Occultiste qui l'a marqué (Marque maudit
 var _marque_restant := 0.0
 var _rune: Node3D                   ## rune verte au-dessus de la tête quand il est marqué
 var _chaines: Node3D                ## chaînes spectrales visibles quand il est immobilisé
+var marionnette := false            ## coop, invité : affiché d'après l'hôte, sans IA ni règles
 
 
 ## Crée un ennemi prêt à être ajouté à la scène. `rapide` saute l'animation de sortie de terre (tests).
@@ -144,6 +146,13 @@ func _changer(nouvel: Etat, duree := 0.0) -> void:
 
 # ---------------------------------------------------------------- boucle
 func _physics_process(delta: float) -> void:
+	if marionnette:
+		_t += delta
+		if etat == Etat.PREPARATION:
+			_preparer_visuel()
+		if _rune and _rune.visible:
+			_rune.rotate_y(3.0 * delta)
+		return
 	_t += delta
 	_recharge_attaque = max(0.0, _recharge_attaque - delta)
 	velocity.x = 0.0
@@ -220,12 +229,17 @@ func _commencer_preparation(dir: Vector3) -> void:
 
 
 func _preparer() -> void:
-	var p := clampf(_t / EQ.squelette_preparation, 0.0, 1.0)
-	_remplissage.scale = Vector3(maxf(p, 0.01), 1.0, maxf(p, 0.01))
-	_mat_marque.albedo_color = Color(1.0, 0.3 + 0.2 * p, 0.1, 0.3 + 0.35 * p)
+	_preparer_visuel()
 	if _t >= EQ.squelette_preparation:
 		_changer(Etat.FRAPPE)
 		marque.visible = true
+
+
+## Zone au sol qui se remplit pendant l'annonce (aussi chez l'invité).
+func _preparer_visuel() -> void:
+	var p := clampf(_t / EQ.squelette_preparation, 0.0, 1.0)
+	_remplissage.scale = Vector3(maxf(p, 0.01), 1.0, maxf(p, 0.01))
+	_mat_marque.albedo_color = Color(1.0, 0.3 + 0.2 * p, 0.1, 0.3 + 0.35 * p)
 
 
 func _frapper() -> void:
@@ -245,12 +259,14 @@ func _frapper() -> void:
 ## son coup ; un coup lourd (3e coup du combo, fente, riposte) interrompt tout. Un squelette étourdi
 ## (riposte) le reste jusqu'au bout, même s'il est frappé : c'est le moment de le punir.
 func recevoir_coup(degats: float, source: Node3D, lourd: bool) -> float:
+	if marionnette:
+		return 0.0
 	if etat == Etat.MORT or etat == Etat.APPARITION:
 		return 0.0
 	var reel := sante.subir(degats * multiplicateur_degats(source), source)
 	if reel <= 0.0:
 		return 0.0
-	EventBus.coup_porte.emit(global_position + Vector3.UP * 2.1, reel, lourd, false)
+	EventBus.coup_porte.emit(global_position + Vector3.UP * 2.1, reel, lourd, false, self, source)
 	Combat.flash(visuel)
 	if source and etat != Etat.ENCHAINE:   # enchaîné : il ne bouge pas, même frappé
 		var distance := EQ.squelette_recul_coup_lourd if lourd else EQ.squelette_recul_quand_touche
@@ -282,6 +298,8 @@ func est_marque() -> bool:
 
 ## Marque maudite posée par un Occultiste.
 func marquer(par: Node3D, duree: float) -> void:
+	if marionnette:
+		return
 	if etat == Etat.MORT:
 		return
 	_marque_par = par
@@ -323,6 +341,8 @@ func _effacer_marque() -> void:
 
 ## Chaînes spectrales : immobilisé (ni déplacement ni attaque) ; coupe un coup en préparation.
 func immobiliser(duree: float) -> void:
+	if marionnette:
+		return
 	if etat == Etat.MORT or etat == Etat.APPARITION:
 		return
 	_recul = Vector3.ZERO
@@ -376,6 +396,8 @@ func _yeux_rouges(actif: bool) -> void:
 
 
 func etourdir(duree: float) -> void:
+	if marionnette:
+		return
 	if etat == Etat.MORT:
 		return
 	if etat == Etat.ENCHAINE:   # déjà enchaîné : il le reste, au moins aussi longtemps
@@ -398,6 +420,52 @@ func _on_mort(_source: Node) -> void:
 
 ## Joue une animation en fondu depuis la pose actuelle ; `rejouer` la reprend au début si c'est
 ## déjà celle-ci. (Ne pas appeler anim.stop() avant : le fondu partirait de rien et la pose sauterait.)
+# ---------------------------------------------------------------- coop
+## Ce que l'hôte envoie de cet ennemi à chaque instantané (voir SynchroArene).
+func instantane() -> Array:
+	return [global_position, rotation.y, int(etat), String(anim.current_animation), anim.get_playing_speed(),
+			sante.pv, _marque_restant > 0.0]
+
+
+## Marionnette : applique l'état reçu de l'hôte (la position est posée à part, lissée).
+func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: float, marque_recue: bool) -> void:
+	if etat_recu != int(etat):
+		var nouvel := etat_recu as Etat
+		_changer(nouvel)
+		match nouvel:
+			Etat.PREPARATION:
+				marque.visible = true
+				_yeux_rouges(true)
+			Etat.FRAPPE:
+				marque.visible = true
+				_yeux_rouges(true)
+			Etat.ENCHAINE:
+				if _chaines:
+					_chaines.queue_free()
+				_chaines = _creer_chaines()
+				add_child(_chaines)
+			Etat.MORT:
+				remove_from_group("ennemis")
+		collision_layer = 0 if nouvel == Etat.APPARITION or nouvel == Etat.MORT else Combat.COUCHE_ENNEMIS
+		if nom_anim != "" and anim.has_animation(nom_anim):
+			_jouer(nom_anim, vitesse, 0.08, true)
+	elif nom_anim != "" and anim.current_animation != nom_anim and anim.has_animation(nom_anim):
+		_jouer(nom_anim, vitesse, 0.1)
+	sante.definir_pv(pv)
+	if marque_recue and _marque_restant <= 0.0:
+		var vrai := marionnette
+		marionnette = false        # marquer() ne fait rien sur une marionnette
+		marquer(null, 3600.0)      # durée : c'est l'hôte qui dira quand elle s'efface
+		marionnette = vrai
+	elif not marque_recue and _marque_restant > 0.0:
+		_effacer_marque()
+
+
+## Coop, invité : l'hôte signale un coup reçu (éclair blanc).
+func flash_coup() -> void:
+	Combat.flash(visuel)
+
+
 func _jouer(nom: String, vitesse := 1.0, fondu := 0.12, rejouer := false) -> void:
 	var deja := anim.current_animation == nom
 	anim.play(nom, fondu, vitesse)

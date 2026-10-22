@@ -32,8 +32,11 @@ static func cibles_dans_sphere(monde: World3D, centre: Vector3, rayon: float, ma
 	return resultat
 
 
-## Applique un coup : renvoie les dégâts réellement infligés.
+## Applique un coup : renvoie les dégâts réellement infligés. Chez l'invité d'une partie à deux, rien :
+## c'est l'hôte qui décide de tous les coups (l'invité ne fait que les afficher).
 static func porter_coup(attaquant: Node3D, cible: Node3D, degats: float, lourd: bool) -> float:
+	if Reseau.est_invite():
+		return 0.0
 	return cible.recevoir_coup(degats, attaquant, lourd)
 
 

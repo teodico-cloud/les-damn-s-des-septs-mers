@@ -1,14 +1,18 @@
 extends Node3D
-## Arène d'entraînement (jalon 1) : le Bretteur contre des Matelots squelettes qui reviennent
-## sans fin, dans une salle de forteresse. Construit tout par code : salle, héros, ennemis,
-## caméra, effets, interface.
+## Arène d'entraînement : le héros choisi contre des Matelots squelettes qui reviennent sans fin,
+## dans une salle de forteresse. Construit tout par code : salle, héros, ennemis, caméra, effets,
+## interface. En coop (jalon 2) : deux héros ; l'hôte fait tourner le combat, l'invité l'affiche
+## (voir SynchroArene). Chacun voit un anneau doré sous son héros, vert sous celui du partenaire.
 
 const SCENE_MENU := "res://ui/screens/demarrage.tscn"
 const DECOR := "res://assets/models/decor/"
 const ECHELLE_DECOR := 0.8   ## les meubles KayKit paraissaient trop grands à côté des héros allongés
 const DEMI_COTE := 6.4       ## la salle va de -6,4 à +6,4 m
+const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 
-var heros: Heros
+var heros: Heros               ## le héros de ce téléphone
+var heros_partenaire: Heros    ## coop : celui de l'autre téléphone
+var synchro: SynchroArene
 var camera: CameraCombat
 var effets: EffetsCombat
 var generateur: GenerateurEnnemis
@@ -21,10 +25,23 @@ func _ready() -> void:
 	get_tree().set_quit_on_go_back(false)
 	_ambiance()
 	_salle()
+	var coop := Reseau.est_en_coop()
+	var hote := Reseau.est_hote()
 	heros = Heros.creer(Partie.heros_local)
-	heros.position = Vector3(0, 0, 1.5)
+	heros.name = "HerosInvite" if coop and not hote else "HerosHote"
+	heros.position = _depart(heros.name) if coop else Vector3(0, 0, 1.5)
 	add_child(heros)
 	heros.rotation.y = PI * 0.25
+	if coop:
+		heros_partenaire = Heros.creer(Reseau.heros_partenaire)
+		heros_partenaire.name = "HerosHote" if heros.name == "HerosInvite" else "HerosInvite"
+		heros_partenaire.position = _depart(heros_partenaire.name)
+		heros_partenaire.marionnette = not hote   # chez l'invité, le héros de l'hôte est affiché, pas simulé
+		add_child(heros_partenaire)
+		heros_partenaire.rotation.y = PI * 0.25
+		heros.ajouter_anneau(Color("e0b04a"))
+		heros_partenaire.ajouter_anneau(Color("5fe08a"))
+		heros.reapparition_auto = hote            # l'invité attend l'ordre de l'hôte
 
 	camera = CameraCombat.new()
 	camera.cible = heros
@@ -40,11 +57,25 @@ func _ready() -> void:
 
 	effets = EffetsCombat.new()
 	effets.camera = camera
+	effets.en_coop = coop
+	effets.heros_local = heros
 	add_child(effets)
 
 	generateur = GenerateurEnnemis.new()
+	generateur.name = "Ennemis"
 	generateur.demi_cote = DEMI_COTE - 1.4
+	if coop:
+		generateur.nombre = EQ.arene_nb_ennemis_coop if hote else 0   # chez l'invité : marionnettes seulement
+	else:
+		generateur.nombre = EQ.arene_nb_ennemis
 	add_child(generateur)
+
+	if coop:
+		synchro = SynchroArene.new()
+		synchro.name = "Synchro"
+		synchro.configurer(self, heros, heros_partenaire, generateur)
+		add_child(synchro)
+		Reseau.partenaire_parti.connect(_on_partenaire_parti)
 
 	hud = HudCombat.new()
 	hud.heros = heros
@@ -60,7 +91,32 @@ func _notification(what: int) -> void:
 
 func retour_menu() -> void:
 	Engine.time_scale = 1.0
+	Reseau.quitter()
+	Partie.revenir_en_solo()
 	get_tree().change_scene_to_file(SCENE_MENU)
+
+
+static func _depart(nom: StringName) -> Vector3:
+	return Vector3(-1.2, 0, 1.5) if nom == &"HerosHote" else Vector3(1.2, 0, 1.5)
+
+
+## Le partenaire a quitté la partie : l'hôte continue seul ; l'invité revient au menu.
+func _on_partenaire_parti(raison: String) -> void:
+	if not is_inside_tree():
+		return
+	if heros.name == "HerosHote":
+		if is_instance_valid(heros_partenaire):
+			heros_partenaire.queue_free()
+		if synchro:
+			synchro.queue_free()
+			synchro = null
+		effets.en_coop = false
+		hud.afficher_message(raison + "\nTu continues seul.", 4.0)
+		Reseau.quitter()
+		Partie.revenir_en_solo()
+	else:
+		hud.afficher_message(raison + "\nRetour au menu…", 3.0)
+		get_tree().create_timer(3.0).timeout.connect(retour_menu)
 
 
 func _process(delta: float) -> void:

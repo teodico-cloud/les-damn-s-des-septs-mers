@@ -28,6 +28,10 @@ var recharge_competence_1: Recharge
 var recharge_competence_2: Recharge
 var point_reapparition := Vector3.ZERO
 var horloge := 0.0          ## temps de jeu écoulé (sert au tampon des commandes)
+## Coop : héros de l'autre téléphone affiché chez soi, sans simulation (positions reçues par le réseau).
+var marionnette := false
+## Coop, invité : son propre héros ne réapparaît que sur ordre de l'hôte.
+var reapparition_auto := true
 
 var _t := 0.0               ## temps passé dans l'état courant
 var _direction := Vector3.BACK   ## direction de l'action en cours
@@ -123,6 +127,8 @@ func _reinitialiser() -> void:
 
 # ---------------------------------------------------------------- boucle
 func _physics_process(delta: float) -> void:
+	if marionnette:
+		return
 	horloge += delta
 	_t += delta
 	recharge_esquive.avancer(delta)
@@ -255,7 +261,7 @@ func recevoir_coup(degats: float, source: Node3D, _lourd: bool) -> float:
 	var reel := sante.subir(degats, source)
 	if reel <= 0.0:
 		return 0.0
-	EventBus.coup_porte.emit(global_position + Vector3.UP * 2.2, reel, true, true)
+	EventBus.coup_porte.emit(global_position + Vector3.UP * 2.2, reel, true, true, self, source)
 	if sante.est_mort:
 		return reel
 	sante.rendre_invulnerable(EQ.heros_invulnerable_apres_coup)
@@ -291,12 +297,12 @@ func _on_mort(_source: Node) -> void:
 
 func _etat_mort() -> void:
 	_immobile()
-	if _t >= EQ.heros_delai_reapparition:
+	if reapparition_auto and _t >= EQ.heros_delai_reapparition:
 		reapparaitre()
 
 
-func reapparaitre() -> void:
-	global_position = point_reapparition
+func reapparaitre(ou: Variant = null) -> void:
+	global_position = ou if ou is Vector3 else point_reapparition
 	collision_layer = Combat.COUCHE_HEROS
 	_collisions_normales()
 	sante.soigner_completement()
@@ -314,6 +320,78 @@ func est_vivant() -> bool:
 
 func temps_avant_reapparition() -> float:
 	return maxf(0.0, EQ.heros_delai_reapparition - _t) if etat == Etat.MORT else 0.0
+
+
+# ---------------------------------------------------------------- coop
+## Ce que l'hôte envoie de ce héros à chaque instantané (voir SynchroArene).
+func instantane() -> Array:
+	var nom_anim := String(anim.current_animation)
+	return [global_position, rotation.y, int(etat), nom_anim, anim.get_playing_speed(), sante.pv, visuel.visible]
+
+
+## Marionnette : applique ce que l'hôte a envoyé (la position est posée à part, lissée).
+func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: float, visible_recu: bool) -> void:
+	if etat_recu != int(etat):
+		etat = etat_recu as Etat
+		_t = 0.0
+		if nom_anim != "" and anim.has_animation(nom_anim):
+			_jouer(nom_anim, vitesse, 0.08, true)
+	elif nom_anim != "" and anim.current_animation != nom_anim and anim.has_animation(nom_anim):
+		_jouer(nom_anim, vitesse, 0.1)
+	sante.definir_pv(pv)
+	if visible_recu != visuel.visible:
+		visuel.visible = visible_recu
+		EffetsMagie.fumee(get_parent(), global_position)   # téléportation de l'Occultiste
+
+
+## Coop, invité : l'hôte a décidé de ce qui arrive à notre héros (coup reçu, riposte, mort, retour).
+func evenement_autorite(type: String, pv: float, point: Vector3) -> void:
+	sante.definir_pv(pv)
+	match type:
+		"touche":
+			if etat == Etat.MORT:
+				return
+			_quitter_action()
+			_collisions_normales()
+			_direction = Combat.direction_plate(point, global_position)
+			if _direction == Vector3.ZERO:
+				_direction = -avant()
+			_jouer("Hit_A", 1.3, 0.04, true)
+			_changer(Etat.TOUCHE)
+		"riposte":
+			_riposte_autorite(point)
+		"mort":
+			if etat != Etat.MORT:
+				sante.est_mort = true
+				_on_mort(null)
+		"reapparu":
+			reapparaitre(point)
+
+
+## La parade du Bretteur a réussi chez l'hôte : on joue la riposte chez soi aussi.
+func _riposte_autorite(_point: Vector3) -> void:
+	pass
+
+
+## Anneau coloré au sol sous le héros (coop : doré pour soi, vert pour le partenaire).
+func ajouter_anneau(couleur: Color) -> void:
+	var m := MeshInstance3D.new()
+	var tore := TorusMesh.new()
+	tore.inner_radius = 0.5
+	tore.outer_radius = 0.62
+	tore.rings = 32
+	tore.ring_segments = 4
+	m.mesh = tore
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(couleur, 0.75)
+	m.material_override = mat
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	m.scale = Vector3(1, 0.12, 1)
+	m.position.y = 0.07
+	m.name = "Anneau"
+	add_child(m)
 
 
 # ---------------------------------------------------------------- animations

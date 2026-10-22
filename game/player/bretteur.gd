@@ -130,6 +130,16 @@ func _intercepter_coup(source: Node3D) -> bool:
 	return false
 
 
+func _riposte_autorite(point: Vector3) -> void:
+	# chez l'invité, pas de cible réelle : seulement le geste (l'hôte applique les dégâts)
+	_faire_face(Combat.direction_plate(global_position, point))
+	_cible_riposte = null
+	_impact_fait = true
+	_duree_action = anim.get_animation("Block_Attack").length / EQ.riposte_vitesse_animation
+	_jouer("Block_Attack", EQ.riposte_vitesse_animation, 0.04, true)
+	_changer(Etat.RIPOSTE)
+
+
 func _riposter(source: Node3D) -> void:
 	_cible_riposte = source
 	_faire_face(Combat.direction_plate(global_position, source.global_position))

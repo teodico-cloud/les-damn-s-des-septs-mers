@@ -101,6 +101,7 @@ extends Resource
 
 @export_group("Arène d'entraînement")
 @export var arene_nb_ennemis := 2
+@export var arene_nb_ennemis_coop := 3         ## à deux (choix de Téo)
 @export var arene_delai_apparition := 1.6
 @export var arene_distance_apparition_min := 4.5
 

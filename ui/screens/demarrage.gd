@@ -3,11 +3,13 @@ extends Control
 
 const SCENE_VITRINE := "res://game/vitrine/vitrine.tscn"
 const SCENE_CHOIX := "res://ui/screens/choix_heros.tscn"
+const SCENE_COOP := "res://ui/screens/coop.tscn"
 const COULEUR_OS := Color("e2d6ba")
 const COULEUR_OR := Color("ac8036")
 
 var bouton_vitrine: Button
 var bouton_combat: Button
+var bouton_coop: Button
 
 
 func _ready() -> void:
@@ -36,7 +38,7 @@ func _construire() -> void:
 	colonne.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	colonne.grow_vertical = Control.GROW_DIRECTION_BOTH
 	colonne.alignment = BoxContainer.ALIGNMENT_CENTER
-	colonne.add_theme_constant_override("separation", 28)
+	colonne.add_theme_constant_override("separation", 20)
 	add_child(colonne)
 
 	var titre := Label.new()
@@ -65,8 +67,14 @@ func _construire() -> void:
 	centre_combat.add_child(bouton_combat)
 	colonne.add_child(centre_combat)
 
+	bouton_coop = _bouton("Jouer à deux")
+	bouton_coop.pressed.connect(_ouvrir_coop)
+	var centre_coop := CenterContainer.new()
+	centre_coop.add_child(bouton_coop)
+	colonne.add_child(centre_coop)
+
 	bouton_vitrine = _bouton("Voir les héros")
-	bouton_vitrine.custom_minimum_size = Vector2(440, 90)
+	bouton_vitrine.custom_minimum_size = Vector2(440, 80)
 	bouton_vitrine.add_theme_font_size_override("font_size", 32)
 	bouton_vitrine.pressed.connect(_ouvrir_vitrine)
 	var centre := CenterContainer.new()
@@ -87,7 +95,7 @@ func _construire() -> void:
 func _bouton(texte: String) -> Button:
 	var b := Button.new()
 	b.text = texte
-	b.custom_minimum_size = Vector2(440, 110)
+	b.custom_minimum_size = Vector2(440, 96)
 	b.add_theme_font_size_override("font_size", 38)
 	b.add_theme_color_override("font_color", COULEUR_OS)
 	for etat in ["normal", "hover", "pressed", "focus"]:
@@ -101,7 +109,14 @@ func _bouton(texte: String) -> Button:
 
 
 func _ouvrir_arene() -> void:
+	Reseau.quitter()
+	Partie.revenir_en_solo()
 	get_tree().change_scene_to_file(SCENE_CHOIX)
+
+
+func _ouvrir_coop() -> void:
+	Partie.mode = Partie.Mode.SOLO
+	get_tree().change_scene_to_file(SCENE_COOP)
 
 
 func _ouvrir_vitrine() -> void:

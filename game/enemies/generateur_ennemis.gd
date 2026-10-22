@@ -1,28 +1,36 @@
 class_name GenerateurEnnemis
 extends Node3D
 ## Garde un nombre fixe d'ennemis en vie dans l'arène : quand l'un meurt, un autre sort de terre
-## un peu plus tard, loin du héros.
+## un peu plus tard, loin des héros. Chaque ennemi a un nom unique (« Squelette_7 ») : en coop, c'est
+## ce nom qui permet à l'invité de retrouver le même squelette.
+
+signal ennemi_cree(ennemi: Ennemi)
 
 const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 
 @export var demi_cote := 5.0   ## zone d'apparition : carré de ce demi-côté autour de l'origine
+var nombre := 2                ## ennemis à garder en vie (fixé par l'arène avant add_child)
 
 var vaincus := 0
+var _compteur := 0
 var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
 	_rng.randomize()
-	for i in EQ.arene_nb_ennemis:
+	for i in nombre:
 		_faire_apparaitre()
 
 
 func _faire_apparaitre() -> void:
 	var e := Ennemi.creer()
+	_compteur += 1
+	e.name = "Squelette_%d" % _compteur
 	e.position = _point_libre()
 	e.vaincu.connect(_on_vaincu)
 	add_child(e)
 	e.rotation.y = _rng.randf_range(-PI, PI)
+	ennemi_cree.emit(e)
 
 
 func _point_libre() -> Vector3:

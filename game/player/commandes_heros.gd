@@ -5,12 +5,15 @@ extends RefCounted
 
 const TAMPON := 0.25   ## une action demandée un peu trop tôt est gardée ce temps-là (secondes)
 
+signal action_demandee(action: StringName)   ## en coop, l'invité l'envoie à l'hôte
+
 var deplacement := Vector3.ZERO   ## direction au sol, longueur 0 à 1
 var _demandes := {}               ## action -> instant de la demande
 
 
 func demander(action: StringName, instant: float) -> void:
 	_demandes[action] = instant
+	action_demandee.emit(action)
 
 
 ## Vrai si l'action a été demandée récemment ; la demande est alors consommée.

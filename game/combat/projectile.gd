@@ -29,6 +29,7 @@ static func tirer(monde: Node, par: Node3D, depart: Vector3, dir: Vector3, eq: E
 	p.rayon = eq.occ_tir_rayon
 	p.position = depart
 	monde.add_child(p)
+	EventBus.projectile_tire.emit(par, depart, p.direction)
 	return p
 
 

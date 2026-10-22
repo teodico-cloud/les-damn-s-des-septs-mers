@@ -4,6 +4,7 @@ extends Node3D
 
 const SCENE_MENU := "res://ui/screens/demarrage.tscn"
 const SCENE_ARENE := "res://game/arene/arene.tscn"
+const SCENE_COOP := "res://ui/screens/coop.tscn"
 const DECOR := "res://assets/models/decor/"
 const COULEUR_OS := Color("e2d6ba")
 const COULEUR_OR := Color("ac8036")
@@ -39,13 +40,16 @@ func _notification(what: int) -> void:
 		retour_menu()
 
 
+## Choix fait : en solo on entre dans l'arène ; si l'on héberge une partie à deux, on revient à
+## l'écran de coop qui attend le partenaire (il prendra l'autre héros).
 func choisir(archetype: StringName) -> void:
 	Partie.heros_local = archetype
 	if changer_de_scene:
-		get_tree().change_scene_to_file(SCENE_ARENE)
+		get_tree().change_scene_to_file(SCENE_COOP if Partie.mode == Partie.Mode.HOTE else SCENE_ARENE)
 
 
 func retour_menu() -> void:
+	Partie.revenir_en_solo()
 	if changer_de_scene:
 		get_tree().change_scene_to_file(SCENE_MENU)
 
