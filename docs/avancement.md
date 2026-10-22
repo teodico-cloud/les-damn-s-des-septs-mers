@@ -6,7 +6,9 @@ Dernière mise à jour : 22 octobre 2026.
 - **Phase A (conception) : terminée et validée.** Voir `docs/conception.md`.
 - **Héros : validés par Téo.** Bretteur et Occultiste, visages durs et détails pirates.
 - **Jalon 0 : validé par Téo** (« Tout marche » ; la vitrine tourne à 120 images/s sur son téléphone).
-- **Jalon 1 (combat solo du Bretteur) : relu, corrigé, APK envoyé à Téo pour essai.**
+- **Jalon 1 (combat solo du Bretteur) : validé par Téo.**
+- **Jalon 2 (coop Wi-Fi) en cours.** Étape 1 écrite (Occultiste jouable, choix du héros, yeux rouges des
+  squelettes) : 68 tests, captures vérifiées, relecture en cours avant l'APK intermédiaire.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -104,9 +106,11 @@ Matelots squelettes qui reviennent sans fin.
 - Ennemis : noms stables nécessaires pour la réplication.
 
 ## Prochaines étapes
-1. Essai de l'APK du jalon 1 par Téo.
-2. Retour de Téo sur la sensation du combat ; réglages dans `data/equilibrage.tres`.
-3. Jalon 2 (selon `docs/conception.md`).
+1. Jalon 2, étape 1 : relecture, corrections, APK intermédiaire (Occultiste en solo) pour Téo.
+2. Jalon 2, étape 2 : coop sur le même Wi-Fi (héberger / rejoindre, synchro des deux héros et des
+   squelettes, anneau coloré, 3 squelettes à deux).
+3. Jalon 2, étape 3 : réanimation du partenaire, « les deux tombent = retour au départ », arrêt sur
+   image propre à chaque joueur. Puis relecture de fin de jalon et APK.
 
 ## Points à trancher plus tard
 - Clé de signature définitive : passer à la vraie clé (secrète) **avant** que les sauvegardes comptent,

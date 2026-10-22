@@ -29,16 +29,19 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 
 ## Arborescence actuelle
 - `project.godot`, `export_presets.cfg` (Android arm64, paquet `fr.teodico.damnes`), `icon.svg`.
-- `ui/screens/` : écrans (écran titre `demarrage.tscn` = scène principale).
+- `ui/screens/` : écrans (écran titre `demarrage.tscn` = scène principale ; `choix_heros.tscn` avant l'arène).
 - `game/vitrine/` : vitrine des héros (jalon 0) : héros, salle, actions au toucher, compteur d'images.
 - Combat (jalon 1) :
   - `autoload/event_bus.gd` : signaux globaux (`coup_porte`, `ennemi_vaincu`, `heros_mort`, `heros_reapparu`).
+  - `autoload/partie.gd` : état de la partie partagé entre écrans (héros choisi ; plus tard mode coop).
   - `data/equilibrage.tres` (+ `core/resources/equilibrage.gd`) : **toutes** les valeurs de réglage du combat.
   - `core/components/` : `Sante` (PV, invulnérabilité), `Recharge` (temps de recharge).
   - `game/combat/` : `Combat` (couches de collision, zones de coup, `porter_coup`), `CameraCombat`,
-    `EffetsCombat` (chiffres, arrêt sur image, secousse).
-  - `game/player/` : `Heros` (machine d'états) et `CommandesHeros` (ce que le joueur demande : seule
-    entrée du héros, pour que le réseau puisse la remplir plus tard).
+    `EffetsCombat` (chiffres, arrêt sur image, secousse), `Projectile` (tir de l'Occultiste),
+    `EffetsMagie` (fumée, éclats, cercle au sol ; purement visuels).
+  - `game/player/` : `Heros` (base commune : déplacement, visée, recharges, coup reçu, mort), un script
+    par archétype (`Bretteur`, `Occultiste` ; `Heros.creer(&"occultiste")`) et `CommandesHeros` (ce que
+    le joueur demande : seule entrée du héros, pour que le réseau puisse la remplir plus tard).
   - `game/enemies/` : `Ennemi` (Matelot squelette), `GenerateurEnnemis`.
   - `game/arene/` : arène d'entraînement, tout construit par code.
   - `ui/hud/` : `HudCombat`, `JoystickFlottant`, `BoutonAction`.
@@ -67,6 +70,7 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   `xvfb-run -a godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720 -s "$PWD/tools/capture_scene.gd" -- res://game/vitrine/vitrine.tscn build/apercus/vitrine.png [nb_actions] [nb_images]`
 - Captures mises en scène du combat (annonce, coup, fente) + état du combat dans la console :
   `xvfb-run -a godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720 -s "$PWD/tools/capture_combat.gd" -- build/apercus`
+  (même chose pour l'Occultiste : `tools/capture_occultiste.gd`)
 - Suivre la fabrication de l'APK : `gh api repos/teodico-cloud/les-damn-s-des-septs-mers/actions/runs`
 - Diagnostics d'une fabrication (les journaux bruts ne sont pas lisibles d'ici, le workflow écrit ses
   diagnostics en annotations) : `gh api repos/teodico-cloud/les-damn-s-des-septs-mers/check-runs/<id du job>/annotations`
@@ -118,6 +122,10 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Tout ce qui compte une durée de jeu (invulnérabilité, recharges, états) utilise le **temps de jeu**
   (delta de physique), jamais `Time.get_ticks_msec()` : sinon l'arrêt sur image raccourcit l'esquive.
   `Sante` a sa propre horloge de jeu (priorité de physique -10 pour avancer avant les combattants).
+- GUT 9.7.1 : `wait_physics_frames(1)` laisse passer **2** images de physique (n + 1). Pour une durée
+  de jeu précise dans une boucle, mesurer avec `heros.horloge` plutôt que compter les attentes.
+- Ajouter un archétype : un script `extends Heros` (voir `occultiste.gd`) qui crée ses 3 recharges
+  dans `_init()` (l'interface les lit avant `_ready`), puis l'ajouter à `Heros.ARCHETYPES`.
 - En mode test sans écran, les images de physique ne suivent pas le temps réel (9 images en 45 ms ou
   en 170 ms selon `time_scale`) : un test qui mêle temps réel et images de physique ne prouve rien.
 - Animations : ne pas appeler `anim.stop()` avant `play(nom, fondu)` : le fondu partirait de rien et la
