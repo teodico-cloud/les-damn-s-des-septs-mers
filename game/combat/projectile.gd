@@ -11,7 +11,11 @@ var portee := 9.0
 var degats := 9.0
 var rayon := 0.35
 var _parcouru := 0.0
-var _forme := SphereShape3D.new()
+var _requete := PhysicsShapeQueryParameters3D.new()
+
+static var _boule: SphereMesh
+static var _trainee: CapsuleMesh
+static var _formes := {}   ## rayon -> SphereShape3D (une seule forme par taille, partagée)
 
 
 ## Crée et lance un projectile dans `monde` (le nœud parent des combattants).
@@ -29,25 +33,33 @@ static func tirer(monde: Node, par: Node3D, depart: Vector3, dir: Vector3, eq: E
 
 
 func _ready() -> void:
-	_forme.radius = rayon
+	if not _formes.has(rayon):
+		var f := SphereShape3D.new()
+		f.radius = rayon
+		_formes[rayon] = f
+	_requete.shape = _formes[rayon]
+	_requete.collision_mask = Combat.COUCHE_ENNEMIS | Combat.COUCHE_MONDE
+	if is_instance_valid(tireur) and tireur is CollisionObject3D:
+		_requete.exclude = [(tireur as CollisionObject3D).get_rid()]
+	if _boule == null:
+		_boule = SphereMesh.new()
+		_boule.radius = 0.16
+		_boule.height = 0.32
+		_boule.radial_segments = 12
+		_boule.rings = 6
+		_trainee = CapsuleMesh.new()
+		_trainee.radius = 0.08
+		_trainee.height = 0.8
+		_trainee.radial_segments = 8
+		_trainee.rings = 2
 	var boule := MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = 0.16
-	sphere.height = 0.32
-	sphere.radial_segments = 12
-	sphere.rings = 6
-	boule.mesh = sphere
+	boule.mesh = _boule
 	boule.material_override = EffetsMagie.mat_lueur()
 	boule.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(boule)
 	# traînée : capsule étirée derrière la boule
 	var trainee := MeshInstance3D.new()
-	var capsule := CapsuleMesh.new()
-	capsule.radius = 0.08
-	capsule.height = 0.8
-	capsule.radial_segments = 8
-	capsule.rings = 2
-	trainee.mesh = capsule
+	trainee.mesh = _trainee
 	trainee.material_override = EffetsMagie.mat_lueur()
 	trainee.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	trainee.rotation = Vector3(PI / 2.0, 0, 0)   # couchée le long de l'axe z local
@@ -73,14 +85,9 @@ func _physics_process(delta: float) -> void:
 
 ## Premier ennemi (ou élément du décor) dans la zone du projectile ; null s'il n'y a rien.
 func _premier_obstacle() -> Node3D:
-	var q := PhysicsShapeQueryParameters3D.new()
-	q.shape = _forme
-	q.transform = Transform3D(Basis.IDENTITY, global_position)
-	q.collision_mask = Combat.COUCHE_ENNEMIS | Combat.COUCHE_MONDE
-	if is_instance_valid(tireur) and tireur is CollisionObject3D:
-		q.exclude = [(tireur as CollisionObject3D).get_rid()]
+	_requete.transform = Transform3D(Basis.IDENTITY, global_position)
 	var obstacle: Node3D = null
-	for hit in get_world_3d().direct_space_state.intersect_shape(q, 8):
+	for hit in get_world_3d().direct_space_state.intersect_shape(_requete, 8):
 		var c = hit.get("collider")
 		if c is Node3D:
 			if c.has_method("recevoir_coup"):

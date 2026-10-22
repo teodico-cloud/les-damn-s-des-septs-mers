@@ -12,6 +12,7 @@ enum Etat { APPARITION, POURSUITE, PREPARATION, FRAPPE, RECUPERATION, TOUCHE, ET
 
 static var _mat_yeux_rouges: StandardMaterial3D
 static var _mat_chaine: StandardMaterial3D
+static var _maillon: CylinderMesh
 
 signal vaincu(ennemi: Ennemi)
 
@@ -325,6 +326,8 @@ func immobiliser(duree: float) -> void:
 	if etat == Etat.MORT or etat == Etat.APPARITION:
 		return
 	_recul = Vector3.ZERO
+	if etat == Etat.ETOURDI:
+		duree = maxf(duree, _duree_etat - _t)   # on garde le plus long des deux
 	_jouer("Idle_Combat", 0.25, 0.1)
 	_changer(Etat.ENCHAINE, duree)
 	if _chaines:   # déjà enchaîné : on remplace les anciennes chaînes
@@ -339,16 +342,17 @@ func _creer_chaines() -> Node3D:
 		_mat_chaine.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		_mat_chaine.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		_mat_chaine.albedo_color = Color(0.4, 1.0, 0.55, 0.8)
+	if _maillon == null:
+		_maillon = CylinderMesh.new()
+		_maillon.top_radius = 0.06
+		_maillon.bottom_radius = 0.06
+		_maillon.height = 1.5
+		_maillon.radial_segments = 6
+		_maillon.rings = 1
 	var groupe := Node3D.new()
-	var maillon := CylinderMesh.new()
-	maillon.top_radius = 0.06
-	maillon.bottom_radius = 0.06
-	maillon.height = 1.5
-	maillon.radial_segments = 6
-	maillon.rings = 1
 	for i in 6:
 		var c := MeshInstance3D.new()
-		c.mesh = maillon
+		c.mesh = _maillon
 		c.material_override = _mat_chaine
 		c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var a := TAU * i / 6.0 + PI / 6.0
@@ -373,6 +377,9 @@ func _yeux_rouges(actif: bool) -> void:
 
 func etourdir(duree: float) -> void:
 	if etat == Etat.MORT:
+		return
+	if etat == Etat.ENCHAINE:   # déjà enchaîné : il le reste, au moins aussi longtemps
+		_duree_etat = maxf(_duree_etat, _t + duree)
 		return
 	_jouer("Hit_B", 0.8, 0.04, true)
 	_changer(Etat.ETOURDI, duree)

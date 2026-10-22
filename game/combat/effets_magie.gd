@@ -9,6 +9,7 @@ static var _mat_lueur: StandardMaterial3D
 static var _mat_fumee: StandardMaterial3D
 static var _mat_cercle: StandardMaterial3D
 static var _mat_rune: StandardMaterial3D
+static var _ressources := {}   ## clé -> maillage ou dégradé déjà créé (une seule fois)
 
 
 ## Matière verte lumineuse (déclenche le halo de l'éclairage).
@@ -61,13 +62,16 @@ static func _bouffee(parent: Node, pos: Vector3, nombre: int, duree: float, tail
 	p.explosiveness = 0.9
 	p.amount = nombre
 	p.lifetime = duree
-	var sphere := SphereMesh.new()
-	sphere.radius = 0.12 * taille
-	sphere.height = 0.24 * taille
-	sphere.radial_segments = 8
-	sphere.rings = 4
-	sphere.material = _mat_particules()
-	p.mesh = sphere
+	var cle_maillage := "boule_%s" % taille
+	if not _ressources.has(cle_maillage):
+		var sphere := SphereMesh.new()
+		sphere.radius = 0.12 * taille
+		sphere.height = 0.24 * taille
+		sphere.radial_segments = 8
+		sphere.rings = 4
+		sphere.material = _mat_particules()
+		_ressources[cle_maillage] = sphere
+	p.mesh = _ressources[cle_maillage]
 	p.direction = Vector3.UP
 	p.spread = 180.0
 	p.initial_velocity_min = 0.8 * taille
@@ -77,10 +81,13 @@ static func _bouffee(parent: Node, pos: Vector3, nombre: int, duree: float, tail
 	p.damping_max = 3.0
 	p.scale_amount_min = 1.0
 	p.scale_amount_max = 2.2
-	var degrade := Gradient.new()
-	degrade.set_color(0, debut)
-	degrade.set_color(1, fin)
-	p.color_ramp = degrade
+	var cle_degrade := "degrade_%s_%s" % [debut, fin]
+	if not _ressources.has(cle_degrade):
+		var degrade := Gradient.new()
+		degrade.set_color(0, debut)
+		degrade.set_color(1, fin)
+		_ressources[cle_degrade] = degrade
+	p.color_ramp = _ressources[cle_degrade]
 	p.position = pos
 	parent.add_child(p)
 	p.emitting = true
@@ -96,13 +103,16 @@ static func cercle(parent: Node, pos: Vector3, rayon: float, duree: float) -> vo
 		_mat_cercle.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		_mat_cercle.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		_mat_cercle.albedo_color = Color(VERT, 0.35)
+	var cle := "anneau_%s" % rayon
+	if not _ressources.has(cle):
+		var anneau := TorusMesh.new()
+		anneau.inner_radius = rayon - 0.18
+		anneau.outer_radius = rayon
+		anneau.rings = 32
+		anneau.ring_segments = 6
+		_ressources[cle] = anneau
 	var m := MeshInstance3D.new()
-	var anneau := TorusMesh.new()
-	anneau.inner_radius = rayon - 0.18
-	anneau.outer_radius = rayon
-	anneau.rings = 32
-	anneau.ring_segments = 6
-	m.mesh = anneau
+	m.mesh = _ressources[cle]
 	m.material_override = _mat_cercle
 	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	m.scale = Vector3(0.2, 0.15, 0.2)

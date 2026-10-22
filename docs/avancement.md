@@ -7,8 +7,8 @@ Dernière mise à jour : 22 octobre 2026.
 - **Héros : validés par Téo.** Bretteur et Occultiste, visages durs et détails pirates.
 - **Jalon 0 : validé par Téo** (« Tout marche » ; la vitrine tourne à 120 images/s sur son téléphone).
 - **Jalon 1 (combat solo du Bretteur) : validé par Téo.**
-- **Jalon 2 (coop Wi-Fi) en cours.** Étape 1 écrite (Occultiste jouable, choix du héros, yeux rouges des
-  squelettes) : 68 tests, captures vérifiées, relecture en cours avant l'APK intermédiaire.
+- **Jalon 2 (coop Wi-Fi) en cours.** Étape 1 faite (Occultiste jouable, choix du héros, yeux rouges des
+  squelettes) : relue, corrigée, 75 tests ; APK intermédiaire envoyé à Téo. Étape 2 (coop) commencée.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -56,6 +56,7 @@ Matelots squelettes qui reviennent sans fin.
 | 21/10/2026 | Jalon 1 : joystick flottant ; annexes retenues : visée assistée et chiffres de dégâts (pas de vibrations ni de vagues infinies pour l'instant). Décors réduits à ×0,8. |
 | 22/10/2026 | Jalon 1 : combat validé par Téo ; ajout demandé : yeux rouges des squelettes pendant l'annonce. |
 | 22/10/2026 | Jalon 2 (coop Wi-Fi) : Téo a deux téléphones Android. L'Occultiste complet est avancé au jalon 2 (projectile maudit, téléportation courte, Marque maudite, Chaînes spectrales ; 80 PV). Marque : +40 % de dégâts du partenaire, +15 % pour l'Occultiste lui-même. En coop, héros différents obligatoires. Si les deux héros tombent : retour au départ, squelettes remis à zéro. Annexes retenues : réanimation du partenaire, arrêt sur image propre à chaque joueur, anneau coloré sous chaque héros, 3 squelettes à deux. Ordre : 1) Occultiste solo + choix du héros (APK intermédiaire), 2) coop, 3) réanimation et arrêt sur image local. |
+| 22/10/2026 | Occultiste, après relecture (choix de Téo) : le tir vise l'ennemi le plus proche de la direction du joystick (cône de 60°), sinon la direction du joystick ; il peut bouger dès que le projectile est parti (la cadence reste d'un tir toutes les 0,45 s) ; sans joystick, la téléportation part en arrière ; un sort coupé par un coup avant son effet rend sa recharge. |
 
 ## Relecture du jalon 0 (agent relecteur) et corrections
 - Le CI refuse désormais un script ou un fichier de test cassé (chargement de tous les scripts + contrôle du
@@ -91,6 +92,14 @@ Matelots squelettes qui reviennent sans fin.
 - Fondus d'animation réparés (la pose sautait d'un coup) ; texture du squelette avec mipmaps ;
   réglages restants déplacés dans `equilibrage.gd` ; boutons redessinés seulement si besoin.
 
+## Relecture du jalon 2, étape 1 (agent relecteur) et corrections
+- Rien de bloquant ; Bretteur identique à main image par image après le découpage du héros (vérifié).
+- Corrigé selon les choix de Téo : tir avec visée dans la direction du joystick, mouvement après le tir,
+  téléportation en arrière, recharge rendue si un sort est coupé ou si la cible de la Marque meurt.
+- Corrigé : un étourdissement ne raccourcit plus les Chaînes (le plus long des deux est gardé) ;
+  formes et requêtes partagées (projectiles, fumées, chaînes) ; deux tests rendus plus probants.
+- Noté pour plus tard : la visée assistée ignore les murs (à revoir avec les donjons).
+
 ## Questions pour Téo (après son essai)
 - Parade et Fente pendant l'élan d'un coup : aujourd'hui seule l'Esquive peut couper un coup avant
   l'impact ; une Parade demandée trop tôt est perdue. Faut-il que la Parade puisse aussi couper le coup ?
@@ -106,7 +115,7 @@ Matelots squelettes qui reviennent sans fin.
 - Ennemis : noms stables nécessaires pour la réplication.
 
 ## Prochaines étapes
-1. Jalon 2, étape 1 : relecture, corrections, APK intermédiaire (Occultiste en solo) pour Téo.
+1. Essai de l'Occultiste par Téo (APK intermédiaire).
 2. Jalon 2, étape 2 : coop sur le même Wi-Fi (héberger / rejoindre, synchro des deux héros et des
    squelettes, anneau coloré, 3 squelettes à deux).
 3. Jalon 2, étape 3 : réanimation du partenaire, « les deux tombent = retour au départ », arrêt sur

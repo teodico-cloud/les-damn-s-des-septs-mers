@@ -89,6 +89,11 @@ func _commencer_attaque() -> void:
 	pass
 
 
+## Faux tant que l'attaque ne peut pas repartir (ex. cadence de tir) : la demande reste en attente.
+func _attaque_possible() -> bool:
+	return true
+
+
 func _commencer_esquive() -> bool:
 	return false
 
@@ -170,7 +175,7 @@ func _collisions_normales() -> void:
 func _etat_libre(delta: float) -> void:
 	if _essayer_actions_prioritaires():
 		return
-	if commandes.prendre(&"attaque", horloge):
+	if _attaque_possible() and commandes.prendre(&"attaque", horloge):
 		_commencer_attaque()
 		return
 	var dir := commandes.deplacement

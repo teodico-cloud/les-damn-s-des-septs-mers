@@ -82,9 +82,10 @@ func test_le_projectile_s_ecrase_sur_un_mur() -> void:
 	_boite(Vector3(0, 1.5, 2.5), Vector3(4, 3, 0.4))
 	var e := _ennemi(Vector3(0, 0, 5))
 	_demander(&"attaque")
-	await _secondes(0.8)
-	assert_eq(e.sante.pv, EQ.squelette_pv_max, "Le mur arrête le projectile")
-	assert_eq(_projectiles(), 0)
+	await _secondes(0.45)   # sans le mur, il volerait encore (il ne s'éteint seul que vers 0,8 s)
+	assert_eq(_projectiles(), 0, "Le projectile s'est écrasé sur le mur")
+	await _secondes(0.4)
+	assert_eq(e.sante.pv, EQ.squelette_pv_max, "Le squelette derrière le mur n'est pas touché")
 
 
 func test_tir_continu_en_gardant_le_doigt() -> void:
@@ -100,7 +101,45 @@ func test_tir_continu_en_gardant_le_doigt() -> void:
 	assert_between(coups.size(), 3, 4, "Tirs reçus : %d" % coups.size())
 
 
+func test_le_tir_vise_l_ennemi_dans_la_direction_du_joystick() -> void:
+	var e := _ennemi(Vector3(2.4, 0, 6.6))   # à 7 m, 20° à droite de la direction du joystick
+	occ.commandes.deplacement = Vector3(0, 0, 1)
+	_demander(&"attaque")
+	await _secondes(0.9)
+	assert_lt(e.sante.pv, EQ.squelette_pv_max, "Le tir part vers l'ennemi du cône, pas droit devant")
+
+
+func test_il_bouge_des_que_le_tir_est_parti() -> void:
+	_ennemi(Vector3(0, 0, 5))
+	_demander(&"attaque")
+	await _secondes(EQ.occ_tir_instant / EQ.occ_tir_vitesse_animation + 0.05)
+	assert_eq(_projectiles(), 1, "Le projectile est parti")
+	occ.commandes.deplacement = Vector3(1, 0, 0)
+	await _secondes(0.2)
+	assert_eq(occ.etat, Heros.Etat.LIBRE, "Le joystick coupe la fin du geste")
+	assert_gt(occ.global_position.x, 0.5, "Il se déplace")
+
+
+func test_la_cadence_reste_la_meme_en_bougeant() -> void:
+	var tirs := [0]
+	monde.child_entered_tree.connect(func(n: Node): if n is Projectile: tirs[0] += 1)
+	var debut := occ.horloge
+	while occ.horloge - debut < 1.5:   # doigt sur Attaque et joystick poussé
+		occ.commandes.deplacement = Vector3(0, 0, 1) if int((occ.horloge - debut) * 4.0) % 2 == 0 else Vector3(0, 0, -1)
+		_demander(&"attaque")
+		await wait_physics_frames(1)
+	assert_between(tirs[0], 3, 4, "Pas plus d'un tir toutes les %.2f s : %d tirs" % [EQ.occ_tir_cadence, tirs[0]])
+
+
 # ---------------------------------------------------------------- téléportation
+func test_teleportation_sans_joystick_part_en_arriere() -> void:
+	occ.rotation.y = 0.0   # regarde vers +z
+	_demander(&"esquive")
+	await _secondes(EQ.occ_tele_duree + 0.1)
+	assert_almost_eq(occ.global_position.z, -EQ.occ_tele_distance, 0.35, "Il recule de 4 m")
+	assert_almost_eq(occ.avant().z, 1.0, 0.05, "Et garde son regard vers l'ennemi")
+
+
 func test_teleportation_saute_a_4_m_et_rend_intouchable() -> void:
 	occ.commandes.deplacement = Vector3(0, 0, 1)
 	_demander(&"esquive")
@@ -142,13 +181,13 @@ func test_la_marque_augmente_les_degats() -> void:
 	assert_almost_eq(Combat.porter_coup(partenaire, e, 10.0, false), 10.0 * (1.0 + EQ.occ_marque_bonus_partenaire), 0.01, "+40 % pour le partenaire")
 
 
-func test_la_marque_s_efface_au_bout_de_6_s() -> void:
+func test_la_marque_s_efface_au_bout_de_sa_duree() -> void:
 	var e := _ennemi(Vector3(0, 0, 3), false)
-	e.set_physics_process(true)
-	occ.set_physics_process(true)
-	e.marquer(occ, 0.5)
-	await _secondes(0.6)
-	assert_false(e.est_marque())
+	_demander(&"competence_1")
+	await _secondes(EQ.occ_marque_instant + 0.1)
+	assert_true(e.est_marque())
+	await _secondes(EQ.occ_marque_duree)
+	assert_false(e.est_marque(), "Effacée au bout de %.0f s" % EQ.occ_marque_duree)
 	assert_false(e._rune.visible)
 	assert_eq(e.multiplicateur_degats(occ), 1.0)
 
@@ -160,7 +199,41 @@ func test_marque_sans_cible_pas_consommee() -> void:
 	assert_true(occ.recharge_competence_1.prete(), "Et la Marque n'est pas consommée")
 
 
+func test_marque_cible_morte_pendant_le_geste_recharge_rendue() -> void:
+	var e := _ennemi(Vector3(0, 0, 3))
+	_demander(&"competence_1")
+	await wait_physics_frames(2)
+	assert_eq(occ.etat, Heros.Etat.INCANTATION)
+	Combat.porter_coup(occ, e, 500.0, true)   # tué avant que la marque se pose
+	await _secondes(EQ.occ_marque_duree_geste)
+	assert_true(occ.recharge_competence_1.prete(), "La Marque n'est pas perdue")
+
+
 # ---------------------------------------------------------------- Chaînes spectrales
+func test_sort_coupe_par_un_coup_recharge_rendue() -> void:
+	var e := _ennemi(Vector3(0, 0, 3))
+	_demander(&"competence_2")
+	await wait_physics_frames(2)
+	assert_eq(occ.etat, Heros.Etat.INCANTATION)
+	Combat.porter_coup(e, occ, 15.0, false)   # frappé avant que les chaînes partent
+	assert_eq(occ.etat, Heros.Etat.TOUCHE)
+	assert_true(occ.recharge_competence_2.prete(), "Les Chaînes peuvent être relancées aussitôt")
+	await _secondes(EQ.occ_chaines_instant + 0.1)
+	assert_ne(e.etat, Ennemi.Etat.ENCHAINE, "Le sort coupé ne part pas")
+
+
+func test_un_etourdissement_ne_raccourcit_pas_les_chaines() -> void:
+	var e := _ennemi(Vector3(0, 0, 3), false)
+	await wait_physics_frames(2)
+	e.immobiliser(2.0)
+	e.etourdir(0.5)
+	await _secondes(1.0)
+	assert_eq(e.etat, Ennemi.Etat.ENCHAINE, "Toujours enchaîné après 1 s")
+	e.etourdir(3.0)
+	await _secondes(1.5)
+	assert_eq(e.etat, Ennemi.Etat.ENCHAINE, "Un étourdissement plus long prolonge l'immobilisation")
+
+
 func test_les_chaines_immobilisent_et_coupent_l_annonce() -> void:
 	var e := _ennemi(Vector3(0, 0, 1.7), false)
 	await wait_physics_frames(3)
