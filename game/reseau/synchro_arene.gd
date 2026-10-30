@@ -193,9 +193,32 @@ func _etat_heros() -> Dictionary:
 func _etat_ennemis() -> Dictionary:
 	var d := {}
 	for e in generateur.get_children():
-		if e is Ennemi:
-			d[String(e.name)] = e.instantane()
+		if e is Ennemi and not e.is_queued_for_deletion():   # (retour au départ : les anciens partent)
+			d[String(e.name)] = _emballer(e.instantane())
 	return d
+
+
+## Un squelette voyage en nombres à virgule simple (4 octets chacun) plutôt qu'en liste de valeurs
+## (jusqu'à 12 octets chacune) : avec 8 squelettes, l'instantané tient dans un seul paquet Wi-Fi.
+## [x, y, z, rotation, état, animation, vitesse, PV, marqué, temps] ; vaincu : [x, y, z, rotation,
+## état, tueur] (tueur : 0 inconnu, 1 héros de l'hôte, 2 héros de l'invité).
+const TUEURS := ["", "HerosHote", "HerosInvite"]
+
+
+static func _emballer(v: Array) -> PackedFloat32Array:
+	var p: Vector3 = v[0]
+	if v.size() < 8:
+		return PackedFloat32Array([p.x, p.y, p.z, v[1], v[2], maxi(TUEURS.find(v[3]), 0)])
+	return PackedFloat32Array([p.x, p.y, p.z, v[1], v[2], v[3], v[4], v[5], 1.0 if v[6] else 0.0, v[7]])
+
+
+static func _deballer(p: Variant) -> Array:
+	if not (p is PackedFloat32Array):
+		return p
+	var pos := Vector3(p[0], p[1], p[2])
+	if p.size() < 10:
+		return [pos, p[3], roundi(p[4]), TUEURS[clampi(roundi(p[5]), 0, TUEURS.size() - 1)]]
+	return [pos, p[3], roundi(p[4]), roundi(p[5]), p[6], p[7], p[8] > 0.5, p[9]]
 
 
 func _on_coup_porte(pos: Vector3, degats: float, lourd: bool, cible_est_heros: bool, cible: Node3D, source: Node3D, critique: bool) -> void:
@@ -310,6 +333,8 @@ func _traiter_instantane(numero: int, heros: Dictionary, ennemis: Dictionary, ac
 	# estimé par le trajet le plus rapide observé, qui remonte doucement si les horloges dérivent
 	var t_hote := numero / FREQUENCE
 	_decalage_horloge = minf(_decalage_horloge + 0.0005, _maintenant() - t_hote)
+	for nom in ennemis:
+		ennemis[nom] = _deballer(ennemis[nom])
 	_instantanes.append([t_hote, heros, ennemis])
 	if _instantanes.size() > 12:
 		_instantanes.pop_front()
@@ -407,7 +432,10 @@ func _afficher_monde() -> void:
 			e.rotation.y = lerp_angle(da[1], db[1], f)
 		if dernier[2].has(cle):
 			var dn: Array = dernier[2][cle]
-			e.appliquer_instantane(dn[2], dn[3], dn[4], dn[5], dn[6], dn[7] + age)
+			if dn.size() < 8:
+				e.appliquer_mort(_trouver(dn[3]) if dn.size() > 3 else null)   # vaincu (format court)
+			else:
+				e.appliquer_instantane(dn[2], dn[3], dn[4], dn[5], dn[6], dn[7] + age)
 
 
 @rpc("authority", "reliable")
@@ -452,10 +480,13 @@ func _effet_recu(nom_lanceur: String, type: String, position: Vector3) -> void:
 	if type == "cercle_chaines":
 		EffetsMagie.cercle(arene, position, Heros.EQ.occ_chaines_rayon, 0.8)
 	elif type.begins_with("trainee_"):
+		# « trainee_<coup>_<angle> » : la direction vient de l'hôte (le héros affiché ici a 0,1 s de
+		# retard : une direction recalculée depuis lui serait faussée)
 		var lanceur := _trouver(nom_lanceur)
-		if lanceur:
-			var dir := Combat.direction_plate(lanceur.global_position, position)
-			EffetsMagie.trainee_sabre(arene, lanceur.global_position, dir, int(type.substr(8)))
+		var parties := type.split("_")
+		if lanceur and parties.size() >= 3:
+			var angle := deg_to_rad(float(parties[2]))
+			EffetsMagie.trainee_sabre(arene, lanceur.global_position, Vector3(sin(angle), 0, cos(angle)), int(parties[1]))
 
 
 @rpc("authority", "reliable")

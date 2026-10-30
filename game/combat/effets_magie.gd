@@ -183,16 +183,19 @@ static func trainee_sabre(parent: Node, pos: Vector3, direction: Vector3, coup: 
 	var cle := "arc_sabre"
 	if not _ressources.has(cle):
 		_ressources[cle] = _maillage_arc(1.0, 1.65, deg_to_rad(150.0), 18)
+	var cle_mat := "mat_trainee_%d" % (1 if coup == 2 else 0)
+	if not _ressources.has(cle_mat):
+		var mat := StandardMaterial3D.new()   # partagée : chaque traînée s'efface par sa transparence
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat.vertex_color_use_as_albedo = true
+		# mélange plutôt qu'addition : sur le sol clair, l'addition virait au blanc éblouissant
+		mat.albedo_color = Color(1.0, 0.8, 0.3, 0.95) if coup < 2 else Color(1.0, 0.55, 0.15, 1.0)
+		_ressources[cle_mat] = mat
 	var m := MeshInstance3D.new()
 	m.mesh = _ressources[cle]
-	var mat := StandardMaterial3D.new()   # une par traînée : chacune s'efface à son rythme
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.vertex_color_use_as_albedo = true
-	# mélange plutôt qu'addition : sur le sol clair, l'addition virait au blanc éblouissant
-	mat.albedo_color = Color(1.0, 0.8, 0.3, 0.95) if coup < 2 else Color(1.0, 0.55, 0.15, 1.0)
-	m.material_override = mat
+	m.material_override = _ressources[cle_mat]
 	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var lacet := atan2(direction.x, direction.z)
 	var roulis: float = [deg_to_rad(-35.0), 0.0, deg_to_rad(90.0)][clampi(coup, 0, 2)]
@@ -204,7 +207,7 @@ static func trainee_sabre(parent: Node, pos: Vector3, direction: Vector3, coup: 
 	var grand := 1.15 if coup == 2 else 1.0
 	m.scale = Vector3.ONE * 0.85 * grand
 	t.tween_property(m, "scale", Vector3.ONE * 1.1 * grand, 0.18).set_ease(Tween.EASE_OUT)
-	t.tween_property(mat, "albedo_color:a", 0.0, 0.18).set_delay(0.04)
+	t.tween_property(m, "transparency", 1.0, 0.18).set_delay(0.04)
 	t.chain().tween_callback(m.queue_free)
 
 
@@ -261,7 +264,8 @@ static func eclater(parent: Node, parties: Array, origine: Transform3D, depuis: 
 		var sortie := (corps.global_position - depuis)
 		sortie.y = 0.0
 		sortie = sortie.normalized() if sortie.length() > 0.01 else Vector3(randf_range(-1, 1), 0, randf_range(-1, 1)).normalized()
-		corps.linear_velocity = (sortie + Vector3(randf_range(-0.6, 0.6), randf_range(0.8, 1.6), randf_range(-0.6, 0.6))) * force
+		# (pas trop haut : quelques os passaient par-dessus les murs invisibles côté caméra)
+		corps.linear_velocity = (sortie + Vector3(randf_range(-0.6, 0.6), randf_range(0.6, 1.15), randf_range(-0.6, 0.6))) * force
 		corps.angular_velocity = Vector3(randf_range(-12, 12), randf_range(-12, 12), randf_range(-12, 12))
 		# (on rétrécit l'image, pas le corps : la physique n'accepte pas un corps mis à l'échelle)
 		var t := corps.create_tween()

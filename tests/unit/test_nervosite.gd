@@ -109,18 +109,29 @@ func test_horde_et_renfort_en_groupe() -> void:
 	gen.nombre = 5
 	monde.add_child(gen)
 	assert_eq(gen.vivants(), 5, "La horde complète sort de terre")
-	var morts := 0
-	for e in gen.get_children():
-		if morts < 3:
-			e.sante.subir(500.0)   # trois tués coup sur coup (la sortie de terre les protège des coups)
-			morts += 1
-	assert_eq(gen.vivants(), 2)
-	await _secondes(EQ.arene_delai_apparition * 0.5)
-	assert_eq(gen.vivants(), 2, "Pas de renfort tout de suite")
-	await _secondes(EQ.arene_delai_apparition * 0.5 + 0.1)
-	assert_eq(gen.vivants(), 5, "Les trois manquants ressortent ensemble")
-	await _secondes(EQ.arene_delai_apparition + 0.1)
-	assert_eq(gen.vivants(), 5, "Un seul renfort pour ces trois morts")
+	# en groupes : la plupart ont un voisin tout près (un groupe de 1 reste possible pour le reste)
+	var entoures := 0
+	for a in gen.get_children():
+		for b in gen.get_children():
+			if a != b and a.position.distance_to(b.position) <= 2.0 * EQ.arene_rayon_groupe + 0.9:
+				entoures += 1
+				break
+	assert_gte(entoures, 4, "Ils sortent en groupes, pas éparpillés")
+	# deux morts à des moments différents (la sortie de terre les protège des coups : on passe par la santé)
+	var avant: Array = gen.get_children()
+	avant[0].sante.subir(500.0)
+	await wait_seconds(EQ.arene_delai_apparition * 0.5)
+	avant[1].sante.subir(500.0)
+	assert_eq(gen.vivants(), 3)
+	await wait_seconds(EQ.arene_delai_apparition * 0.5 + 0.2)
+	assert_eq(gen.vivants(), 5, "Les deux manquants ressortent ensemble, au délai de la PREMIÈRE mort")
+	var nouveaux := gen.get_children().filter(func(n): return not (n in avant) and not n.is_queued_for_deletion())
+	assert_eq(nouveaux.size(), 2)
+	if nouveaux.size() == 2:
+		assert_lte(nouveaux[0].position.distance_to(nouveaux[1].position), 2.0 * EQ.arene_rayon_groupe + 0.9,
+			"Ils ressortent en groupe, au même endroit")
+	await wait_seconds(EQ.arene_delai_apparition * 0.5 + 0.2)
+	assert_eq(gen.get_children().filter(func(n): return not (n in avant)).size(), 2, "Pas de second renfort pour la seconde mort")
 
 
 # ---------------------------------------------------------------- héros plus vif

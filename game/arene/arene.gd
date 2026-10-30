@@ -236,7 +236,7 @@ func _on_partenaire_parti(raison: String) -> void:
 ## L'hôte continue seul après le départ de l'invité.
 func _continuer_seul() -> void:
 	heros.reapparition_auto = true   # seul : il réapparaît de nouveau tout seul
-	generateur.nombre = EQ.arene_nb_ennemis   # seul : moins de squelettes (les suivants ne sont plus remplacés)
+	generateur.nombre = EQ.arene_nb_ennemis   # seul : la horde de l'arène en solo (les suivants ne sont plus remplacés)
 	generateur.demarrer()
 
 
@@ -312,10 +312,11 @@ func _salle() -> void:
 
 	# sol et limites de la salle (les côtés vers la caméra n'ont pas de mur visible)
 	_obstacle(Vector3(0, -0.1, 0), Vector3(DEMI_COTE * 2 + 2, 0.2, DEMI_COTE * 2 + 2))
-	_obstacle(Vector3(0, 1.5, -DEMI_COTE - 0.2), Vector3(DEMI_COTE * 2 + 2, 3, 0.4))
-	_obstacle(Vector3(0, 1.5, DEMI_COTE + 0.2), Vector3(DEMI_COTE * 2 + 2, 3, 0.4))
-	_obstacle(Vector3(-DEMI_COTE - 0.2, 1.5, 0), Vector3(0.4, 3, DEMI_COTE * 2 + 2))
-	_obstacle(Vector3(DEMI_COTE + 0.2, 1.5, 0), Vector3(0.4, 3, DEMI_COTE * 2 + 2))
+	# (hauts de 8 m : les os projetés ne passent pas par-dessus)
+	_obstacle(Vector3(0, 4, -DEMI_COTE - 0.2), Vector3(DEMI_COTE * 2 + 2, 8, 0.4))
+	_obstacle(Vector3(0, 4, DEMI_COTE + 0.2), Vector3(DEMI_COTE * 2 + 2, 8, 0.4))
+	_obstacle(Vector3(-DEMI_COTE - 0.2, 4, 0), Vector3(0.4, 8, DEMI_COTE * 2 + 2))
+	_obstacle(Vector3(DEMI_COTE + 0.2, 4, 0), Vector3(0.4, 8, DEMI_COTE * 2 + 2))
 
 	# meubles dans les coins du fond, avec leur volume
 	_objet("barrel_large", Vector3(-5.3, 0, -5.3))

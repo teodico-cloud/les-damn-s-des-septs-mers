@@ -84,16 +84,15 @@ func _fin_ralenti(vitesse: float) -> void:
 
 
 ## Parade parfaite : gerbe d'étincelles et éclair au point du choc, « PARFAIT ! » doré, court ralenti
-## (en coop : seulement l'animation du héros, figée un instant), secousse pour celui qui a paré.
+## (seul ; en coop, rien n'est figé : le jeu de l'hôte ne ralentit jamais, et figer le héros
+## décalerait sa riposte de l'impact), secousse pour celui qui a paré.
 func _on_parade_parfaite(heros: Node3D, point: Vector3) -> void:
 	EffetsMagie.etincelles(self, point)
 	var valide := heros != null and is_instance_valid(heros)
 	if valide and heros.get("visuel") is Node3D:
 		Combat.flash(heros.visuel)
 	_mot("PARFAIT !", (heros.global_position if valide else point) + Vector3.UP * 2.7)
-	if en_coop:
-		figer(heros, EQ.arret_image_lourd * 2.0)
-	else:
+	if not en_coop:
 		ralentir(EQ.parade_parfaite_ralenti, EQ.parade_parfaite_ralenti_vitesse)
 	if camera and (not en_coop or heros == heros_local):
 		camera.secouer(EQ.secousse_coup_lourd)

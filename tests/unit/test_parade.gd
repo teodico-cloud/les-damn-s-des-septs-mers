@@ -135,11 +135,12 @@ func test_zone_doree_au_moment_de_parer() -> void:
 	assert_true(e.signal_parade())
 	assert_gt(e._mat_marque.albedo_color.g, 0.75, "Remplissage doré")
 	assert_gt(e._mat_zone.albedo_color.g, 0.6, "Zone dorée")
-	# l'annonce suivante recommence en rouge
+	# l'annonce suivante recommence en rouge DÈS sa première image (sans attendre l'image de physique
+	# suivante : sinon la zone d'avant, pleine et dorée, s'affiche un instant — vu par le relecteur)
 	e._changer(Ennemi.Etat.POURSUITE)
 	e._commencer_preparation(Vector3(0, 0, -1))
-	e._preparer_visuel()
-	assert_lt(e._mat_marque.albedo_color.g, 0.6)
+	assert_lt(e._mat_marque.albedo_color.g, 0.6, "Remplissage rouge tout de suite")
+	assert_lt(e._remplissage.scale.x, 0.1, "Remplissage vide tout de suite")
 	assert_eq(e._mat_zone.albedo_color, Ennemi.COULEUR_ZONE)
 
 
@@ -153,6 +154,11 @@ func test_zone_doree_aussi_chez_l_invite() -> void:
 	await wait_physics_frames(1)
 	assert_true(e.signal_parade(), "Calée sur l'hôte : dorée dans les derniers instants")
 	assert_gt(e._mat_marque.albedo_color.g, 0.75)
+	# annonce suivante chez l'invité : rouge et vide dès qu'elle est reçue
+	e.appliquer_instantane(Ennemi.Etat.RECUPERATION, "Idle_Combat", 1.0, 30.0, false, 0.0)
+	e.appliquer_instantane(Ennemi.Etat.PREPARATION, "1H_Melee_Attack_Chop", 1.0, 30.0, false, 0.0)
+	assert_lt(e._mat_marque.albedo_color.g, 0.6, "Rouge dès l'instantané reçu")
+	assert_lt(e._remplissage.scale.x, 0.1)
 
 
 # ---------------------------------------------------------------- coop

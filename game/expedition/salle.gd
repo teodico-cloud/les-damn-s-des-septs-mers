@@ -115,13 +115,14 @@ func _sol() -> void:
 	# sol et limites de la salle (les côtés vers la caméra n'ont pas de mur visible)
 	var x0 := -DEMI - 1.0 if not eau else -DEMI + PAS
 	_obstacle(Vector3((x0 + DEMI + 1.0) * 0.5, -0.1, 0), Vector3(DEMI + 1.0 - x0, 0.2, DEMI * 2 + 2), 0.0)
-	_obstacle(Vector3(0, 1.5, -DEMI - 0.2), Vector3(DEMI * 2 + 2, 3, 0.4), 0.0)
-	_obstacle(Vector3(0, 1.5, DEMI + 0.2), Vector3(DEMI * 2 + 2, 3, 0.4), 0.0)
-	_obstacle(Vector3(DEMI + 0.2, 1.5, 0), Vector3(0.4, 3, DEMI * 2 + 2), 0.0)
+	# (hauts de 8 m : les os projetés ne passent pas par-dessus)
+	_obstacle(Vector3(0, 4, -DEMI - 0.2), Vector3(DEMI * 2 + 2, 8, 0.4), 0.0)
+	_obstacle(Vector3(0, 4, DEMI + 0.2), Vector3(DEMI * 2 + 2, 8, 0.4), 0.0)
+	_obstacle(Vector3(DEMI + 0.2, 4, 0), Vector3(0.4, 8, DEMI * 2 + 2), 0.0)
 	if eau:
-		_obstacle(Vector3(-DEMI + PAS - 0.1, 1.5, 0), Vector3(0.2, 3, DEMI * 2 + 2), 0.0)   # bord du quai
+		_obstacle(Vector3(-DEMI + PAS - 0.1, 4, 0), Vector3(0.2, 8, DEMI * 2 + 2), 0.0)   # bord du quai
 	else:
-		_obstacle(Vector3(-DEMI - 0.2, 1.5, 0), Vector3(0.4, 3, DEMI * 2 + 2), 0.0)
+		_obstacle(Vector3(-DEMI - 0.2, 4, 0), Vector3(0.4, 8, DEMI * 2 + 2), 0.0)
 
 
 func _murs() -> void:

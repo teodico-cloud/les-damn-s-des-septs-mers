@@ -71,8 +71,9 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
   (seul) ou arrêt de l'animation du héros (en coop), secousse.
 - Réseau : version 3. Non retenu : l'onde de choc qui repousse les squelettes proches.
 - Limite connue : contre les squelettes (30 PV), la riposte ordinaire tue déjà ; les dégâts doublés et
-  l'étourdissement plus long serviront contre les ennemis plus solides (mini-boss). En coop, l'invité voit
-  le monde 0,1 s en retard : sa zone dorée arrive un peu plus tard que chez l'hôte.
+  l'étourdissement plus long serviront contre les ennemis plus solides (mini-boss). En coop, la zone
+  dorée de l'invité est calée sur l'hôte, mais son appui sur Parade met le temps d'un trajet réseau à
+  arriver chez l'hôte : sa parade parfaite est un peu plus dure à réussir.
 
 ## Ce que Téo devra vérifier sur l'APK du jalon 2 (deux téléphones sur le même Wi-Fi)
 1. « Jouer à deux » : héberger sur l'un, rejoindre sur l'autre (la partie apparaît, ou avec le code).
@@ -186,6 +187,21 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 - Reste connu (mineur) : petits recalages de l'invité pendant une Fente ou une téléportation (la visée
   assistée peut différer d'un téléphone à l'autre) ; long recalage après une pause de l'hôte (appel).
 - 22/10 (demande de Téo) : icônes des compétences sur les boutons, propres à chaque héros.
+
+## Relecture des ajouts du jalon 2 (combat nerveux, parade) et corrections — 30/10
+- Bloquant, corrigé : la zone d'annonce s'affichait une image pleine et dorée (l'annonce d'avant) au
+  début de chaque annonce, chez l'hôte et chez l'invité. Test renforcé (sans appel manuel).
+- Corrigé : instantanés au-dessus d'un paquet Wi-Fi (jusqu'à 1 960 octets) → squelettes emballés en
+  nombres à virgule simple, vaincus en format court, squelettes en suppression ignorés ; test de taille.
+  Réseau version 4.
+- Corrigé : test de la horde qui passait sans la fonctionnalité (morts à des moments différents) ; test
+  « en coop, la parade parfaite ne ralentit rien » ajouté ; en coop, le héros n'est plus figé par la
+  parade parfaite (sa riposte touchait avant le sabre).
+- Corrigé : os qui sortaient de la salle (poussée réduite, murs invisibles de 8 m) ; traînées du sabre
+  avec une matière partagée ; chez l'invité, os qui partent loin du tueur et traînée dans la bonne
+  direction ; seuil de fluidité de l'essai coop remis à 0,4 m ; l'essai vérifie une parade PARFAITE.
+- À trancher avec Téo : le joystick qui coupe la fin du coup accélère le combo de 20 % (même le 3e coup) ;
+  parer dès que la zone devient dorée (0,4 s avant) donne une parade ordinaire (fenêtre 0,25 s).
 
 ## Prochaines étapes
 1. Essai de Téo du combat « nerveux » (seul et à deux) ; réglages selon son ressenti.

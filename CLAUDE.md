@@ -155,16 +155,24 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   posés sur l'arène, pas sous le générateur) et son nœud disparaît après `squelette_duree_corps`.
   La marionnette de l'invité éclate aussi en recevant l'état MORT.
 - Coop : les animations voyagent par numéro (`code_anim` / `nom_anim`, place dans la liste du modèle) ;
-  un instantané pèse environ 1,1 ko avec 8 squelettes. Ne pas remettre les noms (trop lourd).
+  chaque squelette est emballé en nombres à virgule simple (`SynchroArene._emballer` / `_deballer`),
+  un vaincu en format court avec son tueur. Un instantané doit tenir sous 1 392 octets (un paquet
+  Wi-Fi ; au-delà, un morceau perdu perd tout) : le test `test_instantane_tient_dans_un_paquet_wifi`
+  le vérifie (8 debout + 3 vaincus). Toute nouvelle valeur dans `Ennemi.instantane()` passe aussi par
+  `_emballer` / `_deballer`, et augmente `VERSION_RESEAU`.
 - Captures d'un effet très court (traînée de 0,2 s) : le rendu sans carte graphique est lent, l'effet a
   parfois disparu avant la capture. Ralentir (`Engine.time_scale = 0.1`) le temps de la capture.
 - Sur le sol clair de l'arène, un effet en mélange additif vire au blanc éblouissant : préférer le
   mélange normal avec une couleur franche (voir la traînée du sabre).
+- Annonce des squelettes : la zone est remplie et colorée (`_preparer_visuel`) dès qu'elle s'affiche,
+  chez l'hôte comme chez l'invité ; sinon elle garde un instant l'aspect de l'annonce d'avant (pleine
+  et dorée : le signal « pare maintenant » en faux, vu par le relecteur).
 - Parade parfaite (`Bretteur._intercepter_coup`) : décidée par l'hôte, annoncée par
   `EventBus.parade_parfaite`. Chez l'invité, elle est montrée même pour son propre héros (exception à
   « notre propre sort : déjà affiché » dans `SynchroArene._effet_recu`) et lui rend sa Parade.
 - Ralentis (`EffetsCombat.ralentir`) : une liste des ralentis en cours, le plus lent l'emporte. Ne pas
-  remettre `Engine.time_scale` à 1 ailleurs pendant un combat.
+  remettre `Engine.time_scale` à 1 ailleurs pendant un combat. En coop, jamais de ralenti ; la parade
+  parfaite n'y fige rien non plus (figer le héros décalait sa riposte de l'impact).
 - Capture d'un effet qui ralentit lui-même le jeu (parade parfaite) : `Engine.time_scale = 0.1` ne sert
   à rien (le ralenti finit en temps réel) ; capturer à la toute première image après l'effet.
 - GUT : le 4e argument de `assert_signal_emitted_with_parameters` est le numéro de l'émission, pas un
