@@ -151,6 +151,22 @@ func test_le_joystick_coupe_la_fin_du_coup() -> void:
 	assert_eq(heros.etat, Heros.Etat.LIBRE, "Le joystick coupe la fin du coup")
 
 
+func test_le_joystick_ne_coupe_pas_le_coup_lourd() -> void:
+	# choix de Téo : le 3e coup du combo va toujours au bout de son geste
+	var e := _ennemi(Vector3(0, 0, 1.6))
+	e.sante.pv_max = 500.0
+	e.sante.pv = 500.0
+	heros._combo = 1
+	heros._fin_dernier_coup = heros.horloge
+	heros._commencer_coup(2)
+	var impact: float = EQ.combo_instant_impact[2] / EQ.combo_vitesse_animation
+	await _secondes(impact + EQ.combo_annulation + 0.05)
+	assert_eq(heros.etat, Heros.Etat.ATTAQUE)
+	heros.commandes.deplacement = Vector3(1, 0, 0)
+	await wait_physics_frames(2)
+	assert_eq(heros.etat, Heros.Etat.ATTAQUE, "Le coup lourd n'est pas coupé par le joystick")
+
+
 func test_traînée_du_sabre() -> void:
 	var e := _ennemi(Vector3(0, 0, 1.6))
 	e.sante.pv_max = 500.0

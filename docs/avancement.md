@@ -84,7 +84,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 
 ## Parade parfaite (30/10, choix de Téo)
 - La Parade coupe un coup du Bretteur avant son impact (comme la roulade).
-- Parade parfaite : le coup arrive au plus 0,25 s après l'appui. Riposte critique (dégâts doublés),
+- Parade parfaite : le coup arrive au plus 0,35 s après l'appui (0,25 au début). Riposte critique (dégâts doublés),
   étourdissement 2,2 s (1,4), Parade rendue aussitôt (enchaîner les parades dans la horde). Une parade
   plus tôt reste une parade ordinaire (riposte normale, recharge de 4 s).
 - Indicateur avant : la zone rouge au sol devient dorée 0,4 s avant le coup (un peu avant la fenêtre
@@ -138,6 +138,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 22/10/2026 | Icônes des compétences sur les boutons, propres à chaque héros (demande de Téo). |
 | 30/10/2026 | Combat « nerveux » : héros plus vif, hordes, coups qui claquent, coups critiques (choix de Téo, voir plus haut). Ennemis plus agressifs : non retenu. |
 | 30/10/2026 | Parade : elle coupe le coup en cours ; parade parfaite en bonus (0,25 s), zone dorée avant le coup + étincelles, « PARFAIT ! » et ralenti, Parade rendue. Onde de choc : non retenue. |
+| 30/10/2026 | Réglages (choix de Téo) : le joystick ne coupe plus le 3e coup du combo (le lourd va au bout) ; fenêtre de la parade parfaite 0,35 s (zone dorée 0,4 s avant le coup). Étape 2 du jalon 3 lancée. |
 | 30/10/2026 | Jalon 2 : coop essayée par Téo sur ses deux téléphones, « ça marche » (porte franchie). |
 | 30/10/2026 | Jalon 3, choix de Téo : expédition courte (4 salles, puis le Bosco, puis la chaloupe) ; PV gardés d'une salle à l'autre + orbes de vie lâchées par les squelettes (façon Diablo) ; en coop, la porte s'ouvre quand les deux héros sont devant la même. Ordre : 0) relecture des ajouts du jalon 2, 1) l'expédition (salles, portes, coop, mode debug ; APK), 2) arbalétrier, prêtre noyé, pièges (APK), 3) Bosco, malédiction, chaloupe sous les vagues, écran de fin (relecture, APK). |
 
@@ -222,12 +223,10 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 - Corrigé : os qui sortaient de la salle (poussée réduite, murs invisibles de 8 m) ; traînées du sabre
   avec une matière partagée ; chez l'invité, os qui partent loin du tueur et traînée dans la bonne
   direction ; seuil de fluidité de l'essai coop remis à 0,4 m ; l'essai vérifie une parade PARFAITE.
-- À trancher avec Téo : le joystick qui coupe la fin du coup accélère le combo de 20 % (même le 3e coup) ;
-  parer dès que la zone devient dorée (0,4 s avant) donne une parade ordinaire (fenêtre 0,25 s).
+- Tranché par Téo : le 3e coup n'est plus coupé par le joystick ; fenêtre parfaite portée à 0,35 s.
 
 ## Prochaines étapes
-1. Essai de Téo de l'expédition (seul et à deux) ; réponses aux deux réglages en attente (joystick qui
-   coupe le 3e coup, fenêtre de la parade parfaite).
+1. Essai de Téo de l'expédition (seul et à deux).
 2. Jalon 3, étape 2 : arbalétrier squelette, prêtre noyé, salles piège.
 3. Jalon 3, étape 3 : Bosco Maudit, malédiction 0–5, chaloupe sous les vagues ; relecture ; APK.
 

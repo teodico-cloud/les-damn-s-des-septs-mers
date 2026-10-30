@@ -85,9 +85,10 @@ func _etat_attaque(_delta: float) -> void:
 		if _combo < 2 and _t >= impact + 0.08 and commandes.prendre(&"attaque", horloge):
 			_commencer_coup(_combo + 1)
 			return
-		if _t >= impact + EQ.combo_annulation and commandes.deplacement.length() > 0.25:
+		if _combo < 2 and _t >= impact + EQ.combo_annulation and commandes.deplacement.length() > 0.25:
 			# le coup a porté : le joystick coupe la fin du geste (on frappe, on bouge, on refrappe) ;
-			# le combo reste enchaînable pendant sa fenêtre
+			# le combo reste enchaînable pendant sa fenêtre. Le 3e coup, le lourd, va toujours au bout
+			# (choix de Téo : il garde son poids)
 			_fin_dernier_coup = horloge
 			_changer(Etat.LIBRE)
 			return

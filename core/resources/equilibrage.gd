@@ -21,7 +21,7 @@ extends Resource
 @export var combo_degats: PackedFloat32Array = [10.0, 12.0, 22.0]
 @export var combo_lourd: Array[bool] = [false, false, true]  ## un coup lourd interrompt l'ennemi
 @export var combo_vitesse_animation := 1.65   ## coups 25 % plus rapides qu'au jalon 1 (1,3)
-@export var combo_annulation := 0.05      ## secondes après l'impact où le joystick peut couper la fin du coup
+@export var combo_annulation := 0.05      ## secondes après l'impact où le joystick peut couper la fin du coup (pas le 3e)
 @export var combo_portee := 1.5         ## distance du centre de la zone de coup devant le héros
 @export var combo_rayon := 1.15
 @export var combo_pas_en_avant := 0.35  ## petit pas en avant à chaque coup
@@ -47,7 +47,7 @@ extends Resource
 @export var riposte_distance_max := 3.0        ## au-delà, la riposte frappe dans le vide
 ## Parade parfaite (choix de Téo) : le coup arrive au plus tant de secondes après l'appui sur Parade.
 ## Riposte critique (dégâts doublés), étourdissement plus long, recharge rendue aussitôt.
-@export var parade_parfaite_fenetre := 0.25
+@export var parade_parfaite_fenetre := 0.35   ## (0,25 au début : parer dès le doré donnait une parade normale)
 @export var riposte_etourdissement_parfaite := 2.2
 ## La zone rouge au sol devient dorée tant de secondes avant le coup : c'est le moment de parer.
 ## Plus tôt que la fenêtre parfaite, pour laisser le temps de réagir (≈ 0,2 s + le délai de l'écran).
