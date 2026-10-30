@@ -8,6 +8,16 @@ const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 var monde: Node3D
 
 
+
+## Dégâts exacts dans ces tests : pas de coup critique (testés à part dans test_critiques.gd).
+func before_all() -> void:
+	Combat.chance_critique = 0.0
+
+
+func after_all() -> void:
+	Combat.chance_critique = -1.0
+
+
 func before_each() -> void:
 	monde = Node3D.new()
 	add_child_autofree(monde)
@@ -65,13 +75,13 @@ func test_squelette_marionnette_affiche_sans_agir() -> void:
 	e.immobiliser(2.0)
 	assert_ne(e.etat, Ennemi.Etat.ENCHAINE)
 	# il affiche ce que l'hôte envoie
-	e.appliquer_instantane(Ennemi.Etat.PREPARATION, "1H_Melee_Attack_Chop", 1.0, 41.0, true)
+	e.appliquer_instantane(Ennemi.Etat.PREPARATION, "1H_Melee_Attack_Chop", 1.0, 21.0, true)
 	assert_eq(e.etat, Ennemi.Etat.PREPARATION)
 	assert_true(e.marque.visible, "Annonce au sol visible")
 	assert_not_null(e._yeux.material_override, "Yeux rouges")
-	assert_eq(e.sante.pv, 41.0)
+	assert_eq(e.sante.pv, 21.0)
 	assert_true(e._rune.visible, "Rune de la Marque visible")
-	e.appliquer_instantane(Ennemi.Etat.ENCHAINE, "Idle_Combat", 0.25, 41.0, false)
+	e.appliquer_instantane(Ennemi.Etat.ENCHAINE, "Idle_Combat", 0.25, 21.0, false)
 	assert_not_null(e._chaines, "Chaînes visibles")
 	assert_false(e.marque.visible)
 	assert_false(e._rune.visible, "Marque effacée")

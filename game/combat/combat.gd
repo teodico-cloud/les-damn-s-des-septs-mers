@@ -3,11 +3,14 @@ extends RefCounted
 ## Règles communes du combat : couches de collision, recherche des cibles dans une zone,
 ## application d'un coup. Tout coup passe par porter_coup() : en coop, seul l'hôte l'appellera.
 
+const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 const COUCHE_MONDE := 1
 const COUCHE_HEROS := 2
 const COUCHE_ENNEMIS := 4
 
 static var _sphere := SphereShape3D.new()
+## Tests : chance de coup critique imposée (0 = jamais, 1 = toujours) ; -1 = celle de l'équilibrage.
+static var chance_critique := -1.0
 
 
 ## Renvoie les combattants (nœuds ayant recevoir_coup) dont la collision touche la sphère.
@@ -34,10 +37,17 @@ static func cibles_dans_sphere(monde: World3D, centre: Vector3, rayon: float, ma
 
 ## Applique un coup : renvoie les dégâts réellement infligés. Chez l'invité d'une partie à deux, rien :
 ## c'est l'hôte qui décide de tous les coups (l'invité ne fait que les afficher).
+## Les coups des héros sur les ennemis ont une chance d'être critiques (dégâts doublés).
 static func porter_coup(attaquant: Node3D, cible: Node3D, degats: float, lourd: bool) -> float:
 	if Reseau.est_invite():
 		return 0.0
-	return cible.recevoir_coup(degats, attaquant, lourd)
+	var critique := false
+	if attaquant is Heros and not (cible is Heros):
+		var chance := chance_critique if chance_critique >= 0.0 else EQ.critique_chance
+		if chance > 0.0 and randf() < chance:
+			critique = true
+			degats *= EQ.critique_multiplicateur
+	return cible.recevoir_coup(degats, attaquant, lourd, critique)
 
 
 ## Vrai si `source` est devant `qui` (dans un cône de ± angle_deg autour de son regard).

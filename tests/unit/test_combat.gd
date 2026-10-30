@@ -9,6 +9,16 @@ var monde: Node3D
 var heros: Heros
 
 
+
+## Dégâts exacts dans ces tests : pas de coup critique (testés à part dans test_critiques.gd).
+func before_all() -> void:
+	Combat.chance_critique = 0.0
+
+
+func after_all() -> void:
+	Combat.chance_critique = -1.0
+
+
 func before_each() -> void:
 	Engine.time_scale = 1.0
 	monde = Node3D.new()
@@ -33,6 +43,13 @@ func _ennemi(pos: Vector3, immobile := true) -> Ennemi:
 	monde.add_child(e)
 	if immobile:
 		e.set_physics_process(false)
+	return e
+
+
+## Squelette solide : pour les tests qui enchaînent plus de coups qu'il n'a de PV (30).
+func _robuste(e: Ennemi) -> Ennemi:
+	e.sante.pv_max = 500.0
+	e.sante.pv = 500.0
 	return e
 
 
@@ -61,7 +78,7 @@ func test_un_coup_ne_touche_pas_derriere() -> void:
 
 
 func test_combo_de_trois_coups() -> void:
-	var e := _ennemi(Vector3(0, 0, 1.6))
+	var e := _robuste(_ennemi(Vector3(0, 0, 1.6)))
 	var coups: Array[float] = []
 	e.sante.touche.connect(func(degats: float, _source: Node): coups.append(degats))
 	# bouton Attaque maintenu (l'interface redemande l'attaque à chaque image)
@@ -146,13 +163,14 @@ func test_esquive_deplace_le_heros() -> void:
 # ---------------------------------------------------------------- parade-riposte
 func test_parade_de_face_declenche_la_riposte() -> void:
 	var e := _ennemi(Vector3(0, 0, 1.5))
+	_robuste(e)
 	_demander(&"competence_1")
 	await wait_physics_frames(2)
 	assert_eq(heros.etat, Heros.Etat.PARADE)
 	assert_eq(Combat.porter_coup(e, heros, 15.0, false), 0.0, "Le coup de face est paré")
 	assert_eq(heros.etat, Heros.Etat.RIPOSTE)
 	await _secondes(EQ.riposte_instant_impact / 1.2 + 0.1)
-	assert_eq(e.sante.pv, EQ.squelette_pv_max - EQ.riposte_degats, "La riposte touche l'attaquant")
+	assert_eq(e.sante.pv, 500.0 - EQ.riposte_degats, "La riposte touche l'attaquant")
 	assert_eq(e.etat, Ennemi.Etat.ETOURDI, "L'attaquant est étourdi")
 
 
@@ -258,6 +276,7 @@ func test_le_recul_du_squelette_est_en_metres() -> void:
 func test_la_riposte_laisse_le_temps_de_punir() -> void:
 	# après la riposte, le squelette sonné reste à portée du combo
 	var e := _ennemi(Vector3(0, 0, 1.5), false)
+	_robuste(e)
 	e.rotation.y = PI
 	_demander(&"competence_1")
 	await wait_physics_frames(2)

@@ -115,7 +115,7 @@ func _derouler(args: PackedStringArray) -> void:
 			await process_frame
 		if arene.synchro._instantanes.is_empty():
 			return _echec("aucun instantané reçu de l'hôte")
-	root.get_node("EventBus").coup_porte.connect(func(_p, _d, _l, _h, _c, _s): coups_recus += 1)
+	root.get_node("EventBus").coup_porte.connect(func(_p, _d, _l, _h, _c, _s, _k): coups_recus += 1)
 	t0 = Time.get_ticks_msec() / 1000.0
 	if role == "hote":
 		await _hote()
@@ -130,7 +130,8 @@ func _hote() -> void:
 	# L'hôte ne bouge pas tout seul ; il note toutes les secondes ce qu'il voit et provoque des
 	# événements à vérifier chez l'invité :
 	#   3 s : met le héros de l'invité à terre, puis se place à côté de lui pour le relever ;
-	#   4 s : tue un squelette (l'invité doit voir l'animation de mort en entier) ;
+	#   4 s : touche un squelette (l'invité doit voir son animation « touché » jouer, pas figée) et en
+	#         tue un autre (l'invité doit le voir éclater en os) ;
 	#   9 s : les deux héros tombent (retour au départ 3 s plus tard).
 	var partenaire_x_max := -INF
 	var max_vivants := 0
@@ -150,8 +151,15 @@ func _hote() -> void:
 		if i >= 2 and i <= 6:
 			arene.heros.global_position = p.global_position + Vector3(-0.6, 0, 0)
 		if i == 3:
+			var touche := false
 			for e in arene.generateur.get_children():
-				if e.etat != 0 and e.etat != 7:   # ni en train de sortir de terre, ni déjà mort
+				if e.etat == 0 or e.etat == 7:   # en train de sortir de terre, ou déjà mort
+					continue
+				if not touche:
+					e.recevoir_coup(1.0, arene.heros, true)
+					touche = true
+					print("MESURE hote touche %s" % e.name)
+				else:
 					e.recevoir_coup(500.0, arene.heros, true)
 					print("MESURE hote tue %s" % e.name)
 					break
@@ -169,7 +177,8 @@ func _hote() -> void:
 	# départ en x = 1,2 ; au moins 1,3 m vers la droite (moins qu'en vrai si le jeu dessine des images
 	# sans carte graphique : il tourne alors plus lentement que le temps réel)
 	_verifier(partenaire_x_max > 2.5, "le héros de l'invité s'est déplacé vers la droite chez l'hôte (x max %.2f)" % partenaire_x_max)
-	_verifier(max_vivants == 3, "3 squelettes à deux (%d vus en même temps)" % max_vivants)
+	var attendus: int = load("res://data/equilibrage.tres").arene_nb_ennemis_coop
+	_verifier(max_vivants == attendus, "%d squelettes à deux (%d vus en même temps)" % [attendus, max_vivants])
 	if partie.heros_local == &"bretteur":   # invité Occultiste : ses tirs doivent compter
 		var touches := 0
 		for e in arene.generateur.get_children():
@@ -197,7 +206,8 @@ func _invite() -> void:
 	var fois_a_terre := 0
 	var etait_a_terre := false
 	var vu_releve := false
-	var mort_anim_max := 0.0
+	var touche_anim_max := 0.0
+	var vu_eclater := false
 	var hors_salle := 0.0
 	var avant := {}
 	var plus_grand_saut := 0.0
@@ -216,8 +226,10 @@ func _invite() -> void:
 			capture_faite = true
 			await _capture("coop_invite.png")
 		for e in arene.generateur.get_children():
-			if e.etat == 7 and e.anim.current_animation == "Death_C_Skeletons":
-				mort_anim_max = maxf(mort_anim_max, e.anim.current_animation_position)
+			if e.etat == 7 and not e.visuel.visible:
+				vu_eclater = true
+			if e.etat == 5 and e.anim.current_animation == "Hit_A":   # TOUCHE
+				touche_anim_max = maxf(touche_anim_max, e.anim.current_animation_position)
 		for n in [arene.heros_partenaire] + arene.generateur.get_children():
 			if not is_instance_valid(n):
 				continue
@@ -226,10 +238,12 @@ func _invite() -> void:
 				plus_grand_saut = maxf(plus_grand_saut, (p - avant[n.name]).length())
 			avant[n.name] = p
 	print("MESURE invite fluidite plus_grand_saut_par_image=%.3f m recalages=%d plus_grand_recalage=%.2f m" % [plus_grand_saut, arene.synchro.recalages, arene.synchro.plus_grand_recalage])
-	_verifier(plus_grand_saut < 0.4, "affichage fluide du monde de l'hôte (saut max %.2f m par image)" % plus_grand_saut)
+	# (un recul de coup lourd va jusqu'à ~0,1 m par image ; un vrai saut de recalage ferait des mètres)
+	_verifier(plus_grand_saut < 0.6, "affichage fluide du monde de l'hôte (saut max %.2f m par image)" % plus_grand_saut)
 	_verifier(fois_a_terre >= 1, "l'hôte a mis notre héros à terre (vu chez nous)")
 	_verifier(vu_releve, "puis notre partenaire nous a relevés (vu chez nous)")
-	_verifier(mort_anim_max > 0.5, "le squelette tué joue son animation de mort chez nous (jusqu'à %.2f s)" % mort_anim_max)
+	_verifier(touche_anim_max > 0.15, "le squelette touché joue son animation chez nous (jusqu'à %.2f s)" % touche_anim_max)
+	_verifier(vu_eclater, "le squelette tué éclate en os chez nous")
 	_verifier(fois_a_terre >= 2, "les deux à terre : vu chez nous")
 	_verifier(hors_salle < 6.5, "notre héros n'est jamais sorti de la salle (%.2f m du centre au plus)" % hors_salle)
 	_verifier(h.est_vivant() and h.global_position.distance_to(Vector3(1.2, h.global_position.y, 1.5)) < 1.5,

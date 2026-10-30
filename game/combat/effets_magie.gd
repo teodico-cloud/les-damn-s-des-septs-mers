@@ -123,3 +123,99 @@ static func cercle(parent: Node, pos: Vector3, rayon: float, duree: float) -> vo
 	t.tween_interval(maxf(duree - 0.4, 0.0))
 	t.tween_property(m, "scale", Vector3(1.05, 0.15, 1.05), 0.2)
 	t.tween_callback(m.queue_free)
+
+
+## Traînée lumineuse d'un coup de sabre : un arc qui s'efface en une fraction de seconde devant le
+## héros. `coup` : 0 = diagonal, 1 = horizontal, 2 = de haut en bas (le coup lourd, plus large).
+static func trainee_sabre(parent: Node, pos: Vector3, direction: Vector3, coup: int) -> void:
+	if parent == null or not parent.is_inside_tree() or direction.length() < 0.01:
+		return
+	var cle := "arc_sabre"
+	if not _ressources.has(cle):
+		_ressources[cle] = _maillage_arc(1.0, 1.65, deg_to_rad(150.0), 18)
+	var m := MeshInstance3D.new()
+	m.mesh = _ressources[cle]
+	var mat := StandardMaterial3D.new()   # une par traînée : chacune s'efface à son rythme
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.vertex_color_use_as_albedo = true
+	# mélange plutôt qu'addition : sur le sol clair, l'addition virait au blanc éblouissant
+	mat.albedo_color = Color(1.0, 0.8, 0.3, 0.95) if coup < 2 else Color(1.0, 0.55, 0.15, 1.0)
+	m.material_override = mat
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var lacet := atan2(direction.x, direction.z)
+	var roulis: float = [deg_to_rad(-35.0), 0.0, deg_to_rad(90.0)][clampi(coup, 0, 2)]
+	m.basis = Basis(Vector3.UP, lacet) * Basis(Vector3(0, 0, 1), roulis)
+	m.position = pos + Vector3.UP * 1.05
+	parent.add_child(m)
+	var t := m.create_tween()
+	t.set_parallel(true)
+	var grand := 1.15 if coup == 2 else 1.0
+	m.scale = Vector3.ONE * 0.85 * grand
+	t.tween_property(m, "scale", Vector3.ONE * 1.1 * grand, 0.18).set_ease(Tween.EASE_OUT)
+	t.tween_property(mat, "albedo_color:a", 0.0, 0.18).set_delay(0.04)
+	t.chain().tween_callback(m.queue_free)
+
+
+## Bande en arc dans le plan horizontal, centrée sur l'avant (+z) : un voile qui se fond vers
+## l'intérieur, un liseré net au bord extérieur (le chemin de la lame), plus marqué vers la fin du geste.
+static func _maillage_arc(r_int: float, r_ext: float, ouverture: float, pas: int) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rayons := [r_int, r_ext - 0.14, r_ext]
+	var opacites := [0.0, 0.45, 1.0]
+	for i in pas:
+		var a0 := -ouverture / 2.0 + ouverture * i / pas
+		var a1 := -ouverture / 2.0 + ouverture * (i + 1) / pas
+		var f0 := float(i) / pas
+		var f1 := float(i + 1) / pas
+		for b in 2:   # deux bandes : voile puis liseré
+			var p := [Vector3(sin(a0), 0, cos(a0)) * rayons[b], Vector3(sin(a0), 0, cos(a0)) * rayons[b + 1],
+					Vector3(sin(a1), 0, cos(a1)) * rayons[b], Vector3(sin(a1), 0, cos(a1)) * rayons[b + 1]]
+			var c := [Color(1, 1, 1, opacites[b] * f0), Color(1, 1, 1, opacites[b + 1] * f0),
+					Color(1, 1, 1, opacites[b] * f1), Color(1, 1, 1, opacites[b + 1] * f1)]
+			for k in [0, 1, 2, 2, 1, 3]:
+				st.set_color(c[k])
+				st.add_vertex(p[k])
+	return st.commit()
+
+
+## Squelette vaincu : il éclate en os qui volent et rebondissent au sol, puis s'effacent.
+## `parties` : maillages du squelette (crâne, mâchoire, bras, jambes, buste) en pose de repos.
+static func eclater(parent: Node, parties: Array, origine: Transform3D, depuis: Vector3, force: float, duree: float) -> void:
+	if parent == null or not parent.is_inside_tree():
+		return
+	for partie in parties:
+		var mi := partie as MeshInstance3D
+		if mi == null or mi.mesh == null:
+			continue
+		var boite := mi.mesh.get_aabb()
+		var corps := RigidBody3D.new()
+		corps.collision_layer = 0                      # personne ne s'y cogne…
+		corps.collision_mask = Combat.COUCHE_MONDE      # …mais ils tombent sur le sol et les murs
+		corps.mass = 0.4
+		var forme := CollisionShape3D.new()
+		var b := BoxShape3D.new()
+		b.size = (boite.size * 0.8).max(Vector3.ONE * 0.08)
+		forme.shape = b
+		corps.add_child(forme)
+		var vue := MeshInstance3D.new()
+		vue.mesh = mi.mesh
+		vue.material_override = mi.get_active_material(0)
+		vue.position = -boite.get_center()            # tourne autour de son propre centre
+		vue.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		corps.add_child(vue)
+		corps.transform = Transform3D(origine.basis, origine * boite.get_center())
+		parent.add_child(corps)
+		var sortie := (corps.global_position - depuis)
+		sortie.y = 0.0
+		sortie = sortie.normalized() if sortie.length() > 0.01 else Vector3(randf_range(-1, 1), 0, randf_range(-1, 1)).normalized()
+		corps.linear_velocity = (sortie + Vector3(randf_range(-0.6, 0.6), randf_range(0.8, 1.6), randf_range(-0.6, 0.6))) * force
+		corps.angular_velocity = Vector3(randf_range(-12, 12), randf_range(-12, 12), randf_range(-12, 12))
+		# (on rétrécit l'image, pas le corps : la physique n'accepte pas un corps mis à l'échelle)
+		var t := corps.create_tween()
+		t.tween_interval(duree * 0.75)
+		t.tween_property(vue, "scale", Vector3.ONE * 0.01, duree * 0.25)
+		t.tween_callback(corps.queue_free)
+	_bouffee(parent, origine.origin + Vector3.UP * 0.8, 14, 0.5, 1.0, Color(0.85, 0.82, 0.72, 0.7), Color(0.3, 0.3, 0.3, 0.0))

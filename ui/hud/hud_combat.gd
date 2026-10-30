@@ -19,6 +19,8 @@ var bouton_competence_1: BoutonAction
 var bouton_competence_2: BoutonAction
 var barre_vie: Control
 var label_mort: Label
+var label_ips: Label
+var _minuterie_ips := 0.0
 var label_message: Label
 var label_partenaire: Label
 var label_alerte: Label
@@ -72,6 +74,18 @@ func _ready() -> void:
 	bouton_menu.add_theme_color_override("font_color", COULEUR_OS)
 	bouton_menu.pressed.connect(_demander_menu)   # clic souris (ordinateur) ou 1er doigt
 	racine.add_child(bouton_menu)
+
+	# images par seconde (APK de test : pour juger la fluidité avec la horde)
+	label_ips = Label.new()
+	label_ips.add_theme_font_size_override("font_size", 20)
+	label_ips.add_theme_color_override("font_color", Color(COULEUR_OS, 0.7))
+	label_ips.add_theme_color_override("font_outline_color", Color.BLACK)
+	label_ips.add_theme_constant_override("outline_size", 6)
+	label_ips.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	label_ips.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	label_ips.position = Vector2(-120, 98)
+	label_ips.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	racine.add_child(label_ips)
 
 	label_mort = Label.new()
 	label_mort.add_theme_font_size_override("font_size", 46)
@@ -225,7 +239,11 @@ func _demander(action: StringName) -> void:
 		heros.commandes.demander(action, heros.horloge)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_minuterie_ips -= delta
+	if _minuterie_ips <= 0.0 and label_ips:
+		_minuterie_ips = 0.5
+		label_ips.text = "%d i/s" % Engine.get_frames_per_second()
 	if heros == null:
 		return
 	# garder l'attaque enfoncée enchaîne le combo

@@ -37,6 +37,7 @@ var _rune: Node3D                   ## rune verte au-dessus de la tête quand il
 var _chaines: Node3D                ## chaînes spectrales visibles quand il est immobilisé
 var marionnette := false            ## coop, invité : affiché d'après l'hôte, sans IA ni règles
 var _vitesse_anim := 1.0            ## vitesse demandée (pas celle figée un instant par l'arrêt sur image)
+var _liste_anims := PackedStringArray()
 
 
 ## Crée un ennemi prêt à être ajouté à la scène. `rapide` saute l'animation de sortie de terre (tests).
@@ -259,7 +260,7 @@ func _frapper() -> void:
 ## Appelé par Combat.porter_coup. Un coup léger n'interrompt pas un squelette qui prépare ou porte
 ## son coup ; un coup lourd (3e coup du combo, fente, riposte) interrompt tout. Un squelette étourdi
 ## (riposte) le reste jusqu'au bout, même s'il est frappé : c'est le moment de le punir.
-func recevoir_coup(degats: float, source: Node3D, lourd: bool) -> float:
+func recevoir_coup(degats: float, source: Node3D, lourd: bool, critique := false) -> float:
 	if marionnette:
 		return 0.0
 	if etat == Etat.MORT or etat == Etat.APPARITION:
@@ -267,7 +268,7 @@ func recevoir_coup(degats: float, source: Node3D, lourd: bool) -> float:
 	var reel := sante.subir(degats * multiplicateur_degats(source), source)
 	if reel <= 0.0:
 		return 0.0
-	EventBus.coup_porte.emit(global_position + Vector3.UP * 2.1, reel, lourd, false, self, source)
+	EventBus.coup_porte.emit(global_position + Vector3.UP * 2.1, reel, lourd, false, self, source, critique)
 	Combat.flash(visuel)
 	if source and etat != Etat.ENCHAINE:   # enchaîné : il ne bouge pas, même frappé
 		var distance := EQ.squelette_recul_coup_lourd if lourd else EQ.squelette_recul_quand_touche
@@ -408,12 +409,12 @@ func etourdir(duree: float) -> void:
 	_changer(Etat.ETOURDI, duree)
 
 
-func _on_mort(_source: Node) -> void:
+func _on_mort(source: Node) -> void:
 	_effacer_marque()
 	collision_layer = 0
 	collision_mask = Combat.COUCHE_MONDE
-	_jouer("Death_C_Skeletons", 1.0, 0.05, true)
 	_changer(Etat.MORT)
+	_eclater(source as Node3D)
 	remove_from_group("ennemis")
 	vaincu.emit(self)
 	EventBus.ennemi_vaincu.emit(self)
@@ -425,13 +426,14 @@ func _on_mort(_source: Node) -> void:
 ## Ce que l'hôte envoie de cet ennemi à chaque instantané (voir SynchroArene). La vitesse envoyée est
 ## celle demandée : pendant l'arrêt sur image local, l'animation est figée (vitesse 0) chez l'hôte.
 func instantane() -> Array:
-	return [global_position, rotation.y, int(etat), String(anim.current_animation), _vitesse_anim,
+	return [global_position, rotation.y, int(etat), code_anim(anim.current_animation), _vitesse_anim,
 			sante.pv, _marque_restant > 0.0, _t]
 
 
 ## Marionnette : applique l'état reçu de l'hôte (la position est posée à part, lissée). `t_etat` :
 ## temps passé dans cet état chez l'hôte, estimé à maintenant ; il cale l'annonce au sol et l'animation.
-func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: float, marque_recue: bool, t_etat := 0.0) -> void:
+func appliquer_instantane(etat_recu: int, anim_recue: Variant, vitesse: float, pv: float, marque_recue: bool, t_etat := 0.0) -> void:
+	var nom_anim := nom_anim(anim_recue)
 	var reentre := etat_recu == int(etat) and t_etat + 0.05 < _t   # même état recommencé chez l'hôte
 	if etat_recu != int(etat) or reentre:
 		var nouvel := etat_recu as Etat
@@ -450,6 +452,8 @@ func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: 
 				add_child(_chaines)
 			Etat.MORT:
 				remove_from_group("ennemis")
+				_effacer_marque()
+				_eclater(null)
 		collision_layer = 0 if nouvel == Etat.APPARITION or nouvel == Etat.MORT else Combat.COUCHE_ENNEMIS
 		if nom_anim != "" and anim.has_animation(nom_anim) and (reentre or anim.current_animation != nom_anim):
 			_jouer_cale(nom_anim, vitesse, t_etat)
@@ -466,6 +470,22 @@ func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: 
 		_effacer_marque()
 
 
+## Coop : une animation voyage sous forme de numéro (sa place dans la liste des animations du
+## modèle, la même sur les deux téléphones) : bien plus court que son nom.
+func code_anim(nom: String) -> int:
+	if _liste_anims.is_empty():
+		_liste_anims = anim.get_animation_list()
+	return _liste_anims.find(nom)
+
+
+func nom_anim(code: Variant) -> String:
+	if code is String or code is StringName:
+		return String(code)
+	if _liste_anims.is_empty():
+		_liste_anims = anim.get_animation_list()
+	return _liste_anims[code] if code >= 0 and code < _liste_anims.size() else ""
+
+
 ## Joue une animation reçue de l'hôte, à l'endroit où elle en est chez lui.
 func _jouer_cale(nom: String, vitesse: float, t_etat: float) -> void:
 	_jouer(nom, vitesse, 0.06, true)
@@ -474,6 +494,23 @@ func _jouer_cale(nom: String, vitesse: float, t_etat: float) -> void:
 	if anim.get_animation(nom).loop_mode != Animation.LOOP_NONE:
 		pos = fmod(pos, duree)
 	anim.seek(clampf(pos, 0.0, maxf(duree - 0.01, 0.0)), true)
+
+
+## Vaincu : le squelette éclate en os qui volent (loin de celui qui l'a tué) ; il disparaît aussitôt.
+func _eclater(tueur: Node3D) -> void:
+	if not visuel.visible:
+		return
+	var parties := []
+	for m in visuel.find_children("Skeleton_Minion_*", "MeshInstance3D", true, false):
+		if not String(m.name).ends_with("Eyes"):
+			parties.append(m)
+	var depuis := tueur.global_position if tueur and is_instance_valid(tueur) else global_position + Vector3(randf_range(-1, 1), 0, randf_range(-1, 1))
+	var parent := get_parent().get_parent() if get_parent() is GenerateurEnnemis else get_parent()
+	EffetsMagie.eclater(parent, parties, visuel.global_transform, depuis, EQ.debris_force, EQ.debris_duree)
+	visuel.visible = false
+	marque.visible = false
+	if _rune:
+		_rune.visible = false
 
 
 ## Coop, invité : l'hôte signale un coup reçu (éclair blanc).

@@ -113,15 +113,9 @@ func _tirer() -> void:
 	Projectile.tirer(get_parent(), self, point_de_tir(), _direction, EQ)
 
 
-## Direction du tir (choix de Téo) : l'ennemi le plus proche de la direction du joystick (cône de
-## 60°), ou le plus proche sans joystick ; s'il n'y a personne, la direction du joystick ou devant.
+## Direction du tir (choix de Téo) : voir Heros.direction_attaque().
 func direction_tir() -> Vector3:
-	var cible := cible_visee(EQ.occ_tir_portee)
-	if cible:
-		var v := Combat.direction_plate(global_position, cible.global_position)
-		if v != Vector3.ZERO:
-			return v
-	return direction_visee(EQ.occ_tir_portee)
+	return direction_attaque(EQ.occ_tir_portee)
 
 
 ## Bout de la baguette, ramené à hauteur de poitrine (le projectile vole à l'horizontale).

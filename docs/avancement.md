@@ -1,6 +1,6 @@
 # Avancement
 
-Dernière mise à jour : 22 octobre 2026.
+Dernière mise à jour : 30 octobre 2026.
 
 ## Où on en est
 - **Phase A (conception) : terminée et validée.** Voir `docs/conception.md`.
@@ -10,6 +10,8 @@ Dernière mise à jour : 22 octobre 2026.
 - **Jalon 2 (coop Wi-Fi) : relu, corrigé, APK envoyé à Téo pour l'essai sur deux téléphones.** Étape 1 (Occultiste, choix du héros,
   yeux rouges) envoyée à Téo en APK intermédiaire (0.2.6). Étapes 2 et 3 (coop, réanimation) : 89 tests
   automatiques + essai à deux copies du jeu (Wi-Fi parfait, moyen et mauvais simulés).
+- **30/10 : combat « nerveux » (façon Diablo)** demandé par Téo, sur la branche `jalon-2-nervosite` puis
+  main : héros plus vif, hordes, coups qui claquent, coups critiques. 100 tests ; essai coop réussi.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -40,6 +42,22 @@ Matelots squelettes qui reviennent sans fin.
 - À terre : le partenaire reste 3 s dans la zone verte pour relever (moitié des PV). Les deux à terre :
   « Vous êtes tombés… », retour au départ et squelettes remis à zéro.
 - Si l'invité part : l'hôte continue seul. Si l'hôte part : l'invité revient au menu avec un message.
+
+## Combat « nerveux » (30/10, demande de Téo : « vraiment Diablo like »)
+Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pas les ennemis plus agressifs).
+- Héros plus vif : marche 6,2 m/s (5,2) ; combo 25 % plus rapide ; bouger le joystick 0,05 s après
+  l'impact coupe la fin du coup (le combo reste enchaînable) ; recharges raccourcies (roulade 0,6 s,
+  Parade 4 s, Fente 3,5 s ; Occultiste : tir toutes les 0,32 s, téléportation 0,9 s). Le Bretteur vise
+  aussi l'ennemi dans la direction du joystick (même règle que le tir de l'Occultiste).
+- Hordes : 5 squelettes seul, 8 à deux, qui sortent par groupes de 2 à 4 ; 30 PV (60) ; quand certains
+  tombent, les manquants ressortent ensemble 2 s plus tard. Dégâts des squelettes 15 → 10 pour que la
+  horde reste jouable.
+- Coups qui claquent : le squelette vaincu éclate en os qui volent loin du tueur et rebondissent ;
+  recul des coups lourds 1,6 m (1,1) ; traînée dorée du sabre à chaque coup (vue aussi par l'autre joueur).
+- Coups critiques : 1 chance sur 10 (coups des héros sur les ennemis), dégâts doublés, gros chiffre doré
+  avec « ! », secousse plus forte. Jamais sur un héros.
+- Compteur d'images par seconde sous le bouton Menu (APK de test : pour juger la fluidité avec la horde).
+- Réseau : version 2 (un APK plus ancien est refusé en coop) ; animations envoyées par numéro.
 
 ## Ce que Téo devra vérifier sur l'APK du jalon 2 (deux téléphones sur le même Wi-Fi)
 1. « Jouer à deux » : héberger sur l'un, rejoindre sur l'autre (la partie apparaît, ou avec le code).
@@ -79,6 +97,8 @@ Matelots squelettes qui reviennent sans fin.
 | 22/10/2026 | Jalon 1 : combat validé par Téo ; ajout demandé : yeux rouges des squelettes pendant l'annonce. |
 | 22/10/2026 | Jalon 2 (coop Wi-Fi) : Téo a deux téléphones Android. L'Occultiste complet est avancé au jalon 2 (projectile maudit, téléportation courte, Marque maudite, Chaînes spectrales ; 80 PV). Marque : +40 % de dégâts du partenaire, +15 % pour l'Occultiste lui-même. En coop, héros différents obligatoires. Si les deux héros tombent : retour au départ, squelettes remis à zéro. Annexes retenues : réanimation du partenaire, arrêt sur image propre à chaque joueur, anneau coloré sous chaque héros, 3 squelettes à deux. Ordre : 1) Occultiste solo + choix du héros (APK intermédiaire), 2) coop, 3) réanimation et arrêt sur image local. |
 | 22/10/2026 | Occultiste, après relecture (choix de Téo) : le tir vise l'ennemi le plus proche de la direction du joystick (cône de 60°), sinon la direction du joystick ; il peut bouger dès que le projectile est parti (la cadence reste d'un tir toutes les 0,45 s) ; sans joystick, la téléportation part en arrière ; un sort coupé par un coup avant son effet rend sa recharge. |
+| 22/10/2026 | Icônes des compétences sur les boutons, propres à chaque héros (demande de Téo). |
+| 30/10/2026 | Combat « nerveux » : héros plus vif, hordes, coups qui claquent, coups critiques (choix de Téo, voir plus haut). Ennemis plus agressifs : non retenu. |
 
 ## Relecture du jalon 0 (agent relecteur) et corrections
 - Le CI refuse désormais un script ou un fichier de test cassé (chargement de tous les scripts + contrôle du
@@ -151,7 +171,7 @@ Matelots squelettes qui reviennent sans fin.
 - 22/10 (demande de Téo) : icônes des compétences sur les boutons, propres à chaque héros.
 
 ## Prochaines étapes
-1. Relecture de fin de jalon 2, corrections, APK.
+1. Essai de Téo du combat « nerveux » (seul et à deux) ; réglages selon son ressenti.
 2. Essai de Téo sur deux téléphones (jalon « porte » : on corrige avant d'avancer).
 3. Jalon 3 : raid jouable (salles, 3 ennemis, mini-boss, malédiction, extraction).
 

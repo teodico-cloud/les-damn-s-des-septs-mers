@@ -27,7 +27,7 @@ func _effets() -> EffetsCombat:
 func test_arret_sur_image_se_termine() -> void:
 	await _effets()
 	await get_tree().physics_frame   # en jeu, le coup arrive pendant l'image de physique
-	EventBus.coup_porte.emit(Vector3.ZERO, 10.0, false, false, null, null)
+	EventBus.coup_porte.emit(Vector3.ZERO, 10.0, false, false, null, null, false)
 	assert_lt(Engine.time_scale, 1.0, "Le coup déclenche l'arrêt sur image")
 	await _attendre_reel(0.3)
 	assert_eq(Engine.time_scale, 1.0, "Puis le jeu reprend sa vitesse normale")
@@ -37,7 +37,7 @@ func test_coups_rapproches_puis_reprise() -> void:
 	await _effets()
 	for i in 3:
 		await get_tree().physics_frame
-		EventBus.coup_porte.emit(Vector3.ZERO, 10.0, i == 2, false, null, null)
+		EventBus.coup_porte.emit(Vector3.ZERO, 10.0, i == 2, false, null, null, false)
 		await _attendre_reel(0.02)
 	await _attendre_reel(0.3)
 	assert_eq(Engine.time_scale, 1.0, "Plusieurs coups rapprochés : le jeu reprend quand même")

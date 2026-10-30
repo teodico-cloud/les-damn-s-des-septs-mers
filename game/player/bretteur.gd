@@ -55,7 +55,7 @@ func _commencer_attaque() -> void:
 
 func _commencer_coup(index: int) -> void:
 	_combo = index
-	_direction = direction_visee()
+	_direction = direction_attaque()
 	_faire_face(_direction)
 	_impact_fait = false
 	var nom: String = EQ.combo_animations[index]
@@ -82,6 +82,12 @@ func _etat_attaque(_delta: float) -> void:
 		if _combo < 2 and _t >= impact + 0.08 and commandes.prendre(&"attaque", horloge):
 			_commencer_coup(_combo + 1)
 			return
+		if _t >= impact + EQ.combo_annulation and commandes.deplacement.length() > 0.25:
+			# le coup a porté : le joystick coupe la fin du geste (on frappe, on bouge, on refrappe) ;
+			# le combo reste enchaînable pendant sa fenêtre
+			_fin_dernier_coup = horloge
+			_changer(Etat.LIBRE)
+			return
 	if _t >= _duree_action:
 		_fin_dernier_coup = horloge
 		_changer(Etat.LIBRE)
@@ -90,6 +96,9 @@ func _etat_attaque(_delta: float) -> void:
 func _frapper_combo() -> void:
 	var centre := global_position + _direction * EQ.combo_portee + Vector3.UP
 	var lourd: bool = EQ.combo_lourd[_combo]
+	# traînée lumineuse du sabre (aussi montrée chez l'autre joueur en coop)
+	EffetsMagie.trainee_sabre(get_parent(), global_position, _direction, _combo)
+	EventBus.effet_visuel.emit(self, "trainee_%d" % _combo, global_position + _direction)
 	for cible in Combat.cibles_dans_sphere(get_world_3d(), centre, EQ.combo_rayon, Combat.COUCHE_ENNEMIS, [self]):
 		Combat.porter_coup(self, cible, EQ.combo_degats[_combo], lourd)
 

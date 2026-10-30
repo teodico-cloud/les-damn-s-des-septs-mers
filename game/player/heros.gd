@@ -36,6 +36,7 @@ var reapparition_auto := true
 var progres_reanimation := 0.0
 var _zone_reanimation: Node3D
 var _vitesse_anim := 1.0     ## vitesse demandée (pas celle figée un instant par l'arrêt sur image)
+var _liste_anims := PackedStringArray()
 
 var _t := 0.0               ## temps passé dans l'état courant
 var _direction := Vector3.BACK   ## direction de l'action en cours
@@ -260,9 +261,20 @@ func direction_visee(portee := EQ.visee_portee) -> Vector3:
 	return Vector3(avant().x, 0, avant().z).normalized()
 
 
+## Direction d'une attaque : l'ennemi le plus proche de la direction du joystick (cône de 60°), ou le
+## plus proche sans joystick ; s'il n'y a personne, la direction du joystick ou devant.
+func direction_attaque(portee := EQ.visee_portee) -> Vector3:
+	var cible := cible_visee(portee)
+	if cible:
+		var v := Combat.direction_plate(global_position, cible.global_position)
+		if v != Vector3.ZERO:
+			return v
+	return direction_visee(portee)
+
+
 # ---------------------------------------------------------------- dégâts reçus
 ## Appelé par Combat.porter_coup. Renvoie les dégâts réellement subis.
-func recevoir_coup(degats: float, source: Node3D, _lourd: bool) -> float:
+func recevoir_coup(degats: float, source: Node3D, _lourd: bool, _critique := false) -> float:
 	if etat == Etat.MORT:
 		return 0.0
 	if _intercepter_coup(source):
@@ -270,7 +282,7 @@ func recevoir_coup(degats: float, source: Node3D, _lourd: bool) -> float:
 	var reel := sante.subir(degats, source)
 	if reel <= 0.0:
 		return 0.0
-	EventBus.coup_porte.emit(global_position + Vector3.UP * 2.2, reel, true, true, self, source)
+	EventBus.coup_porte.emit(global_position + Vector3.UP * 2.2, reel, true, true, self, source, false)
 	if sante.est_mort:
 		return reel
 	sante.rendre_invulnerable(EQ.heros_invulnerable_apres_coup)
@@ -336,14 +348,14 @@ func temps_avant_reapparition() -> float:
 # ---------------------------------------------------------------- coop
 ## Ce que l'hôte envoie de ce héros à chaque instantané (voir SynchroArene).
 func instantane() -> Array:
-	var nom_anim := String(anim.current_animation)
-	return [global_position, rotation.y, int(etat), nom_anim, _vitesse_anim, sante.pv, visuel.visible,
-			progres_reanimation, _t]
+	return [global_position, rotation.y, int(etat), code_anim(anim.current_animation), _vitesse_anim, sante.pv,
+			visuel.visible, progres_reanimation, _t]
 
 
 ## Marionnette : applique ce que l'hôte a envoyé (la position est posée à part, lissée).
-func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: float, visible_recu: bool,
+func appliquer_instantane(etat_recu: int, anim_recue: Variant, vitesse: float, pv: float, visible_recu: bool,
 		progres := 0.0, t_etat := 0.0) -> void:
+	var nom_anim := nom_anim(anim_recue)
 	afficher_reanimation(progres, etat_recu == int(Etat.MORT))
 	var reentre := etat_recu == int(etat) and t_etat + 0.05 < _t   # même état recommencé chez l'hôte
 	var nouvel_etat := etat_recu != int(etat) or reentre
@@ -360,6 +372,22 @@ func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: 
 	if visible_recu != visuel.visible:
 		visuel.visible = visible_recu
 		EffetsMagie.fumee(get_parent(), global_position)   # téléportation de l'Occultiste
+
+
+## Coop : une animation voyage sous forme de numéro (sa place dans la liste des animations du
+## modèle, la même sur les deux téléphones) : bien plus court que son nom.
+func code_anim(nom: String) -> int:
+	if _liste_anims.is_empty():
+		_liste_anims = anim.get_animation_list()
+	return _liste_anims.find(nom)
+
+
+func nom_anim(code: Variant) -> String:
+	if code is String or code is StringName:
+		return String(code)
+	if _liste_anims.is_empty():
+		_liste_anims = anim.get_animation_list()
+	return _liste_anims[code] if code >= 0 and code < _liste_anims.size() else ""
 
 
 ## Coop, invité : l'hôte a décidé de ce qui arrive à notre héros (coup reçu, riposte, mort, retour).

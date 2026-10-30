@@ -23,8 +23,8 @@ func _exit_tree() -> void:
 	Engine.time_scale = 1.0
 
 
-func _on_coup_porte(position_coup: Vector3, degats: float, lourd: bool, cible_est_heros: bool, cible: Node3D, source: Node3D) -> void:
-	_chiffre(position_coup, degats, lourd, cible_est_heros)
+func _on_coup_porte(position_coup: Vector3, degats: float, lourd: bool, cible_est_heros: bool, cible: Node3D, source: Node3D, critique := false) -> void:
+	_chiffre(position_coup, degats, lourd, cible_est_heros, critique)
 	var me_concerne := not en_coop or cible == heros_local or source == heros_local
 	if cible_est_heros:
 		if camera and me_concerne:
@@ -37,7 +37,8 @@ func _on_coup_porte(position_coup: Vector3, degats: float, lourd: bool, cible_es
 	else:
 		arret_sur_image(duree)
 	if camera and me_concerne:
-		camera.secouer(EQ.secousse_coup_lourd if lourd else EQ.secousse_coup)
+		var force := EQ.secousse_coup_lourd if lourd else EQ.secousse_coup
+		camera.secouer(maxf(force, EQ.secousse_critique) if critique else force)
 
 
 ## Coop : fige l'animation d'un combattant un court instant (temps réel), sans ralentir le jeu.
@@ -76,17 +77,19 @@ func _fin_arret_sur_image() -> void:
 		Engine.time_scale = 1.0
 
 
-func _chiffre(pos: Vector3, degats: float, lourd: bool, cible_est_heros: bool) -> void:
+func _chiffre(pos: Vector3, degats: float, lourd: bool, cible_est_heros: bool, critique := false) -> void:
 	var l := Label3D.new()
-	l.text = str(roundi(degats))
+	l.text = str(roundi(degats)) + ("!" if critique else "")
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.no_depth_test = true
 	l.fixed_size = true
 	l.pixel_size = 0.0011
-	l.font_size = 58 if lourd else 44
-	l.outline_size = 14
+	l.font_size = 76 if critique else (58 if lourd else 44)
+	l.outline_size = 18 if critique else 14
 	if cible_est_heros:
 		l.modulate = Color(1.0, 0.3, 0.25)
+	elif critique:
+		l.modulate = Color(1.0, 0.72, 0.1)   # or vif : le « boum » du critique
 	elif lourd:
 		l.modulate = Color(1.0, 0.8, 0.3)
 	else:
@@ -100,6 +103,9 @@ func _chiffre(pos: Vector3, degats: float, lourd: bool, cible_est_heros: bool) -
 	l.global_position = pos + droite * _cote * randf_range(0.25, 0.45)
 	var t := l.create_tween()
 	t.set_parallel(true)
+	if critique:   # il « saute » à l'écran avant de monter
+		l.scale = Vector3.ONE * 1.7
+		t.tween_property(l, "scale", Vector3.ONE, 0.18).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 	t.tween_property(l, "global_position", l.global_position + Vector3(0, 1.1, 0), 0.75).set_ease(Tween.EASE_OUT)
 	t.tween_property(l, "modulate:a", 0.0, 0.75).set_delay(0.25)
 	t.chain().tween_callback(l.queue_free)

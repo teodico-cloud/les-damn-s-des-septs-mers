@@ -39,13 +39,15 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
     nombre de l'adresse de l'hôte). Les messages de l'invité pendant le combat passent par lui.
   - `data/equilibrage.tres` (+ `core/resources/equilibrage.gd`) : **toutes** les valeurs de réglage du combat.
   - `core/components/` : `Sante` (PV, invulnérabilité), `Recharge` (temps de recharge).
-  - `game/combat/` : `Combat` (couches de collision, zones de coup, `porter_coup`), `CameraCombat`,
-    `EffetsCombat` (chiffres, arrêt sur image, secousse), `Projectile` (tir de l'Occultiste),
-    `EffetsMagie` (fumée, éclats, cercle au sol ; purement visuels).
+  - `game/combat/` : `Combat` (couches de collision, zones de coup, `porter_coup` qui tire aussi les coups
+    critiques), `CameraCombat`, `EffetsCombat` (chiffres, arrêt sur image, secousse), `Projectile` (tir de
+    l'Occultiste), `EffetsMagie` (fumée, éclats, cercle au sol, traînée du sabre, squelette qui éclate en
+    os ; purement visuels).
   - `game/player/` : `Heros` (base commune : déplacement, visée, recharges, coup reçu, mort), un script
     par archétype (`Bretteur`, `Occultiste` ; `Heros.creer(&"occultiste")`) et `CommandesHeros` (ce que
     le joueur demande : seule entrée du héros, pour que le réseau puisse la remplir plus tard).
-  - `game/enemies/` : `Ennemi` (Matelot squelette), `GenerateurEnnemis`.
+  - `game/enemies/` : `Ennemi` (Matelot squelette), `GenerateurEnnemis` (horde : groupes de 2 à 4, les
+    manquants ressortent ensemble).
   - `game/arene/` : arène d'entraînement, tout construit par code ; `regles_coop.gd` (hôte) : réanimation
     du partenaire, retour au départ si les deux tombent.
   - `game/reseau/synchro_arene.gd` (nœud « Synchro » de l'arène) : l'hôte simule tout et envoie 30
@@ -79,7 +81,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   `xvfb-run -a godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720 -s "$PWD/tools/capture_scene.gd" -- res://game/vitrine/vitrine.tscn build/apercus/vitrine.png [nb_actions] [nb_images]`
 - Captures mises en scène du combat (annonce, coup, fente) + état du combat dans la console :
   `xvfb-run -a godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720 -s "$PWD/tools/capture_combat.gd" -- build/apercus`
-  (même chose pour l'Occultiste : `tools/capture_occultiste.gd` ; écran « Jouer à deux » : `tools/capture_coop_ecrans.gd`)
+  (même chose pour l'Occultiste : `tools/capture_occultiste.gd` ; écran « Jouer à deux » : `tools/capture_coop_ecrans.gd` ;
+  horde, coup critique, os qui volent et traînées du sabre : `tools/capture_horde.gd`)
 - Essai de la coop (hôte + invité sur cette machine, vérifications automatiques, aussi dans le CI) :
   `GODOT=<godot> tools/test_coop.sh [127.0.0.1|auto]` ; Wi-Fi imparfait simulé : préfixer
   `LATENCE_MS=30 GIGUE_MS=20 PERTE_PCT=3` ; captures des deux écrans : ajouter
@@ -145,6 +148,17 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Animations : ne pas appeler `anim.stop()` avant `play(nom, fondu)` : le fondu partirait de rien et la
   pose sauterait d'un coup (mesuré : jambe de 31° à 1° en une image). Pour reprendre la même
   animation au début : `play()` puis `seek(0, true)` (voir `_jouer`).
+- Coups critiques : tirés au hasard dans `Combat.porter_coup`. Un test qui compte des PV doit mettre
+  `Combat.chance_critique = 0.0` (dans `before_all`) et le remettre à `-1.0` (dans `after_all`).
+- Squelette vaincu : il n'a plus d'animation de mort, il éclate en os (`Ennemi._eclater`, corps physiques
+  posés sur l'arène, pas sous le générateur) et son nœud disparaît après `squelette_duree_corps`.
+  La marionnette de l'invité éclate aussi en recevant l'état MORT.
+- Coop : les animations voyagent par numéro (`code_anim` / `nom_anim`, place dans la liste du modèle) ;
+  un instantané pèse environ 1,1 ko avec 8 squelettes. Ne pas remettre les noms (trop lourd).
+- Captures d'un effet très court (traînée de 0,2 s) : le rendu sans carte graphique est lent, l'effet a
+  parfois disparu avant la capture. Ralentir (`Engine.time_scale = 0.1`) le temps de la capture.
+- Sur le sol clair de l'arène, un effet en mélange additif vire au blanc éblouissant : préférer le
+  mélange normal avec une couleur franche (voir la traînée du sabre).
 - Recul des squelettes : la valeur de `equilibrage.tres` est une distance en mètres ; la vitesse de départ
   est `sqrt(2 × freinage × distance)`.
 - Coop : un message envoyé à un nœud que l'autre téléphone n'a pas encore (arène pas encore ouverte)

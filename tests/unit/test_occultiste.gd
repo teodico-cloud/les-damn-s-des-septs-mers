@@ -8,6 +8,16 @@ var monde: Node3D
 var occ: Occultiste
 
 
+
+## Dégâts exacts dans ces tests : pas de coup critique (testés à part dans test_critiques.gd).
+func before_all() -> void:
+	Combat.chance_critique = 0.0
+
+
+func after_all() -> void:
+	Combat.chance_critique = -1.0
+
+
 func before_each() -> void:
 	Engine.time_scale = 1.0
 	monde = Node3D.new()
