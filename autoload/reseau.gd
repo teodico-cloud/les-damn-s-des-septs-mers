@@ -12,7 +12,7 @@ signal combat_lance
 
 const PORT_JEU := 34778
 const PORT_ANNONCE := 34779
-const VERSION_RESEAU := 3        ## à augmenter quand le protocole change (refuse un autre APK) ; 3 : parade parfaite
+const VERSION_RESEAU := 4        ## à augmenter quand le protocole change (refuse un autre APK) ; 4 : expédition
 const DELAI_ANNONCE := 0.5
 
 enum Role { AUCUN, HOTE, INVITE }
@@ -159,14 +159,15 @@ func _refuser(raison: String) -> void:
 	quitter()
 
 
-## L'hôte lance le combat : les deux téléphones ouvrent l'arène.
-func lancer_combat() -> void:
+## L'hôte lance la partie : les deux téléphones ouvrent l'arène (&"arene") ou l'expédition.
+func lancer_combat(destination: StringName = &"arene") -> void:
 	if role == Role.HOTE and id_partenaire != 0:
-		_lancer.rpc()
+		_lancer.rpc(String(destination))
 
 
 @rpc("authority", "call_local", "reliable")
-func _lancer() -> void:
+func _lancer(destination: String) -> void:
+	Partie.destination = StringName(destination)
 	combat_lance.emit()
 
 

@@ -3,7 +3,6 @@ extends Node3D
 ## Toucher une carte choisit ce héros et ouvre l'arène. (En coop, le héros déjà pris sera grisé.)
 
 const SCENE_MENU := "res://ui/screens/demarrage.tscn"
-const SCENE_ARENE := "res://game/arene/arene.tscn"
 const SCENE_COOP := "res://ui/screens/coop.tscn"
 const DECOR := "res://assets/models/decor/"
 const COULEUR_OS := Color("e2d6ba")
@@ -40,12 +39,12 @@ func _notification(what: int) -> void:
 		retour_menu()
 
 
-## Choix fait : en solo on entre dans l'arène ; si l'on héberge une partie à deux, on revient à
+## Choix fait : en solo on entre dans l'arène ou l'expédition (Partie.destination) ; si l'on héberge une partie à deux, on revient à
 ## l'écran de coop qui attend le partenaire (il prendra l'autre héros).
 func choisir(archetype: StringName) -> void:
 	Partie.heros_local = archetype
 	if changer_de_scene:
-		get_tree().change_scene_to_file(SCENE_COOP if Partie.mode == Partie.Mode.HOTE else SCENE_ARENE)
+		get_tree().change_scene_to_file(SCENE_COOP if Partie.mode == Partie.Mode.HOTE else Partie.scene_destination())
 
 
 func retour_menu() -> void:

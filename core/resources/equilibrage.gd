@@ -138,3 +138,24 @@ extends Resource
 @export_group("Coups critiques")
 @export var critique_chance := 0.1           ## 1 chance sur 10 (coups des héros sur les ennemis)
 @export var critique_multiplicateur := 2.0
+
+@export_group("Expédition")
+@export var exp_nb_salles := 4                ## salles avant l'antre du Bosco (choix de Téo : expédition courte)
+@export var exp_ennemis_salle := 9            ## squelettes à vaincre dans une salle de combat (seul)
+@export var exp_ennemis_salle_coop := 13      ## … à deux
+@export var exp_ennemis_bosco := 14           ## antre du Bosco (en attendant le Bosco, étape 3 : une grosse horde)
+@export var exp_ennemis_bosco_coop := 20
+@export var exp_ensemble := 5                 ## squelettes debout en même temps dans une salle (seul)
+@export var exp_ensemble_coop := 7            ## … à deux
+@export var exp_tresor_soin := 0.5            ## salle trésor : part des PV max rendue en ouvrant le coffre
+@export var exp_rayon_porte := 1.5            ## mètres : se tenir devant une porte pour la prendre
+@export var exp_rayon_coffre := 1.6           ## mètres : ouvrir le coffre en s'en approchant
+@export var exp_rayon_chaloupe := 2.2         ## mètres : monter dans la chaloupe
+@export var exp_fondu := 0.4                  ## secondes de fondu au noir entre deux salles
+@export var exp_delai_defaite := 2.5          ## secondes entre la chute et l'écran de fin
+
+@export_group("Orbes de vie")
+@export var orbe_chance := 0.3                ## chance qu'un squelette vaincu lâche une orbe (choix de Téo)
+@export var orbe_soin := 0.2                  ## part des PV max rendue
+@export var orbe_rayon := 0.9                 ## mètres : on la ramasse en passant dessus (si l'on est blessé)
+@export var orbe_duree := 25.0                ## secondes avant qu'elle s'efface

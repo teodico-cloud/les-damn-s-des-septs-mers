@@ -18,6 +18,7 @@ const SEUIL_SAUT := 2.5             ## au-delà, on recale sans douceur
 const DELAI_SANS_ENTREE := 0.25     ## hôte : sans nouvelles de l'invité, son héros s'arrête
 const ACTIONS := [&"attaque", &"esquive", &"competence_1", &"competence_2"]
 const DELAI_INSTABLE := 1.0         ## secondes sans nouvelles de l'autre téléphone avant d'avertir
+const SAUT_TELEPORTATION := 3.0     ## mètres entre deux instantanés : téléporté (salle suivante), pas de glissade
 
 signal connexion_instable(oui: bool)
 
@@ -68,6 +69,7 @@ func _ready() -> void:
 		EventBus.projectile_tire.connect(_on_projectile_tire)
 		EventBus.effet_visuel.connect(_on_effet_visuel)
 		EventBus.parade_parfaite.connect(_on_parade_parfaite)
+		EventBus.soin.connect(_on_soin)
 		EventBus.heros_mort.connect(_on_heros_mort)
 		EventBus.heros_reapparu.connect(_on_heros_reapparu)
 		heros_partenaire.etat_change.connect(_on_etat_partenaire)
@@ -89,8 +91,8 @@ func _exit_tree() -> void:
 func invite_pret() -> void:
 	_invite_pret = true
 	_silence = 0.0
-	if generateur.has_method("demarrer"):
-		generateur.demarrer()   # les squelettes sortent de terre quand les deux joueurs sont là
+	if arene.has_method("invite_pret"):
+		arene.invite_pret()   # arène : les squelettes sortent ; expédition : envoi de la salle en cours
 
 
 func recevoir_entrees(seq: int, x: float, z: float) -> void:
@@ -163,8 +165,8 @@ func _physics_process(delta: float) -> void:
 func _hote_image(delta: float) -> void:
 	if not _invite_pret:
 		_attente_invite += delta
-		if _attente_invite > 10.0 and generateur.has_method("demarrer"):
-			generateur.demarrer()   # l'invité tarde : on ne laisse pas l'hôte dans une salle vide
+		if _attente_invite > 10.0 and arene.has_method("invite_pret"):
+			arene.invite_pret()   # l'invité tarde : on ne laisse pas l'hôte dans une salle vide
 		return
 	if Reseau.id_partenaire == 0:
 		return
@@ -217,6 +219,23 @@ func _on_effet_visuel(lanceur: Node3D, type: String, position: Vector3) -> void:
 func _on_parade_parfaite(heros: Node3D, point: Vector3) -> void:
 	if _invite_pret:
 		_effet.rpc_id(Reseau.id_partenaire, _nom(heros), "parade_parfaite", point)
+
+
+func _on_soin(heros: Node3D, montant: float) -> void:
+	if _invite_pret:
+		_soin.rpc_id(Reseau.id_partenaire, _nom(heros), montant)
+
+
+## Expédition : événement du lieu décidé par l'hôte (salle suivante, portes ouvertes, coffre, fin…).
+func envoyer_lieu(type: String, donnees: Array) -> void:
+	if _invite_pret:
+		_lieu.rpc_id(Reseau.id_partenaire, type, donnees)
+
+
+## Orbe de vie posée (`prise_par` vide) ou ramassée par un héros.
+func envoyer_orbe(nom: String, pos: Vector3, prise_par: String) -> void:
+	if _invite_pret:
+		_orbe.rpc_id(Reseau.id_partenaire, nom, pos, prise_par)
 
 
 func _on_heros_mort(h: Node) -> void:
@@ -369,7 +388,8 @@ func _afficher_monde() -> void:
 		if a[1].has(cle) and b[1].has(cle):
 			var da: Array = a[1][cle]
 			var db: Array = b[1][cle]
-			heros_partenaire.global_position = (da[0] as Vector3).lerp(db[0], f)
+			var saut := (db[0] as Vector3).distance_to(da[0]) > SAUT_TELEPORTATION
+			heros_partenaire.global_position = db[0] if saut else (da[0] as Vector3).lerp(db[0], f)
 			heros_partenaire.rotation.y = lerp_angle(da[1], db[1], f)
 		if dernier[1].has(cle):
 			var dn: Array = dernier[1][cle]
@@ -382,7 +402,8 @@ func _afficher_monde() -> void:
 		if b[2].has(cle):
 			var db: Array = b[2][cle]
 			var da: Array = a[2][cle] if a[2].has(cle) else db
-			e.global_position = (da[0] as Vector3).lerp(db[0], f)
+			var saut := (db[0] as Vector3).distance_to(da[0]) > SAUT_TELEPORTATION
+			e.global_position = db[0] if saut else (da[0] as Vector3).lerp(db[0], f)
 			e.rotation.y = lerp_angle(da[1], db[1], f)
 		if dernier[2].has(cle):
 			var dn: Array = dernier[2][cle]
@@ -438,16 +459,45 @@ func _effet_recu(nom_lanceur: String, type: String, position: Vector3) -> void:
 
 
 @rpc("authority", "reliable")
+func _soin(nom_heros: String, montant: float) -> void:
+	_differer(func(): EventBus.soin.emit(_trouver(nom_heros), montant), true)
+
+
+@rpc("authority", "reliable")
+func _lieu(type: String, donnees: Array) -> void:
+	_differer(_lieu_recu.bind(type, donnees), true)
+
+
+func _lieu_recu(type: String, donnees: Array) -> void:
+	if arene.has_method("evenement_lieu"):
+		arene.evenement_lieu(type, donnees)
+
+
+@rpc("authority", "reliable")
+func _orbe(nom: String, pos: Vector3, prise_par: String) -> void:
+	_differer(_orbe_recue.bind(nom, pos, prise_par), true)
+
+
+func _orbe_recue(nom: String, pos: Vector3, prise_par: String) -> void:
+	if arene.has_method("orbe_recue"):
+		arene.orbe_recue(nom, pos, prise_par)
+
+
+## Invité : notre héros vient d'être replacé par l'hôte (salle suivante, retour au départ) : les
+## prédictions d'avant ne valent plus (un instantané encore en route referait le déplacement).
+func oublier_predictions() -> void:
+	_historique.clear()
+	_decalage_visuel = Vector3.ZERO
+
+
+@rpc("authority", "reliable")
 func _autorite(type: String, pv: float, point: Vector3) -> void:
 	_differer(_autorite_recu.bind(type, pv, point), true)
 
 
 func _autorite_recu(type: String, pv: float, point: Vector3) -> void:
 	if type == "reapparu":
-		# notre héros est replacé par l'hôte : les prédictions d'avant ne valent plus (sinon un
-		# instantané encore en route referait le déplacement une seconde fois)
-		_historique.clear()
-		_decalage_visuel = Vector3.ZERO
+		oublier_predictions()
 	heros_local.evenement_autorite(type, pv, point)
 
 

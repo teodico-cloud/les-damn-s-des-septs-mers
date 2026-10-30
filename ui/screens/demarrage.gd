@@ -1,5 +1,6 @@
 extends Control
-## Écran titre : nom du jeu, combat d'entraînement (via le choix du héros), vitrine, version.
+## Écran titre : nom du jeu, expédition et combat d'entraînement (via le choix du héros), jeu à deux,
+## vitrine, version ; « Mode test » (APK de test) : santé infinie, salle de départ de l'expédition.
 
 const SCENE_VITRINE := "res://game/vitrine/vitrine.tscn"
 const SCENE_CHOIX := "res://ui/screens/choix_heros.tscn"
@@ -8,8 +9,16 @@ const COULEUR_OS := Color("e2d6ba")
 const COULEUR_OR := Color("ac8036")
 
 var bouton_vitrine: Button
+var bouton_expedition: Button
 var bouton_combat: Button
 var bouton_coop: Button
+var bouton_test: Button
+var panneau_test: VBoxContainer
+var bouton_sante: Button
+var bouton_depart: Button
+var label_test: Label
+const DEPARTS: Array[StringName] = [&"", &"tresor", &"bosco", &"chaloupe"]
+const NOMS_DEPARTS := {&"": "salle 1", &"tresor": "trésor", &"bosco": "antre du Bosco", &"chaloupe": "chaloupe"}
 
 
 func _ready() -> void:
@@ -51,7 +60,7 @@ func _construire() -> void:
 	colonne.add_child(titre)
 
 	var sous_titre := Label.new()
-	sous_titre.text = "Prototype — jalon 2"
+	sous_titre.text = "Prototype — jalon 3"
 	sous_titre.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sous_titre.add_theme_font_size_override("font_size", 30)
 	sous_titre.add_theme_color_override("font_color", Color("6cffa0"))
@@ -60,6 +69,12 @@ func _construire() -> void:
 	var espace := Control.new()
 	espace.custom_minimum_size = Vector2(0, 10)
 	colonne.add_child(espace)
+
+	bouton_expedition = _bouton("Expédition")
+	bouton_expedition.pressed.connect(_ouvrir_expedition)
+	var centre_exp := CenterContainer.new()
+	centre_exp.add_child(bouton_expedition)
+	colonne.add_child(centre_exp)
 
 	bouton_combat = _bouton("Combat d'entraînement")
 	bouton_combat.pressed.connect(_ouvrir_arene)
@@ -90,6 +105,52 @@ func _construire() -> void:
 	version.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	version.position -= Vector2(24, 16)
 	add_child(version)
+	_mode_test()
+
+
+## Mode test (prévu dans la conception) : essayer un point précis en 30 secondes.
+func _mode_test() -> void:
+	bouton_test = _bouton("Mode test")
+	bouton_test.custom_minimum_size = Vector2(220, 64)
+	bouton_test.add_theme_font_size_override("font_size", 24)
+	bouton_test.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	bouton_test.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	bouton_test.position += Vector2(24, -16)
+	bouton_test.pressed.connect(func(): panneau_test.visible = not panneau_test.visible)
+	add_child(bouton_test)
+	panneau_test = VBoxContainer.new()
+	panneau_test.add_theme_constant_override("separation", 12)
+	panneau_test.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	panneau_test.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	panneau_test.position += Vector2(24, -96)
+	panneau_test.visible = false
+	add_child(panneau_test)
+	bouton_sante = _bouton("")
+	bouton_depart = _bouton("")
+	for b in [bouton_sante, bouton_depart]:
+		b.custom_minimum_size = Vector2(440, 64)
+		b.add_theme_font_size_override("font_size", 24)
+		panneau_test.add_child(b)
+	bouton_sante.pressed.connect(func():
+		Partie.debug_sante_infinie = not Partie.debug_sante_infinie
+		_textes_test())
+	bouton_depart.pressed.connect(func():
+		Partie.debug_depart = DEPARTS[(DEPARTS.find(Partie.debug_depart) + 1) % DEPARTS.size()]
+		_textes_test())
+	label_test = Label.new()
+	label_test.add_theme_font_size_override("font_size", 24)
+	label_test.add_theme_color_override("font_color", Color(1.0, 0.75, 0.3))
+	label_test.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	label_test.position = Vector2(24, 16)
+	add_child(label_test)
+	_textes_test()
+
+
+func _textes_test() -> void:
+	bouton_sante.text = "Santé infinie : %s" % ("oui" if Partie.debug_sante_infinie else "non")
+	bouton_depart.text = "Expédition : départ %s" % NOMS_DEPARTS.get(Partie.debug_depart, "?")
+	var actif := Partie.debug_sante_infinie or Partie.debug_depart != &""
+	label_test.text = "MODE TEST actif" if actif else ""
 
 
 func _bouton(texte: String) -> Button:
@@ -108,9 +169,17 @@ func _bouton(texte: String) -> Button:
 	return b
 
 
+func _ouvrir_expedition() -> void:
+	Reseau.quitter()
+	Partie.revenir_en_solo()
+	Partie.destination = &"expedition"
+	get_tree().change_scene_to_file(SCENE_CHOIX)
+
+
 func _ouvrir_arene() -> void:
 	Reseau.quitter()
 	Partie.revenir_en_solo()
+	Partie.destination = &"arene"
 	get_tree().change_scene_to_file(SCENE_CHOIX)
 
 

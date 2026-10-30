@@ -60,6 +60,18 @@ func definir_pv(valeur: float) -> void:
 	change.emit(pv, pv_max)
 
 
+## Rend des PV (orbe de vie, coffre). Renvoie les PV réellement rendus (0 si mort ou déjà plein).
+func soigner(montant: float) -> float:
+	if est_mort or montant <= 0.0:
+		return 0.0
+	var reel := minf(montant, pv_max - pv)
+	if reel <= 0.0:
+		return 0.0
+	pv += reel
+	change.emit(pv, pv_max)
+	return reel
+
+
 func soigner_completement() -> void:
 	pv = pv_max
 	est_mort = false

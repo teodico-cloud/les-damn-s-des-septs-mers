@@ -18,6 +18,7 @@ var _figes := {}   ## AnimationPlayer -> nombre d'arrêts locaux en cours
 func _ready() -> void:
 	EventBus.coup_porte.connect(_on_coup_porte)
 	EventBus.parade_parfaite.connect(_on_parade_parfaite)
+	EventBus.soin.connect(_on_soin)
 
 
 func _exit_tree() -> void:
@@ -96,6 +97,29 @@ func _on_parade_parfaite(heros: Node3D, point: Vector3) -> void:
 		ralentir(EQ.parade_parfaite_ralenti, EQ.parade_parfaite_ralenti_vitesse)
 	if camera and (not en_coop or heros == heros_local):
 		camera.secouer(EQ.secousse_coup_lourd)
+
+
+## Soin (orbe de vie, coffre) : « +20 » vert au-dessus du héros.
+func _on_soin(heros: Node3D, montant: float) -> void:
+	if heros == null or not is_instance_valid(heros) or montant < 0.5:
+		return
+	var l := Label3D.new()
+	l.text = "+%d" % roundi(montant)
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.no_depth_test = true
+	l.fixed_size = true
+	l.pixel_size = 0.0011
+	l.font_size = 54
+	l.outline_size = 14
+	l.modulate = Color(0.45, 1.0, 0.5)
+	l.outline_modulate = Color(0, 0.1, 0.02, 0.9)
+	add_child(l)
+	l.global_position = heros.global_position + Vector3.UP * 2.4
+	var t := l.create_tween().set_parallel(true)
+	t.tween_property(l, "global_position", l.global_position + Vector3(0, 0.9, 0), 0.8).set_ease(Tween.EASE_OUT)
+	t.tween_property(l, "modulate:a", 0.0, 0.5).set_delay(0.35)
+	t.tween_property(l, "outline_modulate:a", 0.0, 0.5).set_delay(0.35)
+	t.chain().tween_callback(l.queue_free)
 
 
 ## Gros mot doré qui saute à l'écran puis monte en s'effaçant.

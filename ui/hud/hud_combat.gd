@@ -3,6 +3,8 @@ extends CanvasLayer
 ## Interface de combat : joystick flottant à gauche, boutons d'action à droite, barre de vie,
 ## bouton Menu. Gère plusieurs doigts à la fois et traduit tout en CommandesHeros.
 ## Au clavier (ordinateur) : ZQSD/WASD ou flèches, J attaque, K esquive, L parade, I fente.
+## Expédition : nom de la salle en haut, fondu au noir entre deux salles, Menu à confirmer (on ne
+## perd pas une expédition d'un doigt maladroit), écran de fin avec le bilan.
 
 signal menu_demande
 
@@ -30,6 +32,11 @@ var _boutons: Array[BoutonAction] = []
 var _actions := {}   ## BoutonAction -> nom d'action
 var _doigt_menu := -1      ## doigt posé sur le bouton Menu
 var _menu_demande := false
+var mode_expedition := false
+var label_salle: Label
+var voile: ColorRect           ## fondu au noir entre deux salles
+var panneau_fin: Control
+var _premier_appui_menu := -100.0   ## expédition : heure du 1er appui sur Menu (on attend le 2e)
 
 
 func _ready() -> void:
@@ -119,6 +126,24 @@ func _ready() -> void:
 	label_message.add_theme_font_size_override("font_size", 36)
 	label_message.position.y -= 160
 	racine.add_child(label_message)
+
+	label_salle = Label.new()
+	label_salle.add_theme_font_size_override("font_size", 30)
+	label_salle.add_theme_color_override("font_color", Color("e0b04a"))
+	label_salle.add_theme_color_override("font_outline_color", Color.BLACK)
+	label_salle.add_theme_constant_override("outline_size", 8)
+	label_salle.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	label_salle.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	label_salle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label_salle.position.y = 22
+	label_salle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	racine.add_child(label_salle)
+
+	voile = ColorRect.new()
+	voile.color = Color(0, 0, 0, 0)
+	voile.set_anchors_preset(Control.PRESET_FULL_RECT)
+	voile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	racine.add_child(voile)
 
 
 func _bouton(parent: Control, texte: String, rayon: float, rec: Recharge, decalage: Vector2, action: StringName) -> BoutonAction:
@@ -213,9 +238,90 @@ func afficher_message(texte: String, duree: float) -> void:
 
 
 func _demander_menu() -> void:
-	if not _menu_demande:   # une seule fois, même si le clic et le toucher arrivent tous les deux
+	if _menu_demande:
+		return   # une seule fois, même si le clic et le toucher arrivent tous les deux
+	if mode_expedition and panneau_fin == null:
+		# expédition en cours : un premier appui demande confirmation (un doigt maladroit ne la perd pas)
+		var depuis := Time.get_ticks_msec() / 1000.0 - _premier_appui_menu
+		if depuis < 0.2:
+			return   # le clic et le toucher d'un même appui arrivent ensemble : pas une confirmation
+		if depuis > 2.5:
+			_premier_appui_menu = Time.get_ticks_msec() / 1000.0
+			afficher_message("Appuie encore sur Menu pour abandonner l'expédition", 2.5)
+			return
+	_menu_demande = true
+	menu_demande.emit()
+
+
+## Nom de la salle en cours (expédition).
+func afficher_salle(texte: String) -> void:
+	label_salle.text = texte
+
+
+## Fondu au noir (vers_noir) ou retour à l'image, en `duree` secondes réelles.
+func fondu(vers_noir: bool, duree: float) -> void:
+	var t := voile.create_tween()
+	t.set_ignore_time_scale(true)
+	t.tween_property(voile, "color:a", 1.0 if vers_noir else 0.0, duree)
+
+
+## Écran de fin d'expédition : titre, lignes du bilan, bouton de retour au menu.
+func afficher_resultats(reussite: bool, lignes: Array) -> void:
+	if panneau_fin:
+		return
+	relacher_tout()
+	label_mort.visible = false
+	var fond := ColorRect.new()
+	fond.color = Color(0.02, 0.03, 0.04, 0.0)
+	fond.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(fond)
+	panneau_fin = fond
+	var colonne := VBoxContainer.new()
+	colonne.set_anchors_preset(Control.PRESET_CENTER)
+	colonne.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	colonne.grow_vertical = Control.GROW_DIRECTION_BOTH
+	colonne.alignment = BoxContainer.ALIGNMENT_CENTER
+	colonne.add_theme_constant_override("separation", 14)
+	fond.add_child(colonne)
+	var titre := Label.new()
+	titre.text = "Expédition réussie !" if reussite else "Expédition perdue…"
+	titre.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	titre.add_theme_font_size_override("font_size", 64)
+	titre.add_theme_color_override("font_color", Color("6cffa0") if reussite else Color(1.0, 0.45, 0.4))
+	titre.add_theme_color_override("font_outline_color", Color.BLACK)
+	titre.add_theme_constant_override("outline_size", 12)
+	colonne.add_child(titre)
+	for l in lignes:
+		var ligne := Label.new()
+		ligne.text = String(l)
+		ligne.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ligne.add_theme_font_size_override("font_size", 30)
+		ligne.add_theme_color_override("font_color", COULEUR_OS)
+		colonne.add_child(ligne)
+	var espace := Control.new()
+	espace.custom_minimum_size = Vector2(0, 16)
+	colonne.add_child(espace)
+	var b := Button.new()
+	b.text = "Retour au menu"
+	b.custom_minimum_size = Vector2(420, 90)
+	b.add_theme_font_size_override("font_size", 34)
+	b.add_theme_color_override("font_color", COULEUR_OS)
+	for etat in ["normal", "hover", "pressed", "focus"]:
+		var st := StyleBoxFlat.new()
+		st.bg_color = Color("3a2a20") if etat != "pressed" else Color("24190f")
+		st.border_color = Color("ac8036")
+		st.set_border_width_all(4)
+		st.set_corner_radius_all(14)
+		b.add_theme_stylebox_override(etat, st)
+	b.pressed.connect(func():
 		_menu_demande = true
-		menu_demande.emit()
+		menu_demande.emit())
+	var centre := CenterContainer.new()
+	centre.add_child(b)
+	colonne.add_child(centre)
+	var t := fond.create_tween()
+	t.set_ignore_time_scale(true)
+	t.tween_property(fond, "color:a", 0.82, 0.6)
 
 
 ## Si l'appli passe en arrière-plan (appel, notification…), Android n'envoie pas toujours la levée
@@ -271,8 +377,14 @@ func _textes_a_terre() -> void:
 	if not moi_a_terre:
 		_les_deux_a_terre_depuis = -1.0
 		return
+	if panneau_fin:
+		label_mort.visible = false
+		return
 	if not coop:
-		label_mort.text = "Vous êtes tombé…\nRetour dans %d s" % ceili(heros.temps_avant_reapparition())
+		if mode_expedition:
+			label_mort.text = "Vous êtes tombé…"
+		else:
+			label_mort.text = "Vous êtes tombé…\nRetour dans %d s" % ceili(heros.temps_avant_reapparition())
 	elif not lui_a_terre:
 		_les_deux_a_terre_depuis = -1.0
 		label_mort.text = "Tu es à terre !\nTon partenaire peut te relever (%d %%)" % roundi(heros.progres_reanimation * 100.0)
@@ -280,6 +392,9 @@ func _textes_a_terre() -> void:
 		var t := Time.get_ticks_msec() / 1000.0
 		if _les_deux_a_terre_depuis < 0.0:
 			_les_deux_a_terre_depuis = t
+		if mode_expedition:
+			label_mort.text = "Vous êtes tombés…"
+			return
 		var reste: float = regles.temps_avant_retour if regles else heros.EQ.coop_delai_retour - (t - _les_deux_a_terre_depuis)
 		label_mort.text = "Vous êtes tombés…\nRetour au départ dans %d s" % maxi(ceili(reste), 0)
 

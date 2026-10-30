@@ -4,7 +4,9 @@ extends Node
 ## - un héros à 0 PV reste à terre ; son partenaire le relève en restant près de lui
 ##   (zone verte qui se remplit) ; il repart avec la moitié de ses PV ;
 ## - si les deux sont à terre en même temps : « Vous êtes tombés… », puis retour au départ et
-##   squelettes remis à zéro (choix de Téo).
+##   squelettes remis à zéro (choix de Téo). En expédition : l'expédition est perdue (`tous_a_terre`).
+
+signal tous_a_terre
 
 const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 
@@ -12,6 +14,8 @@ var heros_a: Heros
 var heros_b: Heros
 var generateur: GenerateurEnnemis
 var temps_avant_retour := -1.0   ## secondes avant le retour au départ quand les deux sont à terre ; -1 sinon
+var defaite_si_tous_a_terre := false   ## expédition : pas de retour au départ
+var _defaite_annoncee := false
 
 
 func configurer(a: Heros, b: Heros, gen: GenerateurEnnemis) -> void:
@@ -28,6 +32,11 @@ func _physics_process(delta: float) -> void:
 	var a_terre := not heros_a.est_vivant()
 	var b_terre := not heros_b.est_vivant()
 	if a_terre and b_terre:
+		if defaite_si_tous_a_terre:
+			if not _defaite_annoncee:
+				_defaite_annoncee = true
+				tous_a_terre.emit()
+			return
 		if temps_avant_retour < 0.0:
 			temps_avant_retour = EQ.coop_delai_retour
 		temps_avant_retour -= delta

@@ -1,8 +1,11 @@
+class_name Arene
 extends Node3D
 ## Arène d'entraînement : le héros choisi contre des Matelots squelettes qui reviennent sans fin,
 ## dans une salle de forteresse. Construit tout par code : salle, héros, ennemis, caméra, effets,
 ## interface. En coop (jalon 2) : deux héros ; l'hôte fait tourner le combat, l'invité l'affiche
 ## (voir SynchroArene). Chacun voit un anneau doré sous son héros, vert sous celui du partenaire.
+## Les squelettes vaincus lâchent parfois une orbe de vie (jalon 3, façon Diablo).
+## L'expédition (Expedition) hérite de cette scène et remplace le lieu, le départ et la horde.
 
 const SCENE_MENU := "res://ui/screens/demarrage.tscn"
 const DECOR := "res://assets/models/decor/"
@@ -19,24 +22,29 @@ var effets: EffetsCombat
 var generateur: GenerateurEnnemis
 var hud: HudCombat
 var torches: Array[OmniLight3D] = []
+var orbes: Node3D                ## orbes de vie au sol (« Orbe_3 » : même nom des deux côtés en coop)
+var _compteur_orbes := 0
+var orbes_ramassees := 0
 var _temps := 0.0
+## Tests : chance qu'un squelette lâche une orbe (-1 : celle de l'équilibrage).
+static var chance_orbe := -1.0
 
 
 func _ready() -> void:
 	get_tree().set_quit_on_go_back(false)
 	_ambiance()
-	_salle()
+	_construire_lieu()
 	var coop := Reseau.est_en_coop()
 	var hote := Reseau.est_hote()
 	heros = Heros.creer(Partie.heros_local)
 	heros.name = "HerosInvite" if coop and not hote else "HerosHote"
-	heros.position = _depart(heros.name) if coop else Vector3(0, 0, 1.5)
+	heros.position = _depart_heros(heros.name, coop)
 	add_child(heros)
 	heros.rotation.y = PI * 0.25
 	if coop:
 		heros_partenaire = Heros.creer(Reseau.heros_partenaire)
 		heros_partenaire.name = "HerosHote" if heros.name == "HerosInvite" else "HerosInvite"
-		heros_partenaire.position = _depart(heros_partenaire.name)
+		heros_partenaire.position = _depart_heros(heros_partenaire.name, coop)
 		heros_partenaire.marionnette = not hote   # chez l'invité, le héros de l'hôte est affiché, pas simulé
 		add_child(heros_partenaire)
 		heros_partenaire.rotation.y = PI * 0.25
@@ -62,15 +70,17 @@ func _ready() -> void:
 	effets.heros_local = heros
 	add_child(effets)
 
+	orbes = Node3D.new()
+	orbes.name = "Orbes"
+	add_child(orbes)
+
 	generateur = GenerateurEnnemis.new()
 	generateur.name = "Ennemis"
 	generateur.demi_cote = DEMI_COTE - 1.4
-	if coop:
-		generateur.nombre = EQ.arene_nb_ennemis_coop if hote else 0   # chez l'invité : marionnettes seulement
-		generateur.demarrage_auto = false   # l'hôte attend que l'arène de l'invité soit ouverte
-	else:
-		generateur.nombre = EQ.arene_nb_ennemis
+	_configurer_generateur(coop, hote)
 	add_child(generateur)
+	if not coop or hote:   # chez l'invité, l'hôte décide des orbes
+		EventBus.ennemi_vaincu.connect(_on_ennemi_vaincu)
 
 	if coop and hote:
 		regles = ReglesCoop.new()
@@ -93,6 +103,91 @@ func _ready() -> void:
 	hud.camera = camera
 	hud.menu_demande.connect(retour_menu)
 	add_child(hud)
+	_pret()
+
+
+# ---------------------------------------------------------------- étapes (remplacées par l'expédition)
+func _construire_lieu() -> void:
+	_salle()
+
+
+func _depart_heros(nom: StringName, coop: bool) -> Vector3:
+	return _depart(nom) if coop else Vector3(0, 0, 1.5)
+
+
+func _configurer_generateur(coop: bool, hote: bool) -> void:
+	if coop:
+		generateur.nombre = EQ.arene_nb_ennemis_coop if hote else 0   # chez l'invité : marionnettes seulement
+		generateur.demarrage_auto = false   # l'hôte attend que l'arène de l'invité soit ouverte
+	else:
+		generateur.nombre = EQ.arene_nb_ennemis
+
+
+## Tout est en place (héros, horde, interface).
+func _pret() -> void:
+	pass
+
+
+## Coop : l'arène de l'invité est ouverte (appelé par SynchroArene chez l'hôte).
+func invite_pret() -> void:
+	generateur.demarrer()   # les squelettes sortent de terre quand les deux joueurs sont là
+
+
+# ---------------------------------------------------------------- orbes de vie (choix de Téo)
+func _on_ennemi_vaincu(e: Node) -> void:
+	var chance := chance_orbe if chance_orbe >= 0.0 else EQ.orbe_chance
+	if not (e is Node3D) or randf() >= chance:
+		return
+	_compteur_orbes += 1
+	var nom := "Orbe_%d" % _compteur_orbes
+	var pos: Vector3 = (e as Node3D).global_position
+	poser_orbe(nom, pos)
+	if synchro:
+		synchro.envoyer_orbe(nom, pos, "")
+
+
+func poser_orbe(nom: String, pos: Vector3) -> void:
+	if orbes.get_node_or_null(NodePath(nom)):
+		return
+	var o := OrbeVie.creer()
+	o.name = nom
+	o.position = Vector3(pos.x, 0.0, pos.z)
+	orbes.add_child(o)
+
+
+## L'hôte (ou le joueur seul) : un héros blessé qui passe sur une orbe la ramasse.
+func _ramasser_orbes() -> void:
+	for o in orbes.get_children():
+		if not (o is OrbeVie) or o.prise:
+			continue
+		for h in [heros, heros_partenaire]:
+			if h == null or not is_instance_valid(h) or not h.est_vivant() or h.sante.pv >= h.sante.pv_max:
+				continue
+			var d: Vector3 = h.global_position - o.global_position
+			d.y = 0.0
+			if d.length() <= EQ.orbe_rayon:
+				var soin: float = h.sante.soigner(h.sante.pv_max * EQ.orbe_soin)
+				o.prendre()
+				orbes_ramassees += 1
+				EventBus.soin.emit(h, soin)
+				if synchro:
+					synchro.envoyer_orbe(o.name, o.global_position, String(h.name))
+				break
+
+
+## Coop, invité : l'hôte a posé une orbe (`prise_par` vide) ou quelqu'un l'a ramassée.
+func orbe_recue(nom: String, pos: Vector3, prise_par: String) -> void:
+	if prise_par == "":
+		poser_orbe(nom, pos)
+		return
+	var o := orbes.get_node_or_null(NodePath(nom)) as OrbeVie
+	if o:
+		o.prendre()
+
+
+func _physics_process(_delta: float) -> void:
+	if not Reseau.est_invite():
+		_ramasser_orbes()
 
 
 func _notification(what: int) -> void:
@@ -101,6 +196,8 @@ func _notification(what: int) -> void:
 
 
 func retour_menu() -> void:
+	if not is_inside_tree():
+		return
 	Engine.time_scale = 1.0
 	Reseau.quitter()
 	Partie.revenir_en_solo()
@@ -126,16 +223,21 @@ func _on_partenaire_parti(raison: String) -> void:
 			regles = null
 		hud.heros_partenaire = null
 		hud.regles = null
-		heros.reapparition_auto = true   # seul : il réapparaît de nouveau tout seul
 		effets.en_coop = false
-		generateur.nombre = EQ.arene_nb_ennemis   # seul : 2 squelettes (les suivants ne sont plus remplacés)
-		generateur.demarrer()
+		_continuer_seul()
 		hud.afficher_message(raison + "\nTu continues seul.", 4.0)
 		Reseau.quitter()
 		Partie.revenir_en_solo()
 	else:
 		hud.afficher_message(raison + "\nRetour au menu…", 3.0)
 		get_tree().create_timer(3.0).timeout.connect(retour_menu)
+
+
+## L'hôte continue seul après le départ de l'invité.
+func _continuer_seul() -> void:
+	heros.reapparition_auto = true   # seul : il réapparaît de nouveau tout seul
+	generateur.nombre = EQ.arene_nb_ennemis   # seul : moins de squelettes (les suivants ne sont plus remplacés)
+	generateur.demarrer()
 
 
 func _process(delta: float) -> void:

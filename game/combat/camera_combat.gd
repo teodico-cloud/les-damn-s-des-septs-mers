@@ -21,6 +21,13 @@ func _ready() -> void:
 	_placer()
 
 
+## Saut de la cible (changement de salle) : la caméra y va d'un coup, sans glisser à travers la salle.
+func recentrer() -> void:
+	if cible and is_instance_valid(cible):
+		_centre = cible.global_position
+		_placer()
+
+
 func secouer(force: float) -> void:
 	_tremblement = clampf(max(_tremblement, force), 0.0, 1.0)
 
