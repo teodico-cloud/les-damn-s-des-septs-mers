@@ -10,7 +10,7 @@ var heros: Heros
 
 
 
-## Dégâts exacts dans ces tests : pas de coup critique (testés à part dans test_critiques.gd).
+## Dégâts exacts dans ces tests : pas de coup critique (testés à part dans test_nervosite.gd).
 func before_all() -> void:
 	Combat.chance_critique = 0.0
 

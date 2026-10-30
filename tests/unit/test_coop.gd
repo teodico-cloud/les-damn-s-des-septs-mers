@@ -9,7 +9,7 @@ var monde: Node3D
 
 
 
-## Dégâts exacts dans ces tests : pas de coup critique (testés à part dans test_critiques.gd).
+## Dégâts exacts dans ces tests : pas de coup critique (testés à part dans test_nervosite.gd).
 func before_all() -> void:
 	Combat.chance_critique = 0.0
 
@@ -108,6 +108,76 @@ func test_instantane_squelette_aller_retour() -> void:
 	assert_eq(invite.etat, hote.etat)
 	assert_eq(invite.sante.pv, hote.sante.pv)
 	assert_true(invite.est_marque())
+
+
+func test_instantane_tient_dans_un_paquet_wifi() -> void:
+	# 8 squelettes debout + 3 vaincus (les 0,6 s avant de disparaître) + 2 héros : sous 1 392 octets
+	# (au-delà, Godot découpe l'instantané, et un morceau perdu le perd tout entier)
+	var gen := GenerateurEnnemis.new()
+	gen.demarrage_auto = false
+	monde.add_child(gen)
+	for i in 11:
+		var e := Ennemi.creer(true)
+		e.name = "Squelette_%d" % (100 + i)
+		e.position = Vector3(i - 5, 0, 2)
+		gen.add_child(e)
+	var a := Bretteur.new()
+	a.name = "HerosHote"
+	monde.add_child(a)
+	var b := Occultiste.new()
+	b.name = "HerosInvite"
+	monde.add_child(b)
+	await wait_physics_frames(3)
+	var tues := 0
+	for e in gen.get_children():
+		if tues < 3:
+			e.marquer(a, 5.0)
+			e.sante.subir(9999.0, a)
+			tues += 1
+	var s := SynchroArene.new()
+	autofree(s)
+	s.generateur = gen
+	s.heros_local = a
+	s.heros_partenaire = b
+	var ennemis: Dictionary = s._etat_ennemis()
+	assert_eq(ennemis.size(), 11)
+	var taille := var_to_bytes([99999, s._etat_heros(), ennemis, 99999]).size()
+	assert_lt(taille, 1300, "Instantané de %d octets" % taille)
+	# un squelette vaincu voyage en court, avec son tueur (les os partent loin de lui chez l'invité)
+	var court: Array = SynchroArene._deballer(ennemis["Squelette_100"])
+	assert_eq(court.size(), 4)
+	assert_eq(court[3], "HerosHote")
+	# et un squelette debout se retrouve identique chez l'invité (à la précision près)
+	var debout: Ennemi = gen.get_node("Squelette_110")
+	var v: Array = debout.instantane()
+	var w: Array = SynchroArene._deballer(ennemis["Squelette_110"])
+	assert_eq(w.size(), v.size())
+	assert_almost_eq((w[0] as Vector3).distance_to(v[0]), 0.0, 0.001)
+	for i in range(1, v.size()):
+		if v[i] is bool:
+			assert_eq(w[i], v[i])
+		else:
+			assert_almost_eq(float(w[i]), float(v[i]), 0.001, "valeur %d" % i)
+
+
+func test_marionnette_vaincue_eclate_loin_du_tueur() -> void:
+	var e := Ennemi.creer(true)
+	e.marionnette = true
+	monde.add_child(e)
+	var tueur := Node3D.new()
+	tueur.position = Vector3(-3, 0, 0)
+	monde.add_child(tueur)
+	await wait_physics_frames(2)
+	var avant := monde.get_child_count()
+	e.appliquer_mort(tueur)
+	assert_eq(e.etat, Ennemi.Etat.MORT)
+	assert_false(e.visuel.visible, "Il a éclaté")
+	assert_gt(monde.get_child_count(), avant, "Ses os volent")
+	var vers_x := 0.0
+	for c in monde.get_children():
+		if c is RigidBody3D:
+			vers_x += c.linear_velocity.x
+	assert_gt(vers_x, 0.0, "Les os partent à l'opposé du tueur")
 
 
 func test_heros_marionnette_ne_simule_rien() -> void:

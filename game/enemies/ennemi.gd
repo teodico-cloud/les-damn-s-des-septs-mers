@@ -40,6 +40,7 @@ var _chaines: Node3D                ## chaînes spectrales visibles quand il est
 var marionnette := false            ## coop, invité : affiché d'après l'hôte, sans IA ni règles
 var _vitesse_anim := 1.0            ## vitesse demandée (pas celle figée un instant par l'arrêt sur image)
 var _liste_anims := PackedStringArray()
+var _nom_tueur := ""
 
 
 ## Crée un ennemi prêt à être ajouté à la scène. `rapide` saute l'animation de sortie de terre (tests).
@@ -231,6 +232,7 @@ func _commencer_preparation(dir: Vector3) -> void:
 	marque.visible = true
 	_yeux_rouges(true)
 	_changer(Etat.PREPARATION, EQ.squelette_preparation)
+	_preparer_visuel()   # dès cette image : sinon la zone s'affiche un instant pleine et dorée (annonce d'avant)
 
 
 func _preparer() -> void:
@@ -424,6 +426,7 @@ func etourdir(duree: float) -> void:
 
 
 func _on_mort(source: Node) -> void:
+	_nom_tueur = String(source.name) if source else ""
 	_effacer_marque()
 	collision_layer = 0
 	collision_mask = Combat.COUCHE_MONDE
@@ -439,9 +442,24 @@ func _on_mort(source: Node) -> void:
 # ---------------------------------------------------------------- coop
 ## Ce que l'hôte envoie de cet ennemi à chaque instantané (voir SynchroArene). La vitesse envoyée est
 ## celle demandée : pendant l'arrêt sur image local, l'animation est figée (vitesse 0) chez l'hôte.
+## Vaincu : seulement [position, rotation, état, nom du tueur] (les os partent loin de lui chez
+## l'invité aussi) ; plus court, l'instantané reste dans un seul paquet Wi-Fi.
 func instantane() -> Array:
+	if etat == Etat.MORT:
+		return [global_position, rotation.y, int(etat), _nom_tueur]
 	return [global_position, rotation.y, int(etat), code_anim(anim.current_animation), _vitesse_anim,
 			sante.pv, _marque_restant > 0.0, _t]
+
+
+## Marionnette : l'hôte dit que ce squelette est vaincu (par `tueur`, s'il est connu ici).
+func appliquer_mort(tueur: Node3D) -> void:
+	if etat == Etat.MORT:
+		return
+	_changer(Etat.MORT)
+	remove_from_group("ennemis")
+	_effacer_marque()
+	collision_layer = 0
+	_eclater(tueur)
 
 
 ## Marionnette : applique l'état reçu de l'hôte (la position est posée à part, lissée). `t_etat` :
@@ -474,6 +492,8 @@ func appliquer_instantane(etat_recu: int, anim_recue: Variant, vitesse: float, p
 	elif nom_anim != "" and anim.current_animation != nom_anim and anim.has_animation(nom_anim):
 		_jouer_cale(nom_anim, vitesse, t_etat)
 	_t = t_etat
+	if etat == Etat.PREPARATION:
+		_preparer_visuel()   # (même raison que dans _commencer_preparation)
 	sante.definir_pv(pv)
 	if marque_recue and _marque_restant <= 0.0:
 		var vrai := marionnette

@@ -176,10 +176,14 @@ func _hote() -> void:
 				if e.etat != 0 and e.etat != 7:   # ni en train de sortir de terre, ni mort
 					source = e
 					break
+			var parfaites := [0]
+			var compter := func(_qui, _point): parfaites[0] += 1
+			root.get_node("EventBus").parade_parfaite.connect(compter)
 			if source and h.etat == 3:   # PARADE : on se tourne vers lui et il frappe
 				h.rotation.y = atan2(source.global_position.x - h.global_position.x, source.global_position.z - h.global_position.z)
 				h.recevoir_coup(10.0, source, false)
-			_verifier(h.etat == 4, "parade parfaite de l'hôte (riposte lancée)")   # RIPOSTE
+			root.get_node("EventBus").parade_parfaite.disconnect(compter)
+			_verifier(h.etat == 4 and parfaites[0] == 1, "parade PARFAITE de l'hôte (riposte lancée)")   # RIPOSTE
 		if i == 7:
 			_verifier(p.est_vivant(), "le héros de l'invité a été relevé")
 		if i == 8:
@@ -259,7 +263,7 @@ func _invite() -> void:
 			avant[n.name] = p
 	print("MESURE invite fluidite plus_grand_saut_par_image=%.3f m recalages=%d plus_grand_recalage=%.2f m" % [plus_grand_saut, arene.synchro.recalages, arene.synchro.plus_grand_recalage])
 	# (un recul de coup lourd va jusqu'à ~0,1 m par image ; un vrai saut de recalage ferait des mètres)
-	_verifier(plus_grand_saut < 0.6, "affichage fluide du monde de l'hôte (saut max %.2f m par image)" % plus_grand_saut)
+	_verifier(plus_grand_saut < 0.4, "affichage fluide du monde de l'hôte (saut max %.2f m par image)" % plus_grand_saut)
 	_verifier(fois_a_terre >= 1, "l'hôte a mis notre héros à terre (vu chez nous)")
 	_verifier(vu_releve, "puis notre partenaire nous a relevés (vu chez nous)")
 	_verifier(touche_anim_max > 0.15, "le squelette touché joue son animation chez nous (jusqu'à %.2f s)" % touche_anim_max)

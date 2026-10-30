@@ -101,7 +101,7 @@ func _frapper_combo() -> void:
 	var lourd: bool = EQ.combo_lourd[_combo]
 	# traînée lumineuse du sabre (aussi montrée chez l'autre joueur en coop)
 	EffetsMagie.trainee_sabre(get_parent(), global_position, _direction, _combo)
-	EventBus.effet_visuel.emit(self, "trainee_%d" % _combo, global_position + _direction)
+	EventBus.effet_visuel.emit(self, "trainee_%d_%d" % [_combo, roundi(rad_to_deg(atan2(_direction.x, _direction.z)))], global_position)
 	for cible in Combat.cibles_dans_sphere(get_world_3d(), centre, EQ.combo_rayon, Combat.COUCHE_ENNEMIS, [self]):
 		Combat.porter_coup(self, cible, EQ.combo_degats[_combo], lourd)
 

@@ -43,6 +43,19 @@ func test_coups_rapproches_puis_reprise() -> void:
 	assert_eq(Engine.time_scale, 1.0, "Plusieurs coups rapprochés : le jeu reprend quand même")
 
 
+func test_parade_parfaite_en_coop_ne_ralentit_rien() -> void:
+	var effets := await _effets()
+	effets.en_coop = true
+	var h := Bretteur.new()
+	add_child_autofree(h)
+	await wait_physics_frames(2)
+	await get_tree().physics_frame
+	EventBus.parade_parfaite.emit(h, Vector3.ZERO)
+	assert_eq(Engine.time_scale, 1.0, "En coop, le jeu de l'hôte ne ralentit jamais (le partenaire joue aussi)")
+	assert_eq(h.anim.speed_scale, 1.0, "Le héros n'est pas figé : sa riposte reste calée sur l'impact")
+	assert_true(effets.get_children().any(func(n): return n is Label3D and n.text == "PARFAIT !"), "Mais « PARFAIT ! » s'affiche")
+
+
 func test_ralenti_de_la_parade_parfaite_puis_reprise() -> void:
 	var EQ: Equilibrage = load("res://data/equilibrage.tres")
 	var effets := await _effets()
