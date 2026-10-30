@@ -9,6 +9,7 @@ const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 const ICONES := {
 	&"combat": preload("res://assets/ui/portes/porte_combat.svg"),
 	&"tresor": preload("res://assets/ui/portes/porte_tresor.svg"),
+	&"piege": preload("res://assets/ui/portes/porte_piege.svg"),
 	&"bosco": preload("res://assets/ui/portes/porte_bosco.svg"),
 	&"chaloupe": preload("res://assets/ui/portes/porte_chaloupe.svg"),
 }

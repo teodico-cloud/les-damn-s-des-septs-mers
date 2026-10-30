@@ -10,8 +10,11 @@ signal coup_porte(position: Vector3, degats: float, lourd: bool, cible_est_heros
 signal parade_parfaite(heros: Node3D, point: Vector3)
 ## Un héros reprend des PV (orbe de vie, coffre) : chiffre vert.
 signal soin(heros: Node3D, montant: float)
-## Un projectile vient d'être tiré (en coop, l'hôte le fait voir à l'invité).
-signal projectile_tire(tireur: Node3D, depart: Vector3, direction: Vector3)
+## Un projectile vient d'être tiré (en coop, l'hôte le fait voir à l'invité). `genre` : &"orbe"
+## (Occultiste), &"carreau" (arbalétrier) ou &"carreau_renvoye" (renvoyé par la Parade).
+signal projectile_tire(tireur: Node3D, depart: Vector3, direction: Vector3, genre: StringName)
+## Un tonneau de poudre explose (secousse ; en coop, l'hôte le fait voir à l'invité).
+signal explosion(tonneau: Node3D)
 ## Effet visuel ponctuel lancé par un héros (ex. cercle des Chaînes) : en coop, l'invité le voit aussi.
 signal effet_visuel(lanceur: Node3D, type: String, position: Vector3)
 ## Un ennemi vient de mourir.

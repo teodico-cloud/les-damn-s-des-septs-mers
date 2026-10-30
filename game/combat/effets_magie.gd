@@ -144,6 +144,13 @@ static func etincelles(parent: Node, pos: Vector3) -> void:
 	t.tween_callback(lumiere.queue_free)
 
 
+## Explosion d'un tonneau de poudre : boule de feu, fumée noire, étincelles.
+static func explosion(parent: Node, pos: Vector3) -> void:
+	_bouffee(parent, pos, 30, 0.55, 2.4, Color(1.0, 0.62, 0.18, 1.0), Color(0.5, 0.12, 0.05, 0.0))
+	_bouffee(parent, pos + Vector3.UP * 0.6, 16, 1.3, 2.8, Color(0.22, 0.2, 0.18, 0.85), Color(0.08, 0.08, 0.08, 0.0))
+	etincelles(parent, pos)
+
+
 ## Cercle au sol qui s'élargit puis s'efface (zone des Chaînes spectrales).
 static func cercle(parent: Node, pos: Vector3, rayon: float, duree: float) -> void:
 	if parent == null or not parent.is_inside_tree():

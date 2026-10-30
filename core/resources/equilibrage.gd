@@ -111,6 +111,43 @@ extends Resource
 @export var debris_duree := 2.2                     ## secondes avant que les os s'effacent
 @export var debris_force := 4.5                     ## vitesse des os projetés (m/s)
 
+@export_group("Arbalétrier squelette")
+@export var arb_pv_max := 22.0
+@export var arb_vitesse := 2.6
+@export var arb_distance_ideale := 6.0       ## mètres : il se tient à cette distance du héros
+@export var arb_distance_fuite := 3.5        ## plus près : il recule
+@export var arb_portee := 10.0               ## il vise d'ici
+@export var arb_visee := 0.8                 ## secondes de visée (trait rouge) avant le tir
+@export var arb_visee_suivie := 0.65         ## part de la visée où il suit encore sa cible (puis il bloque)
+@export var arb_recharge := 2.4              ## secondes entre deux tirs
+@export var carreau_vitesse := 13.0          ## m/s : visible, on peut l'esquiver
+@export var carreau_degats := 12.0
+@export var carreau_portee := 14.0
+@export var carreau_renvoi_degats := 24.0    ## carreau renvoyé par la Parade (choix de Téo)
+
+@export_group("Prêtre noyé")
+@export var pretre_pv_max := 45.0
+@export var pretre_vitesse := 2.0
+@export var pretre_distance := 6.5           ## il garde ses distances
+@export var pretre_rayon_relever := 9.0      ## il relève un squelette tombé à moins de cette distance
+@export var pretre_incantation := 1.6        ## secondes pour relever un mort (un coup l'interrompt : choix de Téo)
+@export var pretre_recharge_relever := 4.0
+@export var pretre_portee_flaque := 9.0
+@export var pretre_annonce_flaque := 0.9     ## secondes de cercle vert avant la flaque
+@export var pretre_recharge_flaque := 5.5
+@export var flaque_duree := 5.0
+@export var flaque_rayon := 1.5
+@export var flaque_degats_seconde := 8.0     ## tant qu'on reste dedans
+
+@export_group("Pièges")
+@export var pics_degats := 18.0
+@export var pics_periode := 3.2              ## secondes entre deux sorties des pics
+@export var pics_alerte := 0.7               ## la dalle tremble et rougeoie avant
+@export var pics_sortis := 0.8               ## secondes où les pics restent sortis
+@export var tonneau_degats := 45.0           ## aux squelettes seulement (les héros sont épargnés)
+@export var tonneau_rayon := 3.0
+@export var tonneau_meche := 0.35            ## secondes entre le coup et l'explosion
+
 @export_group("Arène d'entraînement")
 @export var arene_nb_ennemis := 5            ## hordes (2 au jalon 1)
 @export var arene_nb_ennemis_coop := 8         ## à deux
@@ -147,6 +184,10 @@ extends Resource
 @export var exp_ennemis_bosco_coop := 20
 @export var exp_ensemble := 5                 ## squelettes debout en même temps dans une salle (seul)
 @export var exp_ensemble_coop := 7            ## … à deux
+@export var exp_ennemis_piege := 5            ## salle piège : peu de squelettes (les pièges font le reste)
+@export var exp_ennemis_piege_coop := 7
+@export var exp_arbaletriers := 2             ## par salle de combat, à partir de la 2e salle (à deux : +1)
+@export var exp_pretres := 1                  ## par salle de combat, à partir de la 3e salle, et dans l'antre
 @export var exp_tresor_soin := 0.5            ## salle trésor : part des PV max rendue en ouvrant le coffre
 @export var exp_rayon_porte := 1.5            ## mètres : se tenir devant une porte pour la prendre
 @export var exp_rayon_coffre := 1.6           ## mètres : ouvrir le coffre en s'en approchant

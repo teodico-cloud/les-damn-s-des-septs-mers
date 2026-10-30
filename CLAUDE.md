@@ -43,13 +43,16 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   - `core/components/` : `Sante` (PV, invulnérabilité), `Recharge` (temps de recharge).
   - `game/combat/` : `Combat` (couches de collision, zones de coup, `porter_coup` qui tire aussi les coups
     critiques), `CameraCombat`, `EffetsCombat` (chiffres, arrêts sur image et ralentis, secousse, effets
-    de la parade parfaite), `Projectile` (tir de l'Occultiste), `EffetsMagie` (fumée, éclats, cercle au
-    sol, traînée du sabre, squelette qui éclate en os, étincelles ; purement visuels).
+    de la parade parfaite), `Projectile` (tir de l'Occultiste), `Carreau` (arbalétrier ; renvoyé par la
+    Parade), `FlaqueMaudite` (prêtre noyé), `EffetsMagie` (fumée, éclats, cercle au sol, traînée du sabre,
+    squelette qui éclate en os, étincelles, explosion ; purement visuels).
   - `game/player/` : `Heros` (base commune : déplacement, visée, recharges, coup reçu, mort), un script
     par archétype (`Bretteur`, `Occultiste` ; `Heros.creer(&"occultiste")`) et `CommandesHeros` (ce que
     le joueur demande : seule entrée du héros, pour que le réseau puisse la remplir plus tard).
-  - `game/enemies/` : `Ennemi` (Matelot squelette), `GenerateurEnnemis` (horde : groupes de 2 à 4, les
-    manquants ressortent ensemble).
+  - `game/enemies/` : `Ennemi` (Matelot squelette, et base des autres : points d'extension `_modele`,
+    `_arme`, `_orienter_arme`, `_montrer_annonce`, `_quitter_etat`, `_incanter`…), `Arbaletrier`,
+    `PretreNoye` ; `Ennemi.creer_type(&"arbaletrier")` ; `GenerateurEnnemis` (horde : groupes de 2 à 4,
+    les manquants ressortent ensemble ; composition d'une salle ; tombes que le prêtre relève).
   - `game/arene/` : arène d'entraînement (`Arene`), tout construit par code, en étapes que l'expédition
     remplace (lieu, départ, horde) ; orbes de vie ; `regles_coop.gd` (hôte) : réanimation du partenaire,
     retour au départ si les deux tombent (en expédition : défaite).
@@ -58,7 +61,9 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
     l'hôte décide et envoie chaque événement à l'invité (`SynchroArene.envoyer_lieu` → `evenement_lieu`).
   - `plan_expedition.gd` : règles de la suite des salles (graine) ; `salles.gd` : les salles faites main
     (données) ; `salle.gd` : construction d'une salle ; `porte.gd` ; `chaloupe.gd` (barque faite par code).
-  - `assets/ui/portes/*.svg` : icônes des portes (combat, trésor, Bosco, chaloupe).
+  - Salles piège : `piege_pics.gd` (`PiegePics`, dalle à pics calée sur l'horloge de la salle,
+    `Expedition.temps_salle`) et `tonneau_poudre.gd` (`TonneauPoudre`, explose et blesse les squelettes).
+  - `assets/ui/portes/*.svg` : icônes des portes (combat, trésor, piège, Bosco, chaloupe).
   - `game/reseau/synchro_arene.gd` (nœud « Synchro » de l'arène) : l'hôte simule tout et envoie 30
     instantanés/s + les événements ; l'invité prédit son héros et affiche le reste en « marionnettes »
     (`marionnette = true` sur Heros et Ennemi : affichés d'après l'hôte, sans règles).
@@ -94,7 +99,9 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   horde, coup critique, os qui volent et traînées du sabre : `tools/capture_horde.gd` ; zone rouge puis
   dorée et parade parfaite : `tools/capture_parade.gd` ; expédition (titre, salles, portes, trésor,
   chaloupe, fin) : `tools/capture_expedition.gd` ; chaque salle seule, vue de jeu et de dessus :
-  `tools/capture_salles.gd [modèle]`)
+  `tools/capture_salles.gd [modèle]` ; squelettes sur fond neutre, arbalétrier, carreau renvoyé, prêtre,
+  flaque, salles piège, explosion : `tools/capture_ennemis.gd`)
+- Où pointe l'arme d'un squelette dans chaque pose : `godot --headless --path . -s "$PWD/tools/sonde_arbalete.gd"`
 - Essai de la coop (hôte + invité sur cette machine, vérifications automatiques, aussi dans le CI) :
   `GODOT=<godot> tools/test_coop.sh [127.0.0.1|auto]` ; Wi-Fi imparfait simulé : préfixer
   `LATENCE_MS=30 GIGUE_MS=20 PERTE_PCT=3` ; captures des deux écrans : ajouter
@@ -197,6 +204,21 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   n° de salle et s'applique quand cette salle est construite (`_portes_ouvertes_pour`…). Changement de
   salle : l'invité oublie ses prédictions (`SynchroArene.oublier_predictions`) et les marionnettes qui
   sautent de plus de 3 m sont posées sans glisser (`SAUT_TELEPORTATION`).
+- Ajouter un type d'ennemi : un script `extends Ennemi` (voir `arbaletrier.gd`), l'ajouter à
+  `Ennemi.creer_type` et à `Ennemi.PREFIXES` (le préfixe du nom permet à l'invité de recréer le bon type).
+- Armes KayKit : l'arbalète est tenue en travers du corps ; dans la pose de visée elle pointait à 90° sur
+  le côté. `Arbaletrier._orienter_arme` la tourne d'un quart de tour ; vérifier toute nouvelle arme avec
+  `tools/sonde_arbalete.gd` et les portraits de `capture_ennemis.gd`.
+- `Ennemi._changer` laisse l'annonce visible en FRAPPE (la zone du matelot dure pendant son coup) : un
+  ennemi dont l'annonce doit disparaître au tir la cache lui-même (trait de l'arbalétrier).
+- Carreau : un héros intouchable le laisse passer **avant** toute parade. Pour mettre en scène un renvoi
+  (capture, test), remettre `sante.invulnerable_jusqua = 0.0` et préférer la santé infinie.
+- Tonneau de poudre : sur la couche des ennemis (pour être touché) mais pas dans le groupe « ennemis »
+  (la visée assistée et les règles des squelettes l'ignorent).
+- Capture hors d'une salle (« studio ») : un sol `StaticBody3D` est obligatoire, sinon les squelettes
+  tombent sans fin (pesanteur) et l'image est vide.
+- Tirages au hasard (composition d'une salle, plan) : un test qui les vérifie répète le tirage plusieurs
+  fois, sinon un défaut peut passer par chance.
 - Expédition, tests : `Arene.chance_orbe` impose la chance d'orbe (0 dans les tests qui comptent les PV) ;
   le Menu de l'expédition se confirme (2 appuis) ; un test qui appuie sur Menu doit débrancher
   `retour_menu` (sinon GUT changerait de scène).

@@ -180,6 +180,11 @@ func _hote() -> void:
 			await _capture("coop_hote.png")
 		if i == 5 and partie.heros_local == &"bretteur":
 			var h = arene.heros
+			# compteur branché AVANT la Parade : pendant les 3 images d'attente, un vrai squelette peut
+			# frapper et être paré parfaitement (vu : l'essai échouait alors une fois sur cinq environ)
+			var parfaites := [0]
+			var compter := func(_qui, _point): parfaites[0] += 1
+			root.get_node("EventBus").parade_parfaite.connect(compter)
 			h.commandes.demander(&"competence_1", h.horloge)
 			for k in 3:
 				await physics_frame
@@ -188,14 +193,12 @@ func _hote() -> void:
 				if e.etat != 0 and e.etat != 7:   # ni en train de sortir de terre, ni mort
 					source = e
 					break
-			var parfaites := [0]
-			var compter := func(_qui, _point): parfaites[0] += 1
-			root.get_node("EventBus").parade_parfaite.connect(compter)
 			if source and h.etat == 3:   # PARADE : on se tourne vers lui et il frappe
 				h.rotation.y = atan2(source.global_position.x - h.global_position.x, source.global_position.z - h.global_position.z)
 				h.recevoir_coup(10.0, source, false)
 			root.get_node("EventBus").parade_parfaite.disconnect(compter)
-			_verifier(h.etat == 4 and parfaites[0] == 1, "parade PARFAITE de l'hôte (riposte lancée)")   # RIPOSTE
+			_verifier(h.etat == 4 and parfaites[0] == 1, "parade PARFAITE de l'hôte (riposte lancée) [état %d, parfaites %d, source %s]"
+					% [h.etat, parfaites[0], source.name if source else "aucune"])   # RIPOSTE
 		if i == 7:
 			_verifier(p.est_vivant(), "le héros de l'invité a été relevé")
 		if i == 8:
@@ -334,7 +337,19 @@ func _hote_expedition() -> void:
 		await process_frame
 	_verifier(arene.numero == 2 and arene.type_salle == type_porte, "les deux devant : salle suivante (%s)" % arene.type_salle)
 	print("MESURE hote salle 2 modele=%s type=%s" % [arene.modele, arene.type_salle])
-	await _attendre(3.0)
+	# étape 2 du jalon 3 : un arbalétrier et un prêtre noyé (l'invité doit les voir tels quels), un
+	# carreau tiré et une flaque maudite (l'invité doit voir les deux)
+	var gen = arene.generateur
+	var arb = gen._faire_apparaitre(Vector3(-1.0, 0, -3.0), &"arbaletrier")
+	var pretre = gen._faire_apparaitre(Vector3(-3.5, 0, -0.5), &"pretre")
+	await _attendre(3.0)   # sortie de terre
+	var avant: Vector3 = (arene.heros_partenaire.global_position - arb.global_position)
+	avant.y = 0.0
+	load("res://game/combat/carreau.gd").tirer(arene, arb, arb.global_position + Vector3.UP * 1.0, avant.normalized())
+	pretre._recharge_relever = 99.0
+	pretre._maudire(arene.heros_partenaire.global_position)
+	await _attendre(2.5)
+	print("MESURE hote temps_salle=%.2f" % arene.temps_salle)
 	arene._terminer(true)
 	await _attendre(2.0)
 
@@ -373,9 +388,27 @@ func _invite_expedition() -> void:
 	var entree_hote: Vector3 = load("res://game/expedition/salles.gd").ENTREE_HOTE
 	var dp := Vector2(p.global_position.x - entree_hote.x, p.global_position.z - entree_hote.z).length()
 	_verifier(dp < 1.0, "le héros de l'hôte aussi (à %.2f m)" % dp)
-	fin = Time.get_ticks_msec() + 8000
+	var vu_arb := false
+	var vu_pretre := false
+	var vu_carreau := false
+	var vu_flaque := false
+	var Carreau = load("res://game/combat/carreau.gd")
+	var Flaque = load("res://game/combat/flaque_maudite.gd")
+	fin = Time.get_ticks_msec() + 12000
 	while not arene.finie and Time.get_ticks_msec() < fin:
 		await process_frame
+		for e in arene.generateur.get_children():
+			if e.has_method("type_ennemi") and e.marionnette:
+				vu_arb = vu_arb or e.type_ennemi() == &"arbaletrier"
+				vu_pretre = vu_pretre or e.type_ennemi() == &"pretre"
+		for n in arene.get_children():
+			vu_carreau = vu_carreau or (n.get_script() == Carreau and n.marionnette)
+			vu_flaque = vu_flaque or (n.get_script() == Flaque and not n.active)
+	_verifier(vu_arb and vu_pretre, "arbalétrier et prêtre noyé recréés chez nous (%s, %s)" % [vu_arb, vu_pretre])
+	_verifier(vu_carreau, "carreau de l'arbalétrier vu chez nous")
+	_verifier(vu_flaque, "flaque maudite vue chez nous (sans dégâts : c'est l'hôte qui les compte)")
+	print("MESURE invite temps_salle=%.2f" % arene.temps_salle)
+	_verifier(arene.temps_salle > 2.0, "horloge des pièges calée sur l'hôte (%.2f s)" % arene.temps_salle)
 	_verifier(arene.finie and arene.reussite and arene.hud.panneau_fin != null, "écran de fin reçu de l'hôte")
 
 

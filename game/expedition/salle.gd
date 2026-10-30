@@ -17,6 +17,8 @@ var coffre: Node3D                  ## salle trésor
 var coffre_ouvert := false
 var chaloupe: Node3D                ## quai : la chaloupe qui ramène au navire
 var zone_chaloupe := Vector3.INF    ## quai : où se tenir pour monter dans la chaloupe
+var pics: Array[PiegePics] = []      ## salle piège : dalles à pics
+var tonneaux: Array[TonneauPoudre] = []   ## salle piège : tonneaux de poudre
 var _torches: Array[OmniLight3D] = []
 var _temps := 0.0
 
@@ -57,12 +59,35 @@ func _ready() -> void:
 		_coffre(donnees["coffre"])
 	if donnees.has("chaloupe"):
 		_quai(donnees["chaloupe"])
+	for p in donnees.get("pics", []):
+		var piege := PiegePics.new()
+		piege.name = "Pics%d" % pics.size()
+		piege.decalage = p[1]
+		piege.position = _centre_case(p[0])
+		add_child(piege)
+		pics.append(piege)
+	for p in donnees.get("tonneaux", []):
+		var t := TonneauPoudre.new()
+		t.name = "Tonneau%d" % tonneaux.size()
+		t.position = p
+		add_child(t)
+		tonneaux.append(t)
 
 
 func _process(delta: float) -> void:
 	_temps += delta
 	for i in _torches.size():
 		_torches[i].light_energy = 2.2 + 0.35 * sin(_temps * 9.0 + i * 2.1) + 0.2 * sin(_temps * 23.0 + i)
+
+
+## Pièges de la salle réglés sur son horloge (`actif` : ce téléphone porte les coups).
+func regler_pieges(t: float, actif: bool) -> void:
+	for p in pics:
+		p.regler(t, actif)
+
+
+static func _centre_case(c: Vector2i) -> Vector3:
+	return Vector3(-DEMI + PAS * (c.x + 0.5), 0, -DEMI + PAS * (c.y + 0.5))
 
 
 ## Points de départ des héros dans cette salle.
@@ -111,6 +136,8 @@ func _sol() -> void:
 			if ix in bois:
 				nom = "floor_wood_large"
 			nom = cases.get(Vector2i(ix, iz), nom)
+			if _case_piegee(Vector2i(ix, iz)):
+				continue   # la dalle à pics a son propre sol
 			_objet(nom, p, 0)
 	# sol et limites de la salle (les côtés vers la caméra n'ont pas de mur visible)
 	var x0 := -DEMI - 1.0 if not eau else -DEMI + PAS
@@ -123,6 +150,13 @@ func _sol() -> void:
 		_obstacle(Vector3(-DEMI + PAS - 0.1, 4, 0), Vector3(0.2, 8, DEMI * 2 + 2), 0.0)   # bord du quai
 	else:
 		_obstacle(Vector3(-DEMI - 0.2, 4, 0), Vector3(0.4, 8, DEMI * 2 + 2), 0.0)
+
+
+func _case_piegee(c: Vector2i) -> bool:
+	for p in donnees.get("pics", []):
+		if p[0] == c:
+			return true
+	return false
 
 
 func _murs() -> void:

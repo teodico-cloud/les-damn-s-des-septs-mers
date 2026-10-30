@@ -294,6 +294,17 @@ func recevoir_coup(degats: float, source: Node3D, _lourd: bool, _critique := fal
 	return reel
 
 
+## Dégâts qui durent (flaque maudite) : des PV perdus sans être sonné ni rendu intouchable (ce
+## n'est pas un coup) ; la roulade ou la téléportation protègent quand même.
+func subir_continu(degats: float, source: Node3D) -> float:
+	if etat == Etat.MORT or marionnette:
+		return 0.0
+	var reel := sante.subir(degats, source)
+	if reel > 0.0:
+		EventBus.coup_porte.emit(global_position + Vector3.UP * 2.2, reel, false, true, self, source, false)
+	return reel
+
+
 ## Appelé quand une action est coupée (coup reçu, mort) : l'archétype remet son visuel en ordre.
 func _quitter_action() -> void:
 	pass

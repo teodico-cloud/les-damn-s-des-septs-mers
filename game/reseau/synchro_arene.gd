@@ -187,6 +187,8 @@ func _etat_heros() -> Dictionary:
 	for h in [heros_local, heros_partenaire]:
 		if is_instance_valid(h):
 			d[String(h.name)] = h.instantane()
+	if arene and arene.get("temps_salle") != null:
+		d["@temps"] = arene.temps_salle   # horloge des pièges de la salle (expédition)
 	return d
 
 
@@ -225,13 +227,14 @@ func _on_coup_porte(pos: Vector3, degats: float, lourd: bool, cible_est_heros: b
 	if not _invite_pret:
 		return
 	_coup.rpc_id(Reseau.id_partenaire, pos, degats, lourd, cible_est_heros, _nom(cible), _nom(source), critique)
-	if cible == heros_partenaire and source:
+	# (une flaque maudite fait perdre des PV sans sonner : pas de « touché » chez l'invité)
+	if cible == heros_partenaire and source and not (source is FlaqueMaudite):
 		_autorite.rpc_id(Reseau.id_partenaire, "touche", heros_partenaire.sante.pv, source.global_position)
 
 
-func _on_projectile_tire(tireur: Node3D, depart: Vector3, direction: Vector3) -> void:
+func _on_projectile_tire(tireur: Node3D, depart: Vector3, direction: Vector3, genre: StringName) -> void:
 	if _invite_pret:
-		_projectile.rpc_id(Reseau.id_partenaire, _nom(tireur), depart, direction)
+		_projectile.rpc_id(Reseau.id_partenaire, _nom(tireur), depart, direction, String(genre))
 
 
 func _on_effet_visuel(lanceur: Node3D, type: String, position: Vector3) -> void:
@@ -374,7 +377,7 @@ func _creer_ou_retirer_ennemis(ennemis: Dictionary) -> void:
 	for nom in ennemis:
 		if generateur.get_node_or_null(NodePath(nom)) == null:
 			var donnees: Array = ennemis[nom]
-			var e := Ennemi.creer()
+			var e := Ennemi.creer_type(Ennemi.type_depuis_nom(nom))
 			e.marionnette = true
 			e.name = nom
 			e.position = donnees[0]
@@ -419,6 +422,8 @@ func _afficher_monde() -> void:
 		if dernier[1].has(cle):
 			var dn: Array = dernier[1][cle]
 			heros_partenaire.appliquer_instantane(dn[2], dn[3], dn[4], dn[5], dn[6], dn[7], dn[8] + age)
+	if dernier[1].has("@temps") and arene.has_method("caler_temps_salle"):
+		arene.caler_temps_salle(dernier[1]["@temps"] + age)   # pièges calés sur l'hôte
 	# squelettes (marionnettes)
 	for e in generateur.get_children():
 		if not (e is Ennemi):
@@ -452,11 +457,15 @@ func _coup_recu(pos: Vector3, degats: float, lourd: bool, cible_est_heros: bool,
 
 
 @rpc("authority", "reliable")
-func _projectile(nom_tireur: String, depart: Vector3, direction: Vector3) -> void:
-	_differer(_projectile_recu.bind(nom_tireur, depart, direction), true)
+func _projectile(nom_tireur: String, depart: Vector3, direction: Vector3, genre: String) -> void:
+	_differer(_projectile_recu.bind(nom_tireur, depart, direction, genre), true)
 
 
-func _projectile_recu(nom_tireur: String, depart: Vector3, direction: Vector3) -> void:
+func _projectile_recu(nom_tireur: String, depart: Vector3, direction: Vector3, genre: String) -> void:
+	if genre.begins_with("carreau"):
+		# carreau d'arbalète, ou renvoyé par une Parade (même la nôtre : c'est l'hôte qui l'a décidé)
+		Carreau.image(arene, _trouver(nom_tireur), depart, direction, genre == "carreau_renvoye")
+		return
 	if nom_tireur == String(heros_local.name):
 		return   # notre propre tir : déjà affiché chez nous au moment de l'appui
 	Projectile.tirer(arene, _trouver(nom_tireur), depart, direction, Heros.EQ)
@@ -477,6 +486,14 @@ func _effet_recu(nom_lanceur: String, type: String, position: Vector3) -> void:
 		return
 	if nom_lanceur == String(heros_local.name):
 		return   # notre propre sort : déjà affiché chez nous
+	if type == "relever" or type == "flaque_annonce":
+		var pretre := _trouver(nom_lanceur)
+		if pretre and pretre.has_method("effet_recu"):
+			pretre.effet_recu(type, position)
+		return
+	if type == "flaque":
+		FlaqueMaudite.creer(arene, position, false)   # l'image seulement : l'hôte compte les dégâts
+		return
 	if type == "cercle_chaines":
 		EffetsMagie.cercle(arene, position, Heros.EQ.occ_chaines_rayon, 0.8)
 	elif type.begins_with("trainee_"):

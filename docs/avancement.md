@@ -14,8 +14,9 @@ Dernière mise à jour : 30 octobre 2026.
   main : héros plus vif, hordes, coups qui claquent, coups critiques. 100 tests ; essai coop réussi.
 - **Jalon 2 clos (30/10)** : coop validée par Téo sur deux téléphones ; relecture des ajouts corrigée
   (APK 0.2.10).
-- **Jalon 3, étape 1 (expédition) : faite**, APK intermédiaire 0.3.x. Étapes 2 (arbalétrier, prêtre noyé,
-  pièges) et 3 (Bosco, malédiction, chaloupe sous les vagues, relecture) à venir.
+- **Jalon 3, étape 1 (expédition) : faite**, APK intermédiaire 0.3.x.
+- **Jalon 3, étape 2 (arbalétrier, prêtre noyé, salles piège) : faite**, APK intermédiaire 0.3.x. Étape 3
+  (Bosco, malédiction, chaloupe sous les vagues, relecture) à venir.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -64,6 +65,40 @@ Matelots squelettes qui reviennent sans fin.
 - Menu pendant l'expédition : deux appuis (on ne perd pas l'expédition d'un doigt maladroit).
 - Mode test (écran titre) : santé infinie ; départ au trésor, à l'antre du Bosco ou à la chaloupe.
 - Réseau version 5. Tests : 128 ; essai coop de l'expédition (aussi dans la fabrication de l'APK).
+
+## Ennemis et pièges (jalon 3, étape 2)
+- **Arbalétrier squelette** (dès la salle 2 ; 2 par salle, 3 à deux) : 22 PV, garde ses distances (recule
+  si l'on s'approche), vise 0,8 s avec un **trait rouge** (il suit sa cible pendant 65 % de la visée, puis
+  bloque : on a le temps de sortir de la ligne), tire un carreau visible (12 dégâts). La roulade et la
+  téléportation le traversent ; la **Parade de face le renvoie** (24 dégâts aux squelettes ; parade
+  parfaite : coup critique et Parade rendue). Pas de zone dorée : la parade d'un carreau se joue à son arrivée.
+- **Prêtre noyé** (dès la salle 3, et dans l'antre ; jamais dans le premier groupe) : 45 PV, os verdis,
+  yeux et lueur verts, garde ses distances.
+  - Il **relève un squelette tombé** (une seule fois par mort ; pas les prêtres) : cercle vert qui se
+    remplit sur la tombe pendant 1,6 s. **Un coup, même léger, l'interrompt** : le mort reste à terre.
+  - Il **maudit le sol** sous un héros : cercle vert 0,9 s, puis une flaque (5 s, rayon 1,5 m) qui fait
+    perdre 8 PV/s tant qu'on reste dedans, sans sonner ni rendre intouchable.
+- **Salles piège** (porte « Piège », 2 au plus par expédition ; 5 squelettes, 7 à deux) : Salle aux pointes
+  et Poudrière.
+  - **Dalles à pics** : la dalle rougeoie et tremble 0,7 s, puis les pics sortent 0,8 s (18 dégâts, une fois
+    par sortie) ; cycle de 3,2 s, les dalles voisines alternent. Elles blessent aussi les squelettes.
+  - **Tonneaux de poudre** (rougis, avec une mèche) : un coup allume la mèche, explosion 0,35 s après
+    (45 dégâts aux squelettes dans 3 m ; les tonneaux voisins sautent aussi). **Les héros sont épargnés.**
+    La visée assistée les ignore.
+- L'arène d'entraînement garde seulement les matelots (choix de Téo).
+- Coop : l'invité recrée chaque squelette d'après son nom (« Arbaletrier_12 »), voit les carreaux (même
+  ceux que son héros renvoie : c'est l'hôte qui décide), les cercles et la flaque du prêtre, et suit
+  l'horloge des pièges de l'hôte. Réseau version 6.
+- Tests : 146 (17 nouveaux, chacun vérifié par un sabotage de la règle qu'il surveille). Essai coop de
+  l'expédition : l'hôte fait sortir un arbalétrier et un prêtre, tire un carreau, lance une flaque ;
+  l'invité voit tout et suit l'horloge des pièges (écart 0,01 s), Wi-Fi parfait et moyen.
+- Corrigé en passant : l'arbalète était tenue de travers (KayKit la tient en travers du corps : elle visait
+  à 90° sur le côté) ; le trait rouge restait 0,35 s après le tir ; le carreau était trop fin pour être
+  vu de loin (grossi, traînée plus franche) ; l'essai coop de l'arène échouait parfois (environ 1 fois
+  sur 5, déjà avant l'étape 2) quand un vrai squelette était paré parfaitement pendant l'attente.
+- Choix faits sans Téo, à lui signaler : héros épargnés par les tonneaux ; pics qui blessent aussi les
+  squelettes ; Parade sans effet contre pics et flaque ; flaque sans étourdissement ; pas de prêtre dans le
+  premier groupe ; trait de l'arbalétrier jamais doré.
 
 ## Combat « nerveux » (30/10, demande de Téo : « vraiment Diablo like »)
 Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pas les ennemis plus agressifs).
@@ -138,6 +173,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 22/10/2026 | Icônes des compétences sur les boutons, propres à chaque héros (demande de Téo). |
 | 30/10/2026 | Combat « nerveux » : héros plus vif, hordes, coups qui claquent, coups critiques (choix de Téo, voir plus haut). Ennemis plus agressifs : non retenu. |
 | 30/10/2026 | Parade : elle coupe le coup en cours ; parade parfaite en bonus (0,25 s), zone dorée avant le coup + étincelles, « PARFAIT ! » et ralenti, Parade rendue. Onde de choc : non retenue. |
+| 30/10/2026 | Jalon 3, étape 2 (choix de Téo) : la Parade renvoie les carreaux d'arbalète ; un coup interrompt l'incantation du prêtre noyé ; salles piège avec dalles à pics et tonneaux de poudre explosifs ; l'arène d'entraînement garde seulement les matelots. |
 | 30/10/2026 | Réglages (choix de Téo) : le joystick ne coupe plus le 3e coup du combo (le lourd va au bout) ; fenêtre de la parade parfaite 0,35 s (zone dorée 0,4 s avant le coup). Étape 2 du jalon 3 lancée. |
 | 30/10/2026 | Jalon 2 : coop essayée par Téo sur ses deux téléphones, « ça marche » (porte franchie). |
 | 30/10/2026 | Jalon 3, choix de Téo : expédition courte (4 salles, puis le Bosco, puis la chaloupe) ; PV gardés d'une salle à l'autre + orbes de vie lâchées par les squelettes (façon Diablo) ; en coop, la porte s'ouvre quand les deux héros sont devant la même. Ordre : 0) relecture des ajouts du jalon 2, 1) l'expédition (salles, portes, coop, mode debug ; APK), 2) arbalétrier, prêtre noyé, pièges (APK), 3) Bosco, malédiction, chaloupe sous les vagues, écran de fin (relecture, APK). |
@@ -226,9 +262,8 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 - Tranché par Téo : le 3e coup n'est plus coupé par le joystick ; fenêtre parfaite portée à 0,35 s.
 
 ## Prochaines étapes
-1. Essai de Téo de l'expédition (seul et à deux).
-2. Jalon 3, étape 2 : arbalétrier squelette, prêtre noyé, salles piège.
-3. Jalon 3, étape 3 : Bosco Maudit, malédiction 0–5, chaloupe sous les vagues ; relecture ; APK.
+1. Essai de Téo de l'expédition avec les nouveaux ennemis et les salles piège (seul et à deux).
+2. Jalon 3, étape 3 : Bosco Maudit, malédiction 0–5, chaloupe sous les vagues ; relecture ; APK.
 
 ## Points à trancher plus tard
 - Clé de signature définitive : passer à la vraie clé (secrète) **avant** que les sauvegardes comptent,

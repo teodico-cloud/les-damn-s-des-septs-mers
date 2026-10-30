@@ -23,6 +23,7 @@ var _defaite_dans := -1.0
 var _debut_ms := 0
 var _parades := 0
 var _critiques := 0
+var temps_salle := 0.0           ## horloge de la salle (pièges) ; chez l'invité, calée sur l'hôte
 var _portes_ouvertes_pour := -1  ## invité : n° de salle dont l'hôte a ouvert les portes
 var _coffre_ouvert_pour := -1
 
@@ -72,6 +73,7 @@ func _pret() -> void:
 		hud.voile.color.a = 1.0          # écran noir jusqu'à la première salle de l'hôte
 		return
 	generateur.salle_videe.connect(_on_salle_videe)
+	EventBus.explosion.connect(_on_explosion)
 	EventBus.parade_parfaite.connect(_compter_parade)
 	EventBus.coup_porte.connect(_compter_critique)
 	hud.afficher_salle(_texte_salle())
@@ -118,6 +120,7 @@ func _construire_salle(n: int, t: StringName, m: String, portes: Array) -> void:
 	modele = m
 	types_portes = portes
 	_salle_demarree = false
+	temps_salle = 0.0
 	if salle:
 		remove_child(salle)
 		salle.queue_free()
@@ -136,15 +139,21 @@ func _construire_salle(n: int, t: StringName, m: String, portes: Array) -> void:
 func _demarrer_salle() -> void:
 	_salle_demarree = true
 	var coop := Reseau.est_en_coop()
+	var ensemble := EQ.exp_ensemble_coop if coop else EQ.exp_ensemble
 	match type_salle:
 		PlanExpedition.COMBAT, PlanExpedition.BOSCO:
 			var bosco := type_salle == PlanExpedition.BOSCO
 			var total := (EQ.exp_ennemis_bosco_coop if coop else EQ.exp_ennemis_bosco) if bosco \
 					else (EQ.exp_ennemis_salle_coop if coop else EQ.exp_ennemis_salle)
-			generateur.preparer_salle(total, EQ.exp_ensemble_coop if coop else EQ.exp_ensemble, salle.apparitions())
+			generateur.preparer_salle(total, ensemble, salle.apparitions(), composition(numero, type_salle, coop))
 			generateur.demarrer()
 			if bosco:
 				hud.afficher_message("L'antre du Bosco…\n(le Bosco arrive à la prochaine étape)", 3.0)
+		PlanExpedition.PIEGE:
+			var total := EQ.exp_ennemis_piege_coop if coop else EQ.exp_ennemis_piege
+			generateur.preparer_salle(total, maxi(ensemble - 2, 3), salle.apparitions(), composition(numero, type_salle, coop))
+			generateur.demarrer()
+			hud.afficher_message("Attention aux dalles qui rougeoient…\net frappez les tonneaux de poudre !", 3.0)
 		PlanExpedition.TRESOR:
 			generateur.preparer_salle(0, 0, AUCUN_POINT)
 			_ouvrir_portes()
@@ -154,8 +163,28 @@ func _demarrer_salle() -> void:
 			hud.afficher_message("La chaloupe vous attend : montez à bord !", 3.0)
 
 
+## Qui sort de terre dans une salle (le reste en matelots) : des arbalétriers à partir de la 2e salle,
+## un prêtre noyé à partir de la 3e et dans l'antre.
+static func composition(n: int, type: StringName, coop: bool) -> Dictionary:
+	var c := {}
+	var arb := EQ.exp_arbaletriers + (1 if coop else 0)
+	match type:
+		PlanExpedition.COMBAT:
+			if n >= 2:
+				c[&"arbaletrier"] = arb
+			if n >= 3:
+				c[&"pretre"] = EQ.exp_pretres
+		PlanExpedition.PIEGE:
+			if n >= 2:
+				c[&"arbaletrier"] = 1
+		PlanExpedition.BOSCO:
+			c[&"arbaletrier"] = arb + 1
+			c[&"pretre"] = EQ.exp_pretres
+	return c
+
+
 func _on_salle_videe() -> void:
-	if type_salle == PlanExpedition.COMBAT or type_salle == PlanExpedition.BOSCO:
+	if type_salle in [PlanExpedition.COMBAT, PlanExpedition.BOSCO, PlanExpedition.PIEGE]:
 		_ouvrir_portes()
 		var coop := is_instance_valid(heros_partenaire)
 		hud.afficher_message("Salle nettoyée !\nChoisissez une porte… ensemble" if coop else "Salle nettoyée !\nChoisis ta porte", 2.5)
@@ -244,6 +273,9 @@ func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
 	if finie or salle == null:
 		return
+	if not Reseau.est_invite() and not en_transition:
+		temps_salle += delta
+	salle.regler_pieges(temps_salle, not Reseau.est_invite())
 	if Partie.debug_sante_infinie and not Reseau.est_invite():
 		for h in heros_actifs():
 			if h.est_vivant() and h.sante.pv < h.sante.pv_max:
@@ -295,6 +327,17 @@ func _verifier_chaloupe() -> void:
 		if not h.est_vivant() or d.length() > EQ.exp_rayon_chaloupe:
 			return
 	_terminer(true)
+
+
+## Coop, invité : l'horloge de la salle de l'hôte (pièges réglés pareil des deux côtés).
+func caler_temps_salle(t: float) -> void:
+	temps_salle = t
+
+
+## Hôte : un tonneau de la salle a explosé ; l'invité le voit exploser aussi.
+func _on_explosion(t: Node3D) -> void:
+	if synchro and salle and t.get_parent() == salle:
+		synchro.envoyer_lieu("tonneau", [numero, String(t.name)])
 
 
 func _on_tous_a_terre() -> void:
@@ -361,6 +404,11 @@ func evenement_lieu(type: String, donnees: Array) -> void:
 				salle.ouvrir_coffre()
 		"fin":
 			_afficher_fin(donnees[0], donnees[1])
+		"tonneau":
+			if salle and numero == donnees[0]:
+				var t := salle.get_node_or_null(NodePath(donnees[1])) as TonneauPoudre
+				if t:
+					t.exploser(false)
 
 
 func _continuer_seul() -> void:

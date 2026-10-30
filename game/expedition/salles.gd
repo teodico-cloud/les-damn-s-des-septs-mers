@@ -141,6 +141,45 @@ const MODELES := {
 		"apparitions": [Vector3(1.6, 0, -1.6), Vector3(-3.4, 0, -3.4), Vector3(-3.4, 0, 1.0),
 				Vector3(4.8, 0, -4.4), Vector3(-1.0, 0, 3.0)],
 	},
+	# ------------------------------------------------------------------ pièges (étape 2)
+	# "pics" : [case (colonne, rangée de 0 à 3), décalage du cycle] ; "tonneaux" : tonneaux de poudre.
+	# Les cases devant les portes (2, 0) et (0, 1) et celle de l'entrée (3, 3) restent sans pics.
+	"salle_pics": {
+		"nom": "Salle aux pointes",
+		"types": [&"piege"],
+		"sol": ["floor_tile_large", "floor_tile_large_rocks"],
+		"pics": [[Vector2i(1, 0), 0.0], [Vector2i(1, 1), 0.5], [Vector2i(0, 2), 0.0],
+				[Vector2i(1, 2), 0.5], [Vector2i(2, 2), 0.0], [Vector2i(3, 1), 0.25]],
+		"tonneaux": [Vector3(-4.6, 0, -4.4), Vector3(4.4, 0, -4.6)],
+		"objets": [
+			["barrel_large", Vector3(-5.4, 0, 4.6), 0, Vector3(1.3, 1.6, 1.3)],
+			["crates_stacked", Vector3(5.3, 0, 2.2), -10, Vector3(1.7, 1.8, 1.7)],
+			["banner_patternA_red", Vector3(-4.8, 0, -6.8), 0, Vector3.ZERO],
+			["sword_shield_broken", Vector3(-6.4, 1.8, 4.8), 90, Vector3.ZERO],
+		],
+		"torches": [Vector3(-1.6, 0, -6.4), Vector3(4.8, 0, -6.4), Vector3(-6.4, 0, 1.6)],
+		"lumieres": [[Vector3(0.0, 2.0, 0.0), ROUGE, 0.9, 7.0]],
+		"apparitions": [Vector3(-1.6, 0, -4.6), Vector3(3.2, 0, -3.6), Vector3(-3.6, 0, 0.8),
+				Vector3(0.0, 0, -1.6), Vector3(4.6, 0, -1.6)],
+	},
+	"poudriere": {
+		"nom": "Poudrière",
+		"types": [&"piege"],
+		"sol": ["floor_tile_large", "floor_tile_large_rocks"],
+		"pics": [[Vector2i(1, 1), 0.0], [Vector2i(2, 2), 0.5]],
+		"tonneaux": [Vector3(-4.4, 0, -3.4), Vector3(-3.6, 0, -4.4), Vector3(2.4, 0, -2.6),
+				Vector3(3.2, 0, -3.4), Vector3(-4.2, 0, 1.6), Vector3(0.6, 0, -0.6)],
+		"objets": [
+			["crates_stacked", Vector3(-5.4, 0, -5.4), 15, Vector3(1.7, 1.8, 1.7)],
+			["keg_decorated", Vector3(4.4, 0, -5.6), 0, Vector3(2.6, 1.6, 1.4)],
+			["barrel_small_stack", Vector3(-5.6, 0, 3.8), 90, Vector3(0.8, 1.4, 1.5)],
+			["box_large", Vector3(5.4, 0, 0.0), 0, Vector3(1.1, 1.2, 1.1)],
+		],
+		"torches": [Vector3(-1.6, 0, -6.4), Vector3(-6.4, 0, -4.8)],
+		"lumieres": [[Vector3(-1.0, 2.0, -1.5), Color(1.0, 0.5, 0.2), 1.2, 7.0]],
+		"apparitions": [Vector3(-2.8, 0, -2.6), Vector3(1.6, 0, -1.6), Vector3(3.6, 0, -1.2),
+				Vector3(-3.0, 0, 2.8), Vector3(0.0, 0, -4.4)],
+	},
 	# ------------------------------------------------------------------ trésor
 	"tresor": {
 		"nom": "Chambre au trésor",

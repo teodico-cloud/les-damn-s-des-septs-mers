@@ -4,6 +4,8 @@ extends Node3D
 ## ensemble, en groupe, un peu plus tard et loin des héros. Chaque ennemi a un nom unique
 ## (« Squelette_7 ») : en coop, c'est ce nom qui permet à l'invité de retrouver le même squelette.
 ## Expédition : une salle a une réserve finie (`reserve`) ; quand tout est vaincu, `salle_videe`.
+## Sa composition (arbalétriers, prêtre noyé, le reste en matelots) est tirée au hasard dans l'ordre
+## d'apparition. Chaque squelette tombé laisse une « tombe » qu'un prêtre noyé peut relever une fois.
 
 signal ennemi_cree(ennemi: Ennemi)
 signal salle_videe
@@ -21,6 +23,8 @@ var vaincus := 0
 var _compteur := 0
 var _renfort_prevu := false
 var _generation := 0           ## change à chaque nouvelle salle : un renfort prévu avant est oublié
+var a_venir: Array[StringName] = []   ## types des prochains ennemis (vide : des matelots)
+var tombes: Array[Dictionary] = []    ## {pos, type, etat : 0 libre, 1 réservée par un prêtre, 2 relevée}
 var _rng := RandomNumberGenerator.new()
 
 
@@ -41,7 +45,8 @@ func demarrer() -> void:
 ## Expédition : nouvelle salle. Les ennemis restants sont retirés ; `total` ennemis à vaincre, dont
 ## `ensemble` debout en même temps ; groupes autour des `points` (vide : n'importe où).
 ## Ne démarre pas tout seul : appeler demarrer() (en coop, l'hôte attend que l'invité ait la salle).
-func preparer_salle(total: int, ensemble: int, points: Array[Vector3]) -> void:
+## `composition` : {&"arbaletrier": 2, &"pretre": 1} (le reste en matelots).
+func preparer_salle(total: int, ensemble: int, points: Array[Vector3], composition := {}) -> void:
 	for e in get_children():
 		if e is Ennemi:
 			e.queue_free()
@@ -51,6 +56,31 @@ func preparer_salle(total: int, ensemble: int, points: Array[Vector3]) -> void:
 	reserve = total
 	nombre = ensemble
 	points_apparition = points
+	tombes.clear()
+	a_venir.clear()
+	for t in composition:
+		for i in mini(int(composition[t]), total):
+			a_venir.append(StringName(t))
+	while a_venir.size() < total:
+		a_venir.append(&"matelot")
+	a_venir.resize(total)
+	# au hasard, mais pas de prêtre dans le tout premier groupe (on le découvre ensuite)
+	_melanger(a_venir)
+	var premier := mini(total, 4)
+	for i in premier:
+		if a_venir[a_venir.size() - 1 - i] == &"pretre" and a_venir.size() > premier:
+			var j := _rng.randi_range(0, a_venir.size() - 1 - premier)
+			var x := a_venir[j]
+			a_venir[j] = a_venir[a_venir.size() - 1 - i]
+			a_venir[a_venir.size() - 1 - i] = x
+
+
+func _melanger(liste: Array[StringName]) -> void:
+	for i in range(liste.size() - 1, 0, -1):
+		var j := _rng.randi_range(0, i)
+		var x := liste[i]
+		liste[i] = liste[j]
+		liste[j] = x
 
 
 ## Ennemis encore debout (ou en train de sortir de terre).
@@ -80,15 +110,51 @@ func _groupes(n: int) -> void:
 		n -= taille
 
 
-func _faire_apparaitre(position_voulue := Vector3.INF) -> void:
-	var e := Ennemi.creer()
+func _faire_apparaitre(position_voulue := Vector3.INF, type: StringName = &"") -> Ennemi:
+	if type == &"":
+		type = a_venir.pop_back() if not a_venir.is_empty() else &"matelot"
+	var e := Ennemi.creer_type(type)
 	_compteur += 1
-	e.name = "Squelette_%d" % _compteur
+	e.name = "%s_%d" % [Ennemi.PREFIXES.get(type, "Squelette"), _compteur]
 	e.position = _point_libre() if position_voulue == Vector3.INF else position_voulue
 	e.vaincu.connect(_on_vaincu)
 	add_child(e)
 	e.rotation.y = _rng.randf_range(-PI, PI)
 	ennemi_cree.emit(e)
+	return e
+
+
+# ---------------------------------------------------------------- tombes (prêtre noyé)
+## Tombe libre la plus proche de `pos` à moins de `rayon` (indice), ou -1.
+func tombe_proche(pos: Vector3, rayon: float) -> int:
+	var meilleure := -1
+	var d_min := rayon
+	for i in tombes.size():
+		var d: float = (tombes[i]["pos"] as Vector3).distance_to(pos)
+		if tombes[i]["etat"] == 0 and d <= d_min:
+			d_min = d
+			meilleure = i
+	return meilleure
+
+
+func reserver_tombe(i: int) -> void:
+	if i >= 0 and i < tombes.size():
+		tombes[i]["etat"] = 1
+
+
+func liberer_tombe(i: int) -> void:
+	if i >= 0 and i < tombes.size() and tombes[i]["etat"] == 1:
+		tombes[i]["etat"] = 0
+
+
+## Le prêtre a fini son incantation : le mort ressort de terre (une seule fois).
+func relever(i: int) -> Ennemi:
+	if i < 0 or i >= tombes.size() or tombes[i]["etat"] == 2:
+		return null
+	tombes[i]["etat"] = 2
+	var e := _faire_apparaitre(tombes[i]["pos"], tombes[i]["type"])
+	e.releve = true
+	return e
 
 
 ## Coop, les deux héros tombés : on repart à zéro (tous les squelettes remplacés).
@@ -96,6 +162,7 @@ func reinitialiser() -> void:
 	for e in get_children():
 		if e is Ennemi:
 			e.queue_free()
+	tombes.clear()
 	_groupes(nombre)
 
 
@@ -125,8 +192,10 @@ func _point_libre() -> Vector3:
 	return Vector3(-demi_cote, 0, -demi_cote)
 
 
-func _on_vaincu(_e: Ennemi) -> void:
+func _on_vaincu(e: Ennemi) -> void:
 	vaincus += 1
+	if not e.releve and e.type_ennemi() != &"pretre":
+		tombes.append({"pos": e.global_position, "type": e.type_ennemi(), "etat": 0})
 	if reserve == 0:
 		if vivants() == 0:
 			salle_videe.emit()

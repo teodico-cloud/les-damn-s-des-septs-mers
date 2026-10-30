@@ -19,6 +19,7 @@ func _ready() -> void:
 	EventBus.coup_porte.connect(_on_coup_porte)
 	EventBus.parade_parfaite.connect(_on_parade_parfaite)
 	EventBus.soin.connect(_on_soin)
+	EventBus.explosion.connect(_on_explosion)
 
 
 func _exit_tree() -> void:
@@ -29,7 +30,7 @@ func _on_coup_porte(position_coup: Vector3, degats: float, lourd: bool, cible_es
 	_chiffre(position_coup, degats, lourd, cible_est_heros, critique)
 	var me_concerne := not en_coop or cible == heros_local or source == heros_local
 	if cible_est_heros:
-		if camera and me_concerne:
+		if camera and me_concerne and not (source is FlaqueMaudite):   # (la flaque ne secoue pas)
 			camera.secouer(EQ.secousse_touche)
 		return
 	var duree := EQ.arret_image_lourd if lourd else EQ.arret_image
@@ -96,6 +97,11 @@ func _on_parade_parfaite(heros: Node3D, point: Vector3) -> void:
 		ralentir(EQ.parade_parfaite_ralenti, EQ.parade_parfaite_ralenti_vitesse)
 	if camera and (not en_coop or heros == heros_local):
 		camera.secouer(EQ.secousse_coup_lourd)
+
+
+func _on_explosion(_tonneau: Node3D) -> void:
+	if camera:
+		camera.secouer(0.45)
 
 
 ## Soin (orbe de vie, coffre) : « +20 » vert au-dessus du héros.

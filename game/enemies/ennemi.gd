@@ -2,6 +2,8 @@ class_name Ennemi
 extends CharacterBody3D
 ## Ennemi de corps-à-corps (jalon 1 : le Matelot squelette). Il sort de terre, poursuit le héros le
 ## plus proche, annonce son coup (marque au sol), frappe, puis reste un instant vulnérable.
+## C'est aussi la base des autres squelettes (jalon 3) : Arbaletrier, PretreNoye remplacent le modèle,
+## l'arme, la poursuite, l'annonce et l'attaque (méthodes « à remplacer » plus bas).
 ## En coop, seul l'hôte fait tourner cette logique ; chez l'invité, l'ennemi est une « marionnette » qui
 ## affiche ce que l'hôte envoie (position, état, animation, marque) et n'agit sur rien.
 
@@ -10,7 +12,9 @@ const MODELE := preload("res://assets/models/enemies/Skeleton_Minion.glb")
 const LAME := preload("res://assets/models/enemies/Skeleton_Blade.gltf")
 const COULEUR_ZONE := Color(1.0, 0.25, 0.1, 0.22)   ## zone de l'annonce au sol, pâle
 
-enum Etat { APPARITION, POURSUITE, PREPARATION, FRAPPE, RECUPERATION, TOUCHE, ETOURDI, MORT, ENCHAINE }
+enum Etat { APPARITION, POURSUITE, PREPARATION, FRAPPE, RECUPERATION, TOUCHE, ETOURDI, MORT, ENCHAINE, INCANTATION }
+## Types d'ennemis (le nom de chaque ennemi commence par son préfixe : l'invité recrée le bon type).
+const PREFIXES := {&"matelot": "Squelette", &"arbaletrier": "Arbaletrier", &"pretre": "Pretre"}
 
 static var _mat_yeux_rouges: StandardMaterial3D
 static var _mat_chaine: StandardMaterial3D
@@ -41,6 +45,7 @@ var marionnette := false            ## coop, invité : affiché d'après l'hôte
 var _vitesse_anim := 1.0            ## vitesse demandée (pas celle figée un instant par l'arrêt sur image)
 var _liste_anims := PackedStringArray()
 var _nom_tueur := ""
+var releve := false                 ## relevé par un prêtre noyé : il ne le sera pas une seconde fois
 
 
 ## Crée un ennemi prêt à être ajouté à la scène. `rapide` saute l'animation de sortie de terre (tests).
@@ -48,6 +53,73 @@ static func creer(rapide := false) -> Ennemi:
 	var e := Ennemi.new()
 	e._apparition_rapide = rapide
 	return e
+
+
+## Crée un ennemi du type voulu (&"matelot", &"arbaletrier", &"pretre").
+static func creer_type(type: StringName, rapide := false) -> Ennemi:
+	var e: Ennemi
+	match type:
+		&"arbaletrier": e = Arbaletrier.new()
+		&"pretre": e = PretreNoye.new()
+		_: e = Ennemi.new()
+	e._apparition_rapide = rapide
+	return e
+
+
+## Type d'après le nom (« Arbaletrier_12 » → &"arbaletrier") : l'invité recrée le même ennemi.
+static func type_depuis_nom(nom: String) -> StringName:
+	for t in PREFIXES:
+		if nom.begins_with(PREFIXES[t] + "_"):
+			return t
+	return &"matelot"
+
+
+func type_ennemi() -> StringName:
+	return &"matelot"
+
+
+# ---------------------------------------------------------------- à remplacer par les autres squelettes
+func _modele() -> PackedScene:
+	return MODELE
+
+
+func _arme() -> PackedScene:
+	return LAME
+
+
+func _prefixe() -> String:
+	return "Skeleton_Minion"   ## début du nom des morceaux du modèle (yeux, os qui volent)
+
+
+func _pv() -> float:
+	return EQ.squelette_pv_max
+
+
+func _boucles() -> Array:
+	return ["Idle_Combat", "Running_C"]
+
+
+## Après la construction du modèle (lueur, matière…).
+func _preparer_modele() -> void:
+	pass
+
+
+## Annonce de l'attaque visible ou non (matelot : la zone au sol).
+func _montrer_annonce(oui: bool) -> void:
+	marque.visible = oui
+
+
+## Appelé à chaque changement d'état (après le changement).
+func _quitter_etat(_ancien: Etat, _nouvel: Etat) -> void:
+	pass
+
+
+func _incanter() -> void:
+	_changer(Etat.POURSUITE)
+
+
+func _incanter_visuel() -> void:
+	pass
 
 
 func _ready() -> void:
@@ -65,17 +137,19 @@ func _ready() -> void:
 	forme.position.y = 0.95
 	add_child(forme)
 
-	visuel = MODELE.instantiate()
+	visuel = _modele().instantiate()
 	add_child(visuel)
 	anim = visuel.find_child("AnimationPlayer", true, false)
-	for boucle in ["Idle_Combat", "Running_C"]:
-		anim.get_animation(boucle).loop_mode = Animation.LOOP_LINEAR
+	for boucle in _boucles():
+		if anim.has_animation(boucle):
+			anim.get_animation(boucle).loop_mode = Animation.LOOP_LINEAR
 	_attacher_lame()
 	_creer_marque()
-	_yeux = visuel.find_child("Skeleton_Minion_Eyes", true, false) as MeshInstance3D
+	_yeux = visuel.find_child(_prefixe() + "_Eyes", true, false) as MeshInstance3D
+	_preparer_modele()
 
 	sante = Sante.new()
-	sante.pv_max = EQ.squelette_pv_max
+	sante.pv_max = _pv()
 	add_child(sante)
 	sante.mort.connect(_on_mort)
 
@@ -93,7 +167,14 @@ func _attacher_lame() -> void:
 	var attache := BoneAttachment3D.new()
 	attache.bone_name = "handslot.r"
 	sk.add_child(attache)
-	attache.add_child(LAME.instantiate())
+	var arme: Node3D = _arme().instantiate()
+	_orienter_arme(arme)
+	attache.add_child(arme)
+
+
+## Tourner l'arme dans la main si le modèle KayKit ne la tient pas dans le bon sens (arbalétrier).
+func _orienter_arme(_arme_noeud: Node3D) -> void:
+	pass
 
 
 func _creer_marque() -> void:
@@ -139,15 +220,17 @@ func est_ciblable() -> bool:
 
 
 func _changer(nouvel: Etat, duree := 0.0) -> void:
+	var ancien := etat
 	etat = nouvel
 	_t = 0.0
 	_duree_etat = duree
 	if nouvel != Etat.PREPARATION and nouvel != Etat.FRAPPE:
-		marque.visible = false
+		_montrer_annonce(false)
 		_yeux_rouges(false)
 	if nouvel != Etat.ENCHAINE and _chaines:
 		_chaines.queue_free()
 		_chaines = null
+	_quitter_etat(ancien, nouvel)
 
 
 # ---------------------------------------------------------------- boucle
@@ -156,6 +239,8 @@ func _physics_process(delta: float) -> void:
 		_t += delta
 		if etat == Etat.PREPARATION:
 			_preparer_visuel()
+		elif etat == Etat.INCANTATION:
+			_incanter_visuel()
 		if _rune and _rune.visible:
 			_rune.rotate_y(3.0 * delta)
 		return
@@ -171,6 +256,7 @@ func _physics_process(delta: float) -> void:
 		Etat.POURSUITE: _poursuivre(delta)
 		Etat.PREPARATION: _preparer()
 		Etat.FRAPPE: _frapper()
+		Etat.INCANTATION: _incanter()
 		Etat.RECUPERATION, Etat.TOUCHE, Etat.ETOURDI, Etat.ENCHAINE:
 			if _t >= _duree_etat:
 				_changer(Etat.POURSUITE)
@@ -229,7 +315,7 @@ func _commencer_preparation(dir: Vector3) -> void:
 	# l'animation est ralentie pour que son impact tombe à la fin de l'annonce
 	var vitesse := EQ.squelette_impact_animation / EQ.squelette_preparation
 	_jouer("1H_Melee_Attack_Chop", vitesse, 0.08, true)
-	marque.visible = true
+	_montrer_annonce(true)
 	_yeux_rouges(true)
 	_changer(Etat.PREPARATION, EQ.squelette_preparation)
 	_preparer_visuel()   # dès cette image : sinon la zone s'affiche un instant pleine et dorée (annonce d'avant)
@@ -239,7 +325,7 @@ func _preparer() -> void:
 	_preparer_visuel()
 	if _t >= EQ.squelette_preparation:
 		_changer(Etat.FRAPPE)
-		marque.visible = true
+		_montrer_annonce(true)
 
 
 ## Zone au sol qui se remplit pendant l'annonce (aussi chez l'invité). Juste avant le coup, elle
@@ -267,7 +353,7 @@ func _frapper() -> void:
 		for cible in Combat.cibles_dans_sphere(get_world_3d(), centre, EQ.squelette_zone_rayon, Combat.COUCHE_HEROS, [self]):
 			Combat.porter_coup(self, cible, EQ.squelette_degats, false)
 	if _t >= EQ.squelette_duree_frappe:
-		marque.visible = false
+		_montrer_annonce(false)
 		_recharge_attaque = EQ.squelette_recharge_attaque
 		_changer(Etat.RECUPERATION, EQ.squelette_recuperation)
 
@@ -472,10 +558,10 @@ func appliquer_instantane(etat_recu: int, anim_recue: Variant, vitesse: float, p
 		_changer(nouvel)
 		match nouvel:
 			Etat.PREPARATION:
-				marque.visible = true
+				_montrer_annonce(true)
 				_yeux_rouges(true)
 			Etat.FRAPPE:
-				marque.visible = true
+				_montrer_annonce(true)
 				_yeux_rouges(true)
 			Etat.ENCHAINE:
 				if _chaines:
@@ -535,14 +621,14 @@ func _eclater(tueur: Node3D) -> void:
 	if not visuel.visible:
 		return
 	var parties := []
-	for m in visuel.find_children("Skeleton_Minion_*", "MeshInstance3D", true, false):
+	for m in visuel.find_children(_prefixe() + "_*", "MeshInstance3D", true, false):
 		if not String(m.name).ends_with("Eyes"):
 			parties.append(m)
 	var depuis := tueur.global_position if tueur and is_instance_valid(tueur) else global_position + Vector3(randf_range(-1, 1), 0, randf_range(-1, 1))
 	var parent := get_parent().get_parent() if get_parent() is GenerateurEnnemis else get_parent()
 	EffetsMagie.eclater(parent, parties, visuel.global_transform, depuis, EQ.debris_force, EQ.debris_duree)
 	visuel.visible = false
-	marque.visible = false
+	_montrer_annonce(false)
 	if _rune:
 		_rune.visible = false
 

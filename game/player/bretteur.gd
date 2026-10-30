@@ -146,7 +146,8 @@ func _etat_parade() -> void:
 
 
 func _intercepter_coup(source: Node3D) -> bool:
-	if etat == Etat.PARADE and source and Combat.est_devant(self, source, EQ.parade_angle):
+	# (seulement les coups d'un squelette : ni les pics, ni une flaque, ni un carreau — voir renvoyer_carreau)
+	if etat == Etat.PARADE and source is Ennemi and Combat.est_devant(self, source, EQ.parade_angle):
 		# parade parfaite (choix de Téo) : le coup arrive juste après l'appui sur Parade
 		_riposter(source, _t <= EQ.parade_parfaite_fenetre)
 		return true
@@ -190,6 +191,22 @@ func _etat_riposte() -> void:
 				_cible_riposte.etourdir(EQ.riposte_etourdissement_parfaite if _riposte_parfaite else EQ.riposte_etourdissement)
 	if _t >= _duree_action:
 		_changer(Etat.LIBRE)
+
+
+## Un carreau arrive : paré de face, il est renvoyé vers les squelettes (choix de Téo). Parade
+## parfaite (carreau arrivé juste après l'appui) : renvoi critique, effets et Parade rendue.
+func renvoyer_carreau(c: Node3D) -> bool:
+	if etat != Etat.PARADE or not Combat.est_devant(self, c, EQ.parade_angle):
+		return false
+	var parfaite := _t <= EQ.parade_parfaite_fenetre
+	c.renvoyer(self, parfaite)
+	_jouer("Block_Hit", 1.4, 0.03, true)
+	if parfaite:
+		recharge_competence_1.restant = 0.0
+		EventBus.parade_parfaite.emit(self, c.global_position)
+	else:
+		EffetsMagie.eclat(get_parent(), c.global_position)
+	return true
 
 
 ## Coop, invité : l'hôte a vu une parade parfaite de notre héros ; la Parade est rendue chez nous aussi.
