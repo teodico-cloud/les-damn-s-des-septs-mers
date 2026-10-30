@@ -17,6 +17,9 @@ const SEUIL_CORRECTION := 0.08      ## mètres d'écart ignorés (bruit normal)
 const SEUIL_SAUT := 2.5             ## au-delà, on recale sans douceur
 const DELAI_SANS_ENTREE := 0.25     ## hôte : sans nouvelles de l'invité, son héros s'arrête
 const ACTIONS := [&"attaque", &"esquive", &"competence_1", &"competence_2"]
+const DELAI_INSTABLE := 1.0         ## secondes sans nouvelles de l'autre téléphone avant d'avertir
+
+signal connexion_instable(oui: bool)
 
 var hote := false
 var arene: Node3D
@@ -26,6 +29,7 @@ var generateur: Node3D
 
 # côté hôte
 var _invite_pret := false
+var _attente_invite := 0.0
 var _minuterie := 0.0
 var _ack := 0
 var _temps_sans_entree := 0.0
@@ -34,9 +38,12 @@ var _numero := 0                    ## n° de l'instantané envoyé
 var _seq := 0
 var _historique := {}               ## n° d'entrée -> position prédite du héros local
 var _decalage_visuel := Vector3.ZERO
-var _instantanes: Array = []        ## [heure de réception, héros, ennemis], du plus ancien au plus récent
+var _instantanes: Array = []        ## [heure de l'hôte, héros, ennemis], du plus ancien au plus récent
+var _decalage_horloge := INF        ## heure locale − heure de l'hôte, au plus juste (trajet le plus court vu)
 var _dernier_envoi := {}            ## action -> heure du dernier envoi (on n'en envoie pas 60 par seconde)
 var _relance_pret := 0.0
+var _silence := 0.0                 ## secondes depuis le dernier message reçu de l'autre téléphone
+var _instable := false
 var _dernier_numero := 0
 var recalages := 0                  ## mesures (essais) : nombre et taille des recalages du héros local
 var plus_grand_recalage := 0.0
@@ -59,6 +66,7 @@ func _ready() -> void:
 	if hote:
 		EventBus.coup_porte.connect(_on_coup_porte)
 		EventBus.projectile_tire.connect(_on_projectile_tire)
+		EventBus.effet_visuel.connect(_on_effet_visuel)
 		EventBus.heros_mort.connect(_on_heros_mort)
 		EventBus.heros_reapparu.connect(_on_heros_reapparu)
 		heros_partenaire.etat_change.connect(_on_etat_partenaire)
@@ -79,6 +87,9 @@ func _exit_tree() -> void:
 # (les messages de l'invité arrivent par Reseau, qui vérifie qu'ils viennent bien du partenaire)
 func invite_pret() -> void:
 	_invite_pret = true
+	_silence = 0.0
+	if generateur.has_method("demarrer"):
+		generateur.demarrer()   # les squelettes sortent de terre quand les deux joueurs sont là
 
 
 func recevoir_entrees(seq: int, x: float, z: float) -> void:
@@ -86,6 +97,7 @@ func recevoir_entrees(seq: int, x: float, z: float) -> void:
 
 
 func _traiter_entrees(seq: int, x: float, z: float) -> void:
+	_silence = 0.0
 	if not hote or not is_instance_valid(heros_partenaire):
 		return
 	if seq <= _ack:
@@ -135,6 +147,12 @@ func _traiter_attente() -> void:
 func _physics_process(delta: float) -> void:
 	if not _attente.is_empty():
 		_traiter_attente()
+	if _invite_pret or not _instantanes.is_empty():   # une fois la partie vraiment commencée
+		_silence += delta
+		var instable := _silence > DELAI_INSTABLE
+		if instable != _instable:
+			_instable = instable
+			connexion_instable.emit(instable)
 	if hote:
 		_hote_image(delta)
 	else:
@@ -142,7 +160,12 @@ func _physics_process(delta: float) -> void:
 
 
 func _hote_image(delta: float) -> void:
-	if not _invite_pret or Reseau.id_partenaire == 0:
+	if not _invite_pret:
+		_attente_invite += delta
+		if _attente_invite > 10.0 and generateur.has_method("demarrer"):
+			generateur.demarrer()   # l'invité tarde : on ne laisse pas l'hôte dans une salle vide
+		return
+	if Reseau.id_partenaire == 0:
 		return
 	if is_instance_valid(heros_partenaire):
 		_temps_sans_entree += delta
@@ -183,6 +206,11 @@ func _on_coup_porte(pos: Vector3, degats: float, lourd: bool, cible_est_heros: b
 func _on_projectile_tire(tireur: Node3D, depart: Vector3, direction: Vector3) -> void:
 	if _invite_pret:
 		_projectile.rpc_id(Reseau.id_partenaire, _nom(tireur), depart, direction)
+
+
+func _on_effet_visuel(lanceur: Node3D, type: String, position: Vector3) -> void:
+	if _invite_pret:
+		_effet.rpc_id(Reseau.id_partenaire, _nom(lanceur), type, position)
 
 
 func _on_heros_mort(h: Node) -> void:
@@ -249,10 +277,15 @@ func _instantane(numero: int, heros: Dictionary, ennemis: Dictionary, ack: int) 
 
 
 func _traiter_instantane(numero: int, heros: Dictionary, ennemis: Dictionary, ack: int) -> void:
+	_silence = 0.0
 	if numero <= _dernier_numero:
 		return   # arrivé après un plus récent : ignoré
 	_dernier_numero = numero
-	_instantanes.append([_maintenant(), heros, ennemis])
+	# heure de l'hôte au moment de l'envoi (il envoie à cadence fixe) ; l'écart avec notre horloge est
+	# estimé par le trajet le plus rapide observé, qui remonte doucement si les horloges dérivent
+	var t_hote := numero / FREQUENCE
+	_decalage_horloge = minf(_decalage_horloge + 0.0005, _maintenant() - t_hote)
+	_instantanes.append([t_hote, heros, ennemis])
 	if _instantanes.size() > 12:
 		_instantanes.pop_front()
 	_recaler(heros, ack)
@@ -302,12 +335,17 @@ func _creer_ou_retirer_ennemis(ennemis: Dictionary) -> void:
 			e.queue_free()   # disparu chez l'hôte
 
 
-## Place le héros de l'hôte et les squelettes à l'instant « maintenant − 0,1 s », en glissant entre
-## les deux instantanés qui l'entourent ; les états et animations viennent du plus récent des deux.
+## Place le héros de l'hôte et les squelettes à l'instant « heure de l'hôte − 0,1 s », en glissant entre
+## les deux instantanés qui l'entourent (calés sur l'horloge de l'hôte : l'irrégularité du Wi-Fi ne
+## se voit pas). Les états, animations et minutages viennent du DERNIER instantané reçu, avancé de son
+## âge : l'annonce d'un squelette se remplit chez l'invité au même rythme que chez l'hôte.
 func _afficher_monde() -> void:
 	if _instantanes.is_empty():
 		return
-	var t := _maintenant() - RETARD_AFFICHAGE
+	var heure_hote := _maintenant() - _decalage_horloge
+	var dernier: Array = _instantanes[-1]
+	var age := maxf(heure_hote - dernier[0], 0.0)
+	var t := heure_hote - RETARD_AFFICHAGE
 	var a: Array = _instantanes[0]
 	var b: Array = _instantanes[0]
 	for i in _instantanes.size():
@@ -327,19 +365,22 @@ func _afficher_monde() -> void:
 			var db: Array = b[1][cle]
 			heros_partenaire.global_position = (da[0] as Vector3).lerp(db[0], f)
 			heros_partenaire.rotation.y = lerp_angle(da[1], db[1], f)
-			heros_partenaire.appliquer_instantane(db[2], db[3], db[4], db[5], db[6], db[7])
+		if dernier[1].has(cle):
+			var dn: Array = dernier[1][cle]
+			heros_partenaire.appliquer_instantane(dn[2], dn[3], dn[4], dn[5], dn[6], dn[7], dn[8] + age)
 	# squelettes (marionnettes)
 	for e in generateur.get_children():
 		if not (e is Ennemi):
 			continue
 		var cle := String(e.name)
-		if not b[2].has(cle):
-			continue
-		var db: Array = b[2][cle]
-		var da: Array = a[2][cle] if a[2].has(cle) else db
-		e.global_position = (da[0] as Vector3).lerp(db[0], f)
-		e.rotation.y = lerp_angle(da[1], db[1], f)
-		e.appliquer_instantane(db[2], db[3], db[4], db[5], db[6])
+		if b[2].has(cle):
+			var db: Array = b[2][cle]
+			var da: Array = a[2][cle] if a[2].has(cle) else db
+			e.global_position = (da[0] as Vector3).lerp(db[0], f)
+			e.rotation.y = lerp_angle(da[1], db[1], f)
+		if dernier[2].has(cle):
+			var dn: Array = dernier[2][cle]
+			e.appliquer_instantane(dn[2], dn[3], dn[4], dn[5], dn[6], dn[7] + age)
 
 
 @rpc("authority", "reliable")
@@ -367,11 +408,28 @@ func _projectile_recu(nom_tireur: String, depart: Vector3, direction: Vector3) -
 
 
 @rpc("authority", "reliable")
+func _effet(nom_lanceur: String, type: String, position: Vector3) -> void:
+	_differer(_effet_recu.bind(nom_lanceur, type, position), true)
+
+
+func _effet_recu(nom_lanceur: String, type: String, position: Vector3) -> void:
+	if nom_lanceur == String(heros_local.name):
+		return   # notre propre sort : déjà affiché chez nous
+	if type == "cercle_chaines":
+		EffetsMagie.cercle(arene, position, Heros.EQ.occ_chaines_rayon, 0.8)
+
+
+@rpc("authority", "reliable")
 func _autorite(type: String, pv: float, point: Vector3) -> void:
 	_differer(_autorite_recu.bind(type, pv, point), true)
 
 
 func _autorite_recu(type: String, pv: float, point: Vector3) -> void:
+	if type == "reapparu":
+		# notre héros est replacé par l'hôte : les prédictions d'avant ne valent plus (sinon un
+		# instantané encore en route referait le déplacement une seconde fois)
+		_historique.clear()
+		_decalage_visuel = Vector3.ZERO
 	heros_local.evenement_autorite(type, pv, point)
 
 

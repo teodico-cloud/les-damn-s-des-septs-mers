@@ -36,6 +36,7 @@ var _marque_restant := 0.0
 var _rune: Node3D                   ## rune verte au-dessus de la tête quand il est marqué
 var _chaines: Node3D                ## chaînes spectrales visibles quand il est immobilisé
 var marionnette := false            ## coop, invité : affiché d'après l'hôte, sans IA ni règles
+var _vitesse_anim := 1.0            ## vitesse demandée (pas celle figée un instant par l'arrêt sur image)
 
 
 ## Crée un ennemi prêt à être ajouté à la scène. `rapide` saute l'animation de sortie de terre (tests).
@@ -421,15 +422,18 @@ func _on_mort(_source: Node) -> void:
 ## Joue une animation en fondu depuis la pose actuelle ; `rejouer` la reprend au début si c'est
 ## déjà celle-ci. (Ne pas appeler anim.stop() avant : le fondu partirait de rien et la pose sauterait.)
 # ---------------------------------------------------------------- coop
-## Ce que l'hôte envoie de cet ennemi à chaque instantané (voir SynchroArene).
+## Ce que l'hôte envoie de cet ennemi à chaque instantané (voir SynchroArene). La vitesse envoyée est
+## celle demandée : pendant l'arrêt sur image local, l'animation est figée (vitesse 0) chez l'hôte.
 func instantane() -> Array:
-	return [global_position, rotation.y, int(etat), String(anim.current_animation), anim.get_playing_speed(),
-			sante.pv, _marque_restant > 0.0]
+	return [global_position, rotation.y, int(etat), String(anim.current_animation), _vitesse_anim,
+			sante.pv, _marque_restant > 0.0, _t]
 
 
-## Marionnette : applique l'état reçu de l'hôte (la position est posée à part, lissée).
-func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: float, marque_recue: bool) -> void:
-	if etat_recu != int(etat):
+## Marionnette : applique l'état reçu de l'hôte (la position est posée à part, lissée). `t_etat` :
+## temps passé dans cet état chez l'hôte, estimé à maintenant ; il cale l'annonce au sol et l'animation.
+func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: float, marque_recue: bool, t_etat := 0.0) -> void:
+	var reentre := etat_recu == int(etat) and t_etat + 0.05 < _t   # même état recommencé chez l'hôte
+	if etat_recu != int(etat) or reentre:
 		var nouvel := etat_recu as Etat
 		_changer(nouvel)
 		match nouvel:
@@ -447,10 +451,11 @@ func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: 
 			Etat.MORT:
 				remove_from_group("ennemis")
 		collision_layer = 0 if nouvel == Etat.APPARITION or nouvel == Etat.MORT else Combat.COUCHE_ENNEMIS
-		if nom_anim != "" and anim.has_animation(nom_anim):
-			_jouer(nom_anim, vitesse, 0.08, true)
+		if nom_anim != "" and anim.has_animation(nom_anim) and (reentre or anim.current_animation != nom_anim):
+			_jouer_cale(nom_anim, vitesse, t_etat)
 	elif nom_anim != "" and anim.current_animation != nom_anim and anim.has_animation(nom_anim):
-		_jouer(nom_anim, vitesse, 0.1)
+		_jouer_cale(nom_anim, vitesse, t_etat)
+	_t = t_etat
 	sante.definir_pv(pv)
 	if marque_recue and _marque_restant <= 0.0:
 		var vrai := marionnette
@@ -461,12 +466,23 @@ func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: 
 		_effacer_marque()
 
 
+## Joue une animation reçue de l'hôte, à l'endroit où elle en est chez lui.
+func _jouer_cale(nom: String, vitesse: float, t_etat: float) -> void:
+	_jouer(nom, vitesse, 0.06, true)
+	var duree := anim.get_animation(nom).length
+	var pos := t_etat * vitesse
+	if anim.get_animation(nom).loop_mode != Animation.LOOP_NONE:
+		pos = fmod(pos, duree)
+	anim.seek(clampf(pos, 0.0, maxf(duree - 0.01, 0.0)), true)
+
+
 ## Coop, invité : l'hôte signale un coup reçu (éclair blanc).
 func flash_coup() -> void:
 	Combat.flash(visuel)
 
 
 func _jouer(nom: String, vitesse := 1.0, fondu := 0.12, rejouer := false) -> void:
+	_vitesse_anim = vitesse
 	var deja := anim.current_animation == nom
 	anim.play(nom, fondu, vitesse)
 	if deja and rejouer:

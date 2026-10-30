@@ -68,7 +68,7 @@ func choisir_rejoindre() -> void:
 
 func rejoindre(adresse: String) -> void:
 	if adresse == "":
-		message.text = "Code invalide : c'est le nombre affiché sur l'écran de l'hôte (1 à 254)."
+		message.text = "Code invalide : c'est le nombre affiché sur l'écran de l'hôte (1 à 254),\nou son adresse complète."
 		return
 	var err := Reseau.rejoindre(adresse)
 	if err != OK:
@@ -78,7 +78,7 @@ func rejoindre(adresse: String) -> void:
 
 
 func rejoindre_par_code() -> void:
-	rejoindre(Reseau.adresse_depuis_code(int(champ_code.text)))
+	rejoindre(Reseau.adresse_depuis_saisie(champ_code.text))
 
 
 func lancer() -> void:
@@ -98,6 +98,9 @@ func _on_partie_trouvee(adresse: String, infos: Dictionary) -> void:
 		return
 	var heros_hote := StringName(infos.get("heros", ""))
 	var b := _bouton("Partie trouvée — l'hôte joue %s" % NOMS.get(heros_hote, "?"), 560)
+	if int(infos.get("v", -1)) != Reseau.VERSION_RESEAU:
+		b.text = "Partie trouvée, mais autre version du jeu"
+		b.disabled = true
 	b.pressed.connect(rejoindre.bind(adresse))
 	zone.add_child(b)
 	zone.move_child(b, 0)
@@ -170,11 +173,11 @@ func _afficher(v: Vue) -> void:
 			ligne.add_theme_constant_override("separation", 16)
 			champ_code = LineEdit.new()
 			champ_code.placeholder_text = "Code"
-			champ_code.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
-			champ_code.custom_minimum_size = Vector2(200, 90)
+			champ_code.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER_DECIMAL   # chiffres et point
+			champ_code.custom_minimum_size = Vector2(260, 90)
 			champ_code.add_theme_font_size_override("font_size", 40)
 			champ_code.alignment = HORIZONTAL_ALIGNMENT_CENTER
-			champ_code.max_length = 3
+			champ_code.max_length = 15
 			for etat in ["normal", "focus"]:
 				var st := StyleBoxFlat.new()
 				st.bg_color = Color("1a120d")

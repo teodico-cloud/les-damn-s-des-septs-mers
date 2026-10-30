@@ -35,6 +35,13 @@ var _infos_hote := {}
 
 
 func _ready() -> void:
+	# vérification au tout premier contact (avant tout message du jeu) : même version, place libre.
+	# Faite ici et non par un message du jeu : si deux versions n'ont pas les mêmes messages, Godot
+	# refuserait de les échanger et l'invité resterait bloqué sur « Connexion… ».
+	var sm := multiplayer as SceneMultiplayer
+	sm.auth_callback = _on_authentification
+	sm.auth_timeout = 4.0
+	sm.peer_authenticating.connect(_on_debut_authentification)
 	multiplayer.peer_connected.connect(_on_pair_connecte)
 	multiplayer.peer_disconnected.connect(_on_pair_deconnecte)
 	multiplayer.connected_to_server.connect(_on_connecte_a_l_hote)
@@ -58,7 +65,7 @@ func est_invite() -> bool:
 func heberger(heros: StringName) -> Error:
 	quitter()
 	var pair := ENetMultiplayerPeer.new()
-	var err := pair.create_server(PORT_JEU, 1)
+	var err := pair.create_server(PORT_JEU, 2)   # 2 : un 3e téléphone peut entrer juste le temps d'apprendre que c'est complet
 	if err != OK:
 		return err
 	multiplayer.multiplayer_peer = pair
@@ -66,9 +73,53 @@ func heberger(heros: StringName) -> Error:
 	_infos_hote = {"jeu": "damnes", "v": VERSION_RESEAU, "heros": String(heros), "code": code_local()}
 	_annonceur = PacketPeerUDP.new()
 	_annonceur.set_broadcast_enabled(true)
-	_annonceur.set_dest_address("255.255.255.255", PORT_ANNONCE)
 	_minuterie = 0.0
 	return OK
+
+
+# ---------------------------------------------------------------- premier contact
+func _on_debut_authentification(id: int) -> void:
+	var infos := {"v": VERSION_RESEAU}
+	if role == Role.HOTE:
+		infos["plein"] = id_partenaire != 0
+	(multiplayer as SceneMultiplayer).send_auth(id, var_to_bytes(infos))
+
+
+func _on_authentification(id: int, donnees: PackedByteArray) -> void:
+	var sm := multiplayer as SceneMultiplayer
+	var infos = bytes_to_var(donnees)
+	var version_ok: bool = infos is Dictionary and infos.get("v", -1) == VERSION_RESEAU
+	if role == Role.HOTE:
+		if version_ok and id_partenaire == 0:
+			sm.complete_auth(id)
+		else:   # l'autre côté lit notre réponse et affiche pourquoi ; on raccroche un peu après
+			get_tree().create_timer(1.0).timeout.connect(_raccrocher.bind(id))
+		return
+	if not version_ok:
+		_abandonner("Versions différentes : installez le même APK sur les deux téléphones.")
+	elif infos.get("plein", false):
+		_abandonner("Cette partie est déjà complète (deux joueurs).")
+	else:
+		sm.complete_auth(id)
+
+
+## Raccroche un téléphone refusé, s'il n'est pas déjà parti de lui-même.
+func _raccrocher(id: int) -> void:
+	var sm := multiplayer as SceneMultiplayer
+	if id in sm.get_authenticating_peers() or id in sm.get_peers():
+		sm.disconnect_peer(id)
+
+
+func _abandonner(raison: String) -> void:
+	quitter()
+	echec.emit(raison)
+
+
+## Une coupure (Wi-Fi perdu, téléphone éteint) est détectée en 3 à 5 s au lieu de 5 à 30 s.
+func _delai_court(id: int) -> void:
+	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
+	if enet and enet.get_peer(id):
+		enet.get_peer(id).set_timeout(32, 3000, 5000)
 
 
 func _on_pair_connecte(id: int) -> void:
@@ -78,6 +129,7 @@ func _on_pair_connecte(id: int) -> void:
 		(multiplayer.multiplayer_peer as ENetMultiplayerPeer).disconnect_peer(id)   # déjà deux joueurs
 		return
 	id_partenaire = id
+	_delai_court(id)
 	_arreter_annonce()
 
 
@@ -157,6 +209,7 @@ func _action(nom: StringName) -> void:
 func chercher() -> Error:
 	_arreter_recherche()
 	_ecouteur = PacketPeerUDP.new()
+	_ecouteur.set_broadcast_enabled(true)   # certains Android ne reçoivent les annonces qu'avec ceci
 	return _ecouteur.bind(PORT_ANNONCE)
 
 
@@ -174,6 +227,7 @@ func rejoindre(adresse: String) -> Error:
 
 func _on_connecte_a_l_hote() -> void:
 	id_partenaire = 1
+	_delai_court(1)
 	_bonjour.rpc_id(1, VERSION_RESEAU)
 
 
@@ -200,7 +254,12 @@ func _process(delta: float) -> void:
 		_minuterie -= delta
 		if _minuterie <= 0.0:
 			_minuterie = DELAI_ANNONCE
-			_annonceur.put_packet(JSON.stringify(_infos_hote).to_utf8_buffer())
+			var paquet := JSON.stringify(_infos_hote).to_utf8_buffer()
+			# à tout le monde, et à tout le sous-réseau du Wi-Fi (sinon, avec les données mobiles
+			# actives, certains téléphones envoient l'annonce du mauvais côté)
+			for dest in _destinations_annonce():
+				_annonceur.set_dest_address(dest, PORT_ANNONCE)
+				_annonceur.put_packet(paquet)
 	if _ecouteur:
 		while _ecouteur.get_available_packet_count() > 0:
 			var donnees := _ecouteur.get_packet()
@@ -234,21 +293,54 @@ func quitter() -> void:
 
 
 # ---------------------------------------------------------------- adresse et code
-## Adresse de ce téléphone sur le Wi-Fi (IPv4) : de préférence une adresse privée de box
-## (192.168…, 10…, 172.16 à 31…), sinon toute autre adresse IPv4 utilisable ; "" s'il n'y en a pas.
+## Adresse de ce téléphone sur le Wi-Fi (IPv4), "" s'il n'y en a pas. Choisie par interface : d'abord
+## le Wi-Fi ou le partage de connexion (wlan, swlan, ap…), jamais les données mobiles s'il y a mieux
+## (avec « données mobiles toujours actives », leur adresse 10.x peut être listée avant celle du Wi-Fi) ;
+## puis 192.168… avant 172.16-31… avant 10… avant le reste.
 func adresse_locale() -> String:
-	var autre := ""
-	for a in IP.get_local_addresses():
-		if a.count(".") != 3 or a.begins_with("127.") or a.begins_with("169.254."):
-			continue
-		if a.begins_with("192.168.") or a.begins_with("10.") or _est_172_prive(a):
-			return a
-		if autre == "":
-			autre = a
-	return autre
+	var meilleure := ""
+	var meilleur_score := -1
+	for interface in IP.get_local_interfaces():
+		var nom := String(interface.get("name", "")).to_lower()
+		for a in interface.get("addresses", []):
+			var score := _score_adresse(nom, String(a))
+			if score > meilleur_score:
+				meilleur_score = score
+				meilleure = a
+	return meilleure
 
 
-func _est_172_prive(a: String) -> bool:
+static func _score_adresse(interface: String, a: String) -> int:
+	if a.count(".") != 3 or a.begins_with("127.") or a.begins_with("169.254."):
+		return -1
+	var score := 0
+	if a.begins_with("192.168."):
+		score += 30
+	elif _est_172_prive(a):
+		score += 20
+	elif a.begins_with("10."):
+		score += 10
+	for wifi in ["wlan", "swlan", "ap", "wifi", "wl", "eth", "en"]:
+		if interface.begins_with(wifi):
+			score += 100
+			break
+	for mobile in ["rmnet", "ccmni", "pdp", "rev_rmnet", "v4-rmnet", "clat", "tun"]:
+		if interface.begins_with(mobile):
+			score -= 100
+			break
+	return maxi(score, 0)
+
+
+func _destinations_annonce() -> PackedStringArray:
+	var dest := PackedStringArray(["255.255.255.255"])
+	var a := adresse_locale()
+	if a != "":
+		var b := a.split(".")
+		dest.append("%s.%s.%s.255" % [b[0], b[1], b[2]])
+	return dest
+
+
+static func _est_172_prive(a: String) -> bool:
 	if not a.begins_with("172."):
 		return false
 	var b := a.split(".")
@@ -259,6 +351,14 @@ func _est_172_prive(a: String) -> bool:
 func code_local() -> int:
 	var a := adresse_locale()
 	return int(a.split(".")[3]) if a != "" else 0
+
+
+## Ce que l'invité a tapé : soit le code (1 à 254), soit l'adresse complète de l'hôte (192.168.1.42).
+func adresse_depuis_saisie(texte: String) -> String:
+	texte = texte.strip_edges()
+	if texte.count(".") == 3 and texte.is_valid_ip_address():
+		return texte
+	return adresse_depuis_code(int(texte)) if texte.is_valid_int() else ""
 
 
 ## Adresse de l'hôte à partir de son code, en supposant le même réseau (même début d'adresse).

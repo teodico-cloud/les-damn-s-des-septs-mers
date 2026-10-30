@@ -222,3 +222,33 @@ func test_les_deux_a_terre_retour_au_depart() -> void:
 	assert_eq(a.sante.pv, EQ.heros_pv_max, "Retour au départ avec tous ses PV")
 	assert_almost_eq(a.global_position.x, -1.0, 0.1, "À son point de départ")
 	assert_almost_eq(b.global_position.x, 1.0, 0.1)
+
+
+# ---------------------------------------------------------------- instantanés (relecture du jalon 2)
+func test_instantane_n_envoie_pas_la_vitesse_figee_par_l_arret_sur_image() -> void:
+	var e := Ennemi.creer(true)
+	monde.add_child(e)
+	var h := Bretteur.new()
+	monde.add_child(h)
+	await wait_physics_frames(2)
+	e._jouer("Hit_A", 1.4, 0.0, true)
+	h._jouer("Hit_A", 1.3, 0.0, true)
+	e.anim.speed_scale = 0.0   # arrêt sur image local de l'hôte au moment de l'instantané
+	h.anim.speed_scale = 0.0
+	assert_almost_eq(float(e.instantane()[4]), 1.4, 0.01, "Squelette : la vitesse voulue, pas 0")
+	assert_almost_eq(float(h.instantane()[4]), 1.3, 0.01, "Héros : la vitesse voulue, pas 0")
+
+
+func test_marionnette_calee_sur_le_temps_de_l_hote() -> void:
+	var e := Ennemi.creer(true)
+	e.marionnette = true
+	monde.add_child(e)
+	await wait_physics_frames(2)
+	# l'hôte annonce un coup commencé il y a 0,5 s : la zone doit être déjà remplie aux 5/7
+	e.appliquer_instantane(Ennemi.Etat.PREPARATION, "1H_Melee_Attack_Chop", 0.84, 60.0, false, 0.5)
+	await wait_physics_frames(1)
+	assert_almost_eq(e._remplissage.scale.x, 0.5 / EQ.squelette_preparation, 0.08, "Remplissage calé sur l'hôte")
+	assert_almost_eq(e.anim.current_animation_position, 0.5 * 0.84, 0.08, "Animation calée sur l'hôte")
+	# même état ré-entré chez l'hôte (temps qui repart de 0) : l'animation repart aussi
+	e.appliquer_instantane(Ennemi.Etat.PREPARATION, "1H_Melee_Attack_Chop", 0.84, 60.0, false, 0.0)
+	assert_lt(e.anim.current_animation_position, 0.1, "Annonce relancée")

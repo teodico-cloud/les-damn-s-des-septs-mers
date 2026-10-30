@@ -35,6 +35,7 @@ var reapparition_auto := true
 ## Coop : progression de la réanimation (0 à 1) quand ce héros est à terre.
 var progres_reanimation := 0.0
 var _zone_reanimation: Node3D
+var _vitesse_anim := 1.0     ## vitesse demandée (pas celle figée un instant par l'arrêt sur image)
 
 var _t := 0.0               ## temps passé dans l'état courant
 var _direction := Vector3.BACK   ## direction de l'action en cours
@@ -331,20 +332,25 @@ func temps_avant_reapparition() -> float:
 ## Ce que l'hôte envoie de ce héros à chaque instantané (voir SynchroArene).
 func instantane() -> Array:
 	var nom_anim := String(anim.current_animation)
-	return [global_position, rotation.y, int(etat), nom_anim, anim.get_playing_speed(), sante.pv, visuel.visible,
-			progres_reanimation]
+	return [global_position, rotation.y, int(etat), nom_anim, _vitesse_anim, sante.pv, visuel.visible,
+			progres_reanimation, _t]
 
 
 ## Marionnette : applique ce que l'hôte a envoyé (la position est posée à part, lissée).
-func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: float, visible_recu: bool, progres := 0.0) -> void:
+func appliquer_instantane(etat_recu: int, nom_anim: String, vitesse: float, pv: float, visible_recu: bool,
+		progres := 0.0, t_etat := 0.0) -> void:
 	afficher_reanimation(progres, etat_recu == int(Etat.MORT))
-	if etat_recu != int(etat):
-		etat = etat_recu as Etat
-		_t = 0.0
-		if nom_anim != "" and anim.has_animation(nom_anim):
-			_jouer(nom_anim, vitesse, 0.08, true)
-	elif nom_anim != "" and anim.current_animation != nom_anim and anim.has_animation(nom_anim):
-		_jouer(nom_anim, vitesse, 0.1)
+	var reentre := etat_recu == int(etat) and t_etat + 0.05 < _t   # même état recommencé chez l'hôte
+	var nouvel_etat := etat_recu != int(etat) or reentre
+	etat = etat_recu as Etat
+	if nom_anim != "" and anim.has_animation(nom_anim) and (anim.current_animation != nom_anim or reentre):
+		_jouer(nom_anim, vitesse, 0.08 if nouvel_etat else 0.1, true)
+		var duree := anim.get_animation(nom_anim).length
+		var pos := t_etat * vitesse
+		if anim.get_animation(nom_anim).loop_mode != Animation.LOOP_NONE:
+			pos = fmod(pos, duree)
+		anim.seek(clampf(pos, 0.0, maxf(duree - 0.01, 0.0)), true)
+	_t = t_etat
 	sante.definir_pv(pv)
 	if visible_recu != visuel.visible:
 		visuel.visible = visible_recu
@@ -455,6 +461,7 @@ func ajouter_anneau(couleur: Color) -> void:
 ## Joue une animation en fondu depuis la pose actuelle ; `rejouer` la reprend au début si c'est
 ## déjà celle-ci. (Ne pas appeler anim.stop() avant : le fondu partirait de rien et la pose sauterait.)
 func _jouer(nom: String, vitesse := 1.0, fondu := 0.12, rejouer := false) -> void:
+	_vitesse_anim = vitesse
 	var deja := anim.current_animation == nom
 	anim.play(nom, fondu, vitesse)
 	if deja and rejouer:

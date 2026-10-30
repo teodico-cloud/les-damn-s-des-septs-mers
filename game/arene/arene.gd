@@ -67,6 +67,7 @@ func _ready() -> void:
 	generateur.demi_cote = DEMI_COTE - 1.4
 	if coop:
 		generateur.nombre = EQ.arene_nb_ennemis_coop if hote else 0   # chez l'invité : marionnettes seulement
+		generateur.demarrage_auto = false   # l'hôte attend que l'arène de l'invité soit ouverte
 	else:
 		generateur.nombre = EQ.arene_nb_ennemis
 	add_child(generateur)
@@ -81,6 +82,8 @@ func _ready() -> void:
 		synchro.name = "Synchro"
 		synchro.configurer(self, heros, heros_partenaire, generateur)
 		add_child(synchro)
+		synchro.connexion_instable.connect(func(oui: bool):
+			hud.alerte("Connexion instable… (vérifie le Wi-Fi des deux téléphones)" if oui else ""))
 		Reseau.partenaire_parti.connect(_on_partenaire_parti)
 
 	hud = HudCombat.new()
@@ -125,6 +128,8 @@ func _on_partenaire_parti(raison: String) -> void:
 		hud.regles = null
 		heros.reapparition_auto = true   # seul : il réapparaît de nouveau tout seul
 		effets.en_coop = false
+		generateur.nombre = EQ.arene_nb_ennemis   # seul : 2 squelettes (les suivants ne sont plus remplacés)
+		generateur.demarrer()
 		hud.afficher_message(raison + "\nTu continues seul.", 4.0)
 		Reseau.quitter()
 		Partie.revenir_en_solo()

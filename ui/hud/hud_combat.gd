@@ -21,6 +21,7 @@ var barre_vie: Control
 var label_mort: Label
 var label_message: Label
 var label_partenaire: Label
+var label_alerte: Label
 var _les_deux_a_terre_depuis := -1.0
 var bouton_menu: Button
 var _boutons: Array[BoutonAction] = []
@@ -91,6 +92,12 @@ func _ready() -> void:
 	label_partenaire.position.y = 80
 	label_partenaire.text = "Ton partenaire est à terre : reste près de lui pour le relever !"
 	racine.add_child(label_partenaire)
+
+	label_alerte = label_partenaire.duplicate() as Label
+	label_alerte.add_theme_color_override("font_color", Color(1.0, 0.75, 0.3))
+	label_alerte.position.y = 130
+	label_alerte.visible = false
+	racine.add_child(label_alerte)
 
 	label_message = label_mort.duplicate() as Label
 	label_message.add_theme_color_override("font_color", Color("e2d6ba"))
@@ -174,6 +181,12 @@ func _input(event: InputEvent) -> void:
 		if joystick.actif and joystick.doigt == event.index:
 			joystick.deplacer(event.position)
 			get_viewport().set_input_as_handled()
+
+
+## Alerte qui reste affichée tant qu'elle n'est pas retirée (texte vide) : connexion instable…
+func alerte(texte: String) -> void:
+	label_alerte.text = texte
+	label_alerte.visible = texte != ""
 
 
 ## Message au centre de l'écran pendant `duree` secondes (partenaire parti…).

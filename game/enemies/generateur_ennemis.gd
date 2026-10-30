@@ -10,6 +10,8 @@ const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 
 @export var demi_cote := 5.0   ## zone d'apparition : carré de ce demi-côté autour de l'origine
 var nombre := 2                ## ennemis à garder en vie (fixé par l'arène avant add_child)
+var demarrage_auto := true     ## faux en coop chez l'hôte : on attend que l'invité soit prêt
+var demarre := false
 
 var vaincus := 0
 var _compteur := 0
@@ -18,8 +20,26 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	_rng.randomize()
+	if demarrage_auto:
+		demarrer()
+
+
+## Fait sortir de terre les premiers ennemis (une seule fois).
+func demarrer() -> void:
+	if demarre:
+		return
+	demarre = true
 	for i in nombre:
 		_faire_apparaitre()
+
+
+## Ennemis encore debout (ou en train de sortir de terre).
+func vivants() -> int:
+	var n := 0
+	for e in get_children():
+		if e is Ennemi and e.etat != Ennemi.Etat.MORT and not e.is_queued_for_deletion():
+			n += 1
+	return n
 
 
 func _faire_apparaitre() -> void:
@@ -59,4 +79,10 @@ func _on_vaincu(_e: Ennemi) -> void:
 	vaincus += 1
 	# branché sur le générateur lui-même : si on quitte l'arène avant la fin du délai, le lien
 	# disparaît avec lui (un « await » reprendrait sur un objet détruit)
-	get_tree().create_timer(EQ.arene_delai_apparition).timeout.connect(_faire_apparaitre)
+	get_tree().create_timer(EQ.arene_delai_apparition).timeout.connect(_remplacer)
+
+
+## Un ennemi est tombé : un autre sort de terre, sauf s'il y en a déjà assez (ex. l'hôte continue seul).
+func _remplacer() -> void:
+	if vivants() < nombre:
+		_faire_apparaitre()

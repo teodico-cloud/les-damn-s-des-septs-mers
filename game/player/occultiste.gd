@@ -205,6 +205,7 @@ func _etat_incantation() -> void:
 
 func _enchainer() -> void:
 	EffetsMagie.cercle(get_parent(), _point_sort, EQ.occ_chaines_rayon, 0.8)
+	EventBus.effet_visuel.emit(self, "cercle_chaines", _point_sort)
 	var centre := _point_sort + Vector3.UP
 	for cible in Combat.cibles_dans_sphere(get_world_3d(), centre, EQ.occ_chaines_rayon, Combat.COUCHE_ENNEMIS, [self]):
 		if cible.has_method("immobiliser"):
