@@ -29,12 +29,14 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 
 ## Arborescence actuelle
 - `project.godot`, `export_presets.cfg` (Android arm64, paquet `fr.teodico.damnes`), `icon.svg`.
-- `ui/screens/` : écrans (écran titre `demarrage.tscn` = scène principale ; `choix_heros.tscn` avant l'arène ;
-  `coop.tscn` « Jouer à deux » : héberger / rejoindre, parties trouvées sur le Wi-Fi, code de secours).
+- `ui/screens/` : écrans (écran titre `demarrage.tscn` = scène principale, avec « Mode test » : santé infinie,
+  salle de départ ; `choix_heros.tscn` avant l'arène ou l'expédition ; `coop.tscn` « Jouer à deux » :
+  héberger / rejoindre, parties trouvées sur le Wi-Fi, code de secours, lancer l'expédition ou l'arène).
 - `game/vitrine/` : vitrine des héros (jalon 0) : héros, salle, actions au toucher, compteur d'images.
 - Combat (jalon 1) :
   - `autoload/event_bus.gd` : signaux globaux (`coup_porte`, `ennemi_vaincu`, `heros_mort`, `heros_reapparu`).
-  - `autoload/partie.gd` : état de la partie partagé entre écrans (héros choisi, mode solo / hôte / invité).
+  - `autoload/partie.gd` : état de la partie partagé entre écrans (héros choisi, mode solo / hôte / invité,
+    destination arène / expédition, réglages du mode test).
   - `autoload/reseau.gd` (Reseau) : session de coop (ENet, port 34778 ; annonces UDP 34779 ; code = dernier
     nombre de l'adresse de l'hôte). Les messages de l'invité pendant le combat passent par lui.
   - `data/equilibrage.tres` (+ `core/resources/equilibrage.gd`) : **toutes** les valeurs de réglage du combat.
@@ -48,8 +50,15 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
     le joueur demande : seule entrée du héros, pour que le réseau puisse la remplir plus tard).
   - `game/enemies/` : `Ennemi` (Matelot squelette), `GenerateurEnnemis` (horde : groupes de 2 à 4, les
     manquants ressortent ensemble).
-  - `game/arene/` : arène d'entraînement, tout construit par code ; `regles_coop.gd` (hôte) : réanimation
-    du partenaire, retour au départ si les deux tombent.
+  - `game/arene/` : arène d'entraînement (`Arene`), tout construit par code, en étapes que l'expédition
+    remplace (lieu, départ, horde) ; orbes de vie ; `regles_coop.gd` (hôte) : réanimation du partenaire,
+    retour au départ si les deux tombent (en expédition : défaite).
+- Expédition (jalon 3) : `game/expedition/`
+  - `expedition.gd` (`Expedition extends Arene`) : salle en cours, portes, coffre, chaloupe, défaite, fin ;
+    l'hôte décide et envoie chaque événement à l'invité (`SynchroArene.envoyer_lieu` → `evenement_lieu`).
+  - `plan_expedition.gd` : règles de la suite des salles (graine) ; `salles.gd` : les salles faites main
+    (données) ; `salle.gd` : construction d'une salle ; `porte.gd` ; `chaloupe.gd` (barque faite par code).
+  - `assets/ui/portes/*.svg` : icônes des portes (combat, trésor, Bosco, chaloupe).
   - `game/reseau/synchro_arene.gd` (nœud « Synchro » de l'arène) : l'hôte simule tout et envoie 30
     instantanés/s + les événements ; l'invité prédit son héros et affiche le reste en « marionnettes »
     (`marionnette = true` sur Heros et Ennemi : affichés d'après l'hôte, sans règles).
@@ -83,12 +92,15 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   `xvfb-run -a godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720 -s "$PWD/tools/capture_combat.gd" -- build/apercus`
   (même chose pour l'Occultiste : `tools/capture_occultiste.gd` ; écran « Jouer à deux » : `tools/capture_coop_ecrans.gd` ;
   horde, coup critique, os qui volent et traînées du sabre : `tools/capture_horde.gd` ; zone rouge puis
-  dorée et parade parfaite : `tools/capture_parade.gd`)
+  dorée et parade parfaite : `tools/capture_parade.gd` ; expédition (titre, salles, portes, trésor,
+  chaloupe, fin) : `tools/capture_expedition.gd` ; chaque salle seule, vue de jeu et de dessus :
+  `tools/capture_salles.gd [modèle]`)
 - Essai de la coop (hôte + invité sur cette machine, vérifications automatiques, aussi dans le CI) :
   `GODOT=<godot> tools/test_coop.sh [127.0.0.1|auto]` ; Wi-Fi imparfait simulé : préfixer
   `LATENCE_MS=30 GIGUE_MS=20 PERTE_PCT=3` ; captures des deux écrans : ajouter
   `CAPTURE_DIR=$PWD/build/apercus AFFICHAGE="xvfb-run -a" OPTIONS_RENDU="--rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720"`
-  (avec le rendu, le jeu tourne ici plus lentement que le temps réel : distances plus courtes, c'est normal)
+  (avec le rendu, le jeu tourne ici plus lentement que le temps réel : distances plus courtes, c'est normal) ;
+  l'expédition à deux : préfixer `DESTINATION=expedition`
 - Suivre la fabrication de l'APK : `gh api repos/teodico-cloud/les-damn-s-des-septs-mers/actions/runs`
 - Diagnostics d'une fabrication (les journaux bruts ne sont pas lisibles d'ici, le workflow écrit ses
   diagnostics en annotations) : `gh api repos/teodico-cloud/les-damn-s-des-septs-mers/check-runs/<id du job>/annotations`
@@ -177,6 +189,17 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   à rien (le ralenti finit en temps réel) ; capturer à la toute première image après l'effet.
 - GUT : le 4e argument de `assert_signal_emitted_with_parameters` est le numéro de l'émission, pas un
   message (un texte y provoque une erreur) ; vérifier avec `get_signal_parameters` à la place.
+- Expédition : toutes les salles ont la même taille et les mêmes emplacements (entrée en bas à droite,
+  portes au fond en x = 1,6 et à gauche en z = -1,6). Vérifier un nouveau modèle de salle avec
+  `tools/capture_salles.gd` (vue de dessus) : passage libre de l'entrée aux deux portes, apparitions
+  loin de l'entrée (test). Les dalles « small » font 1,6 m : elles laissent des trous sur la grille de 3,2 m.
+- Expédition, coop : un message du lieu peut arriver pendant le fondu au noir de l'invité ; il porte le
+  n° de salle et s'applique quand cette salle est construite (`_portes_ouvertes_pour`…). Changement de
+  salle : l'invité oublie ses prédictions (`SynchroArene.oublier_predictions`) et les marionnettes qui
+  sautent de plus de 3 m sont posées sans glisser (`SAUT_TELEPORTATION`).
+- Expédition, tests : `Arene.chance_orbe` impose la chance d'orbe (0 dans les tests qui comptent les PV) ;
+  le Menu de l'expédition se confirme (2 appuis) ; un test qui appuie sur Menu doit débrancher
+  `retour_menu` (sinon GUT changerait de scène).
 - Recul des squelettes : la valeur de `equilibrage.tres` est une distance en mètres ; la vitesse de départ
   est `sqrt(2 × freinage × distance)`.
 - Coop : un message envoyé à un nœud que l'autre téléphone n'a pas encore (arène pas encore ouverte)

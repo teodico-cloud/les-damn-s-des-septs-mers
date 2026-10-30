@@ -54,13 +54,13 @@ func _ready() -> void:
 	nom.position = Vector3(0, 2.75, 0.6)
 	add_child(nom)
 	_compteur = Label3D.new()
-	_compteur.font_size = 44
-	_compteur.outline_size = 12
+	_compteur.font_size = 72
+	_compteur.outline_size = 16
 	_compteur.pixel_size = 0.006
 	_compteur.modulate = Color("6cffa0")
 	_compteur.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_compteur.no_depth_test = true
-	_compteur.position = Vector3(0, 1.4, 1.2)
+	_compteur.position = Vector3(0, 2.3, 1.3)   # au-dessus de la tête du héros qui attend
 	add_child(_compteur)
 	_lueur = OmniLight3D.new()
 	_lueur.light_color = Color(1.0, 0.75, 0.4)

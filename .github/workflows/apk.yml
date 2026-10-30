@@ -102,9 +102,11 @@ jobs:
           ECHEC=0
           GODOT=~/godot/godot tools/test_coop.sh > coop.txt 2>&1 || ECHEC=1
           LATENCE_MS=30 GIGUE_MS=20 PERTE_PCT=3 GODOT=~/godot/godot tools/test_coop.sh > coop_wifi_moyen.txt 2>&1 || ECHEC=1
-          cat coop.txt coop_wifi_moyen.txt
+          # l'expédition à deux : salle nettoyée, porte prise à deux, salle suivante, écran de fin
+          DESTINATION=expedition LATENCE_MS=30 GIGUE_MS=20 PERTE_PCT=3 GODOT=~/godot/godot tools/test_coop.sh > coop_expedition.txt 2>&1 || ECHEC=1
+          cat coop.txt coop_wifi_moyen.txt coop_expedition.txt
           if [ "$ECHEC" = 1 ]; then
-            grep -hE "ECHEC" coop.txt coop_wifi_moyen.txt > erreurs_coop.txt || true
+            grep -hE "ECHEC" coop.txt coop_wifi_moyen.txt coop_expedition.txt > erreurs_coop.txt || true
             while read -r l; do echo "::error::$l"; done < erreurs_coop.txt
             echo "::error::Essai de la coop en échec"
             exit 1

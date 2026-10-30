@@ -128,7 +128,7 @@ func _mode_test() -> void:
 	bouton_sante = _bouton("")
 	bouton_depart = _bouton("")
 	for b in [bouton_sante, bouton_depart]:
-		b.custom_minimum_size = Vector2(440, 64)
+		b.custom_minimum_size = Vector2(340, 64)   # (étroits : à côté des boutons du milieu, pas dessus)
 		b.add_theme_font_size_override("font_size", 24)
 		panneau_test.add_child(b)
 	bouton_sante.pressed.connect(func():
@@ -148,7 +148,7 @@ func _mode_test() -> void:
 
 func _textes_test() -> void:
 	bouton_sante.text = "Santé infinie : %s" % ("oui" if Partie.debug_sante_infinie else "non")
-	bouton_depart.text = "Expédition : départ %s" % NOMS_DEPARTS.get(Partie.debug_depart, "?")
+	bouton_depart.text = "Départ : %s" % NOMS_DEPARTS.get(Partie.debug_depart, "?")
 	var actif := Partie.debug_sante_infinie or Partie.debug_depart != &""
 	label_test.text = "MODE TEST actif" if actif else ""
 

@@ -3,11 +3,13 @@ extends SceneTree
 ## Usage : godot --headless --path . -s <chemin absolu>/tools/test_coop.gd -- hote
 ##         godot --headless --path . -s <chemin absolu>/tools/test_coop.gd -- invite 127.0.0.1
 ## L'hôte joue le Bretteur (ou HEROS_HOTE=occultiste) ; l'invité prend l'autre héros, se déplace puis attaque.
+## DESTINATION=expedition : l'expédition à deux (salle nettoyée, porte prise à deux, salle suivante, fin).
 ## Chacun écrit ce qu'il voit (lignes « MESURE … ») et vérifie ce qui doit l'être (lignes « VERIF »,
 ## « ECHEC ») ; le script shell échoue si une vérification échoue.
 ## Ne pas typer avec les classes du jeu (voir CLAUDE.md, pièges).
 
 var role := ""
+var destination: StringName = &"arene"
 var reseau: Node
 var partie: Node
 var arene: Node
@@ -71,6 +73,7 @@ func _derouler(args: PackedStringArray) -> void:
 	reseau.perte_simulee = float(OS.get_environment("PERTE_PCT")) / 100.0 if OS.has_environment("PERTE_PCT") else 0.0
 	if reseau.latence_simulee > 0.0 or reseau.perte_simulee > 0.0:
 		print("MESURE %s reseau_simule latence=%.0fms gigue=%.0fms perte=%.0f%%" % [role, reseau.latence_simulee * 1000.0, reseau.gigue_simulee * 1000.0, reseau.perte_simulee * 100.0])
+	destination = StringName(OS.get_environment("DESTINATION")) if OS.has_environment("DESTINATION") else &"arene"
 	if role == "hote":
 		partie.heros_local = StringName(OS.get_environment("HEROS_HOTE")) if OS.has_environment("HEROS_HOTE") else &"bretteur"
 		partie.mode = 1   # HOTE
@@ -80,7 +83,7 @@ func _derouler(args: PackedStringArray) -> void:
 			return _echec("personne ne s'est connecté")
 		print("MESURE hote connecte partenaire=%s" % reseau.heros_partenaire)
 		await _attendre(0.5)
-		reseau.lancer_combat()
+		reseau.lancer_combat(destination)
 	else:
 		partie.mode = 2   # INVITE
 		var adresse := args[1] if args.size() > 1 else "127.0.0.1"
@@ -103,11 +106,15 @@ func _derouler(args: PackedStringArray) -> void:
 		print("MESURE invite connecte heros=%s partenaire=%s" % [partie.heros_local, reseau.heros_partenaire])
 		if not await _attendre_signal(reseau.combat_lance, 20.0):
 			return _echec("combat jamais lancé")
-	change_scene_to_file("res://game/arene/arene.tscn")
+	if role == "invite":
+		_verifier(partie.destination == destination, "l'hôte a lancé « %s »" % destination)
+	change_scene_to_file(partie.scene_destination())
 	await _attendre(1.0)
 	arene = current_scene
 	if arene == null:
 		return _echec("arène non chargée")
+	if destination == &"expedition":
+		arene.hud.menu_demande.disconnect(arene.retour_menu)
 	arene.hud.set_process(false)   # sinon l'interface remet le joystick à zéro à chaque image
 	if role == "invite":
 		var fin := Time.get_ticks_msec() + 10000
@@ -117,7 +124,12 @@ func _derouler(args: PackedStringArray) -> void:
 			return _echec("aucun instantané reçu de l'hôte")
 	root.get_node("EventBus").coup_porte.connect(func(_p, _d, _l, _h, _c, _s, _k): coups_recus += 1)
 	t0 = Time.get_ticks_msec() / 1000.0
-	if role == "hote":
+	if destination == &"expedition":
+		if role == "hote":
+			await _hote_expedition()
+		else:
+			await _invite_expedition()
+	elif role == "hote":
 		await _hote()
 	else:
 		await _invite()
@@ -278,6 +290,93 @@ func _invite() -> void:
 	print("MESURE invite fin coups_affiches=%d pos_locale=%s" % [coups_recus, _p(h)])
 	_verifier(coups_recus >= 1, "les coups décidés par l'hôte s'affichent chez l'invité (%d)" % coups_recus)
 	_comparer_avec_l_hote(h)
+
+
+# ================================================================ expédition à deux
+func _vider_salle() -> bool:
+	for tour in 80:
+		for e in arene.generateur.get_children():
+			if e.etat != 7:
+				e.sante.subir(9999.0, arene.heros)
+		if arene.generateur.reserve == 0 and arene.generateur.vivants() == 0:
+			return true
+		await _attendre(0.25)
+	return false
+
+
+func _hote_expedition() -> void:
+	# L'hôte : attend l'invité, nettoie la salle 1 (orbes forcées), se place seul devant une porte (rien
+	# ne doit se passer), place ensuite le héros de l'invité devant la même porte (salle suivante),
+	# puis termine l'expédition (l'invité doit voir l'écran de fin).
+	arene.heros.sante.rendre_invulnerable(100.0)
+	arene.heros_partenaire.sante.rendre_invulnerable(100.0)
+	var fin := Time.get_ticks_msec() + 10000
+	while not arene.synchro._invite_pret and Time.get_ticks_msec() < fin:
+		await process_frame
+	_verifier(arene.synchro._invite_pret, "l'invité a ouvert l'expédition")
+	print("MESURE hote salle 1 modele=%s portes=%s" % [arene.modele, arene.types_portes])
+	await _attendre(1.5)
+	load("res://game/arene/arene.gd").chance_orbe = 1.0
+	_verifier(await _vider_salle(), "salle 1 nettoyée")
+	load("res://game/arene/arene.gd").chance_orbe = 0.0
+	await _attendre(0.5)
+	_verifier(arene.salle.portes[0].ouverte, "portes ouvertes")
+	var porte = arene.salle.portes[0]
+	var type_porte: StringName = porte.type   # (la porte disparaît avec la salle)
+	arene.heros.global_position = porte.devant()
+	await _attendre(1.0)
+	await _capture("exp_coop_hote_porte.png")
+	await _attendre(1.0)
+	_verifier(arene.numero == 1, "seul devant la porte : on attend le partenaire")
+	arene.heros_partenaire.global_position = porte.devant() + Vector3(0.6, 0, 0.3)
+	fin = Time.get_ticks_msec() + 5000
+	while arene.numero == 1 and Time.get_ticks_msec() < fin:
+		await process_frame
+	_verifier(arene.numero == 2 and arene.type_salle == type_porte, "les deux devant : salle suivante (%s)" % arene.type_salle)
+	print("MESURE hote salle 2 modele=%s type=%s" % [arene.modele, arene.type_salle])
+	await _attendre(3.0)
+	arene._terminer(true)
+	await _attendre(2.0)
+
+
+func _invite_expedition() -> void:
+	var h = arene.heros
+	var fin := Time.get_ticks_msec() + 10000
+	while arene.salle == null and Time.get_ticks_msec() < fin:
+		await process_frame
+	_verifier(arene.salle != null and arene.numero == 1, "première salle reçue de l'hôte")
+	if arene.salle == null:
+		return
+	print("MESURE invite salle 1 modele=%s portes=%s" % [arene.modele, arene.types_portes])
+	var vu_portes := false
+	var vu_attente := false
+	var vu_orbe := false
+	fin = Time.get_ticks_msec() + 30000
+	while arene.numero == 1 and Time.get_ticks_msec() < fin:
+		await physics_frame
+		if arene.salle and not arene.salle.portes.is_empty():
+			vu_portes = vu_portes or arene.salle.portes[0].ouverte
+			if not vu_attente and arene.salle.portes[0]._compteur.text == "1/2":
+				vu_attente = true
+				await _capture("exp_coop_invite_porte.png")
+		vu_orbe = vu_orbe or arene.orbes.get_child_count() > 0
+	_verifier(vu_orbe, "orbes de vie posées par l'hôte, vues chez nous")
+	_verifier(vu_portes, "portes ouvertes chez nous quand la salle est nettoyée")
+	_verifier(vu_attente, "« 1/2 » au-dessus de la porte quand l'hôte attend devant")
+	_verifier(arene.numero == 2, "salle suivante reçue")
+	print("MESURE invite salle 2 modele=%s type=%s" % [arene.modele, arene.type_salle])
+	await _attendre(1.5)
+	var entree: Vector3 = load("res://game/expedition/salles.gd").ENTREE_INVITE
+	var d := Vector2(h.global_position.x - entree.x, h.global_position.z - entree.z).length()
+	_verifier(d < 1.0, "notre héros entre dans la nouvelle salle (à %.2f m de l'entrée)" % d)
+	var p = arene.heros_partenaire
+	var entree_hote: Vector3 = load("res://game/expedition/salles.gd").ENTREE_HOTE
+	var dp := Vector2(p.global_position.x - entree_hote.x, p.global_position.z - entree_hote.z).length()
+	_verifier(dp < 1.0, "le héros de l'hôte aussi (à %.2f m)" % dp)
+	fin = Time.get_ticks_msec() + 8000
+	while not arene.finie and Time.get_ticks_msec() < fin:
+		await process_frame
+	_verifier(arene.finie and arene.reussite and arene.hud.panneau_fin != null, "écran de fin reçu de l'hôte")
 
 
 ## Compare ce que l'invité affiche avec le dernier instantané reçu de l'hôte.

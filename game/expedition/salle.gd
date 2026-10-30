@@ -161,11 +161,11 @@ func _quai(pos: Vector3) -> void:
 	plan.size = Vector2(PAS + 0.4, DEMI * 2 + 6.4)
 	eau.mesh = plan
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.015, 0.05, 0.07)
-	mat.metallic = 0.6
-	mat.roughness = 0.12
+	mat.albedo_color = Color(0.04, 0.16, 0.2)
+	mat.metallic = 0.5
+	mat.roughness = 0.15
 	mat.emission_enabled = true
-	mat.emission = Color(0.0, 0.035, 0.04)
+	mat.emission = Color(0.01, 0.07, 0.09)
 	eau.material_override = mat
 	eau.position = Vector3(-DEMI + PAS * 0.5, -0.45, 3.2)
 	add_child(eau)
@@ -173,6 +173,36 @@ func _quai(pos: Vector3) -> void:
 	chaloupe.position = pos + Vector3(0, -0.2, 0)
 	add_child(chaloupe)
 	zone_chaloupe = Vector3(-DEMI + PAS + 1.0, 0, pos.z)
+	# repère sur le quai : un cercle vert qui palpite, et le mot « Chaloupe »
+	var anneau := MeshInstance3D.new()
+	var tore := TorusMesh.new()
+	tore.inner_radius = Expedition.EQ.exp_rayon_chaloupe - 0.25
+	tore.outer_radius = Expedition.EQ.exp_rayon_chaloupe
+	tore.rings = 40
+	tore.ring_segments = 6
+	anneau.mesh = tore
+	var mat_anneau := StandardMaterial3D.new()
+	mat_anneau.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat_anneau.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat_anneau.albedo_color = Color(0.4, 1.0, 0.6, 0.6)
+	anneau.material_override = mat_anneau
+	anneau.scale = Vector3(1, 0.1, 1)
+	anneau.position = zone_chaloupe + Vector3.UP * 0.08
+	anneau.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(anneau)
+	var t := anneau.create_tween().set_loops()
+	t.tween_property(mat_anneau, "albedo_color:a", 0.25, 0.8)
+	t.tween_property(mat_anneau, "albedo_color:a", 0.6, 0.8)
+	var mot := Label3D.new()
+	mot.text = "Chaloupe"
+	mot.font_size = 44
+	mot.outline_size = 12
+	mot.pixel_size = 0.006
+	mot.modulate = Color("6cffa0")
+	mot.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	mot.no_depth_test = true
+	mot.position = zone_chaloupe + Vector3.UP * 1.6
+	add_child(mot)
 
 
 func _objet(nom: String, pos: Vector3, rot_y: float) -> Node3D:

@@ -271,6 +271,7 @@ func afficher_resultats(reussite: bool, lignes: Array) -> void:
 		return
 	relacher_tout()
 	label_mort.visible = false
+	label_message.visible = false
 	var fond := ColorRect.new()
 	fond.color = Color(0.02, 0.03, 0.04, 0.0)
 	fond.set_anchors_preset(Control.PRESET_FULL_RECT)

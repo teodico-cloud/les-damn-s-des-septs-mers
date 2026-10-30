@@ -12,6 +12,10 @@ Dernière mise à jour : 30 octobre 2026.
   automatiques + essai à deux copies du jeu (Wi-Fi parfait, moyen et mauvais simulés).
 - **30/10 : combat « nerveux » (façon Diablo)** demandé par Téo, sur la branche `jalon-2-nervosite` puis
   main : héros plus vif, hordes, coups qui claquent, coups critiques. 100 tests ; essai coop réussi.
+- **Jalon 2 clos (30/10)** : coop validée par Téo sur deux téléphones ; relecture des ajouts corrigée
+  (APK 0.2.10).
+- **Jalon 3, étape 1 (expédition) : faite**, APK intermédiaire 0.3.x. Étapes 2 (arbalétrier, prêtre noyé,
+  pièges) et 3 (Bosco, malédiction, chaloupe sous les vagues, relecture) à venir.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -42,6 +46,24 @@ Matelots squelettes qui reviennent sans fin.
 - À terre : le partenaire reste 3 s dans la zone verte pour relever (moitié des PV). Les deux à terre :
   « Vous êtes tombés… », retour au départ et squelettes remis à zéro.
 - Si l'invité part : l'hôte continue seul. Si l'hôte part : l'invité revient au menu avec un message.
+
+## Expédition (jalon 3, étape 1)
+- Écran titre → « Expédition » → choix du héros. À deux : l'hôte choisit « Lancer l'expédition ».
+- 4 salles (la 1re est un combat), puis l'antre du Bosco (une grosse horde en attendant le Bosco, étape 3),
+  puis la chaloupe. Salles faites main du Récif des Pendus : 6 de combat (Salle des gardes, Réfectoire,
+  Cale effondrée, Crypte des noyés, Arsenal pillé, Puits maudit), 1 trésor, l'antre, le quai.
+- Combat : 9 squelettes à vaincre (13 à deux), 5 debout à la fois (7 à deux). Salle nettoyée : les deux
+  portes s'ouvrent, avec l'icône de la salle suivante (combat ou trésor ; un seul trésor par expédition).
+- Trésor : le coffre soigne la moitié des PV (le butin arrive au jalon 4). Orbes de vie : 30 % des
+  squelettes en lâchent une (+20 % des PV), ramassée en passant dessus si l'on est blessé ; aussi dans
+  l'arène. PV gardés d'une salle à l'autre.
+- Coop : la porte se prend quand les deux héros sont devant (« 1/2 » au-dessus d'elle sinon).
+- Tomber seul, ou les deux à terre : « Expédition perdue ». Monter dans la chaloupe (cercle vert sur le
+  quai, les deux à deux) : « Expédition réussie ». Écran de fin : progression, squelettes vaincus,
+  parades parfaites, coups critiques, orbes, durée.
+- Menu pendant l'expédition : deux appuis (on ne perd pas l'expédition d'un doigt maladroit).
+- Mode test (écran titre) : santé infinie ; départ au trésor, à l'antre du Bosco ou à la chaloupe.
+- Réseau version 5. Tests : 128 ; essai coop de l'expédition (aussi dans la fabrication de l'APK).
 
 ## Combat « nerveux » (30/10, demande de Téo : « vraiment Diablo like »)
 Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pas les ennemis plus agressifs).
@@ -204,9 +226,10 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
   parer dès que la zone devient dorée (0,4 s avant) donne une parade ordinaire (fenêtre 0,25 s).
 
 ## Prochaines étapes
-1. Essai de Téo du combat « nerveux » (seul et à deux) ; réglages selon son ressenti.
-2. Essai de Téo sur deux téléphones (jalon « porte » : on corrige avant d'avancer).
-3. Jalon 3 : raid jouable (salles, 3 ennemis, mini-boss, malédiction, extraction).
+1. Essai de Téo de l'expédition (seul et à deux) ; réponses aux deux réglages en attente (joystick qui
+   coupe le 3e coup, fenêtre de la parade parfaite).
+2. Jalon 3, étape 2 : arbalétrier squelette, prêtre noyé, salles piège.
+3. Jalon 3, étape 3 : Bosco Maudit, malédiction 0–5, chaloupe sous les vagues ; relecture ; APK.
 
 ## Points à trancher plus tard
 - Clé de signature définitive : passer à la vraie clé (secrète) **avant** que les sauvegardes comptent,

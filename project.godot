@@ -6,7 +6,7 @@ config_version=5
 [application]
 
 config/name="Les Damnés des Sept Mers"
-config/version="0.2.0"
+config/version="0.3.0"
 run/main_scene="res://ui/screens/demarrage.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
