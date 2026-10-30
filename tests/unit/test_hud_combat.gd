@@ -94,3 +94,13 @@ func test_perte_du_focus_relache_tout() -> void:
 	assert_false(hud.joystick.actif, "Le joystick est lâché")
 	await wait_process_frames(2)
 	assert_eq(heros.commandes.deplacement, Vector3.ZERO, "Le héros s'arrête")
+
+
+func test_chaque_heros_a_ses_icones() -> void:
+	for nom in [&"bretteur", &"occultiste"]:
+		var h := Heros.creer(nom)
+		var icones: Dictionary = h.icones_boutons()
+		for action in [&"attaque", &"esquive", &"competence_1", &"competence_2"]:
+			assert_true(icones.get(action) is Texture2D, "%s : icône du bouton %s" % [nom, action])
+		h.free()
+	assert_not_null(hud.bouton_competence_1.icone, "Le bouton affiche l'icône du héros")

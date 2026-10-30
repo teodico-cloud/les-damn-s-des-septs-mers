@@ -51,7 +51,9 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   - `game/reseau/synchro_arene.gd` (nœud « Synchro » de l'arène) : l'hôte simule tout et envoie 30
     instantanés/s + les événements ; l'invité prédit son héros et affiche le reste en « marionnettes »
     (`marionnette = true` sur Heros et Ennemi : affichés d'après l'hôte, sans règles).
-  - `ui/hud/` : `HudCombat`, `JoystickFlottant`, `BoutonAction`.
+  - `ui/hud/` : `HudCombat`, `JoystickFlottant`, `BoutonAction` (icône du héros + petit nom).
+  - `assets/ui/icones/*.svg` : icônes des boutons de compétence (dessinées à la main en SVG ; importées à
+    `svg/scale=2.0` pour rester nettes sur téléphone) ; chaque archétype les donne par `icones_boutons()`.
   - `assets/models/enemies/` : squelette et lame KayKit ; `assets/materials/` : matières partagées.
 - `tests/unit/` : tests GUT (`test_*.gd`) ; `addons/gut/` : GUT 9.7.1 (exclu de l'APK).
   `test_scripts.gd` charge tous les scripts du jeu (remplace `--check-only`, voir pièges).
@@ -155,7 +157,16 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Coop : chez l'invité, `Combat.porter_coup` ne fait rien (l'hôte décide de tous les coups). Une règle
   de jeu ne doit jamais tourner sur une marionnette (Heros/Ennemi `marionnette = true`).
 - Coop : tout nouvel état visible (marque, chaînes, invisible…) doit passer dans `instantane()` et
-  `appliquer_instantane()` des deux côtés, sinon l'invité ne le voit pas.
+  `appliquer_instantane()` des deux côtés, sinon l'invité ne le voit pas. Un effet ponctuel (cercle des
+  Chaînes…) passe par `EventBus.effet_visuel`.
+- Coop : ne jamais envoyer `anim.get_playing_speed()` : l'arrêt sur image local la met à 0 chez l'hôte
+  et l'invité figerait l'animation pour toujours. Envoyer la vitesse demandée (`_vitesse_anim`) et le
+  temps passé dans l'état (`_t`), que l'invité avance de l'âge de l'instantané.
+- Coop : version et « partie complète » se vérifient au premier contact (`SceneMultiplayer.auth_callback`),
+  jamais par un message du jeu : deux versions aux messages différents ne peuvent pas s'en échanger.
+  Augmenter `Reseau.VERSION_RESEAU` à chaque changement des messages réseau.
+- Essai coop : avant de mettre un héros à terre, remettre `sante.invulnerable_jusqua = 0.0` (un squelette
+  a pu le toucher juste avant) — sinon l'essai échoue au hasard.
 - Aperçus (rendu Compatibility) : l'erreur « Dual paraboloid shadow mode not supported » est normale
   (ombre de torche) ; sur téléphone (rendu Mobile) ce mode marche.
 - Blender en script : ne jamais nommer un fichier comme un module Python standard (`inspect.py`…) :

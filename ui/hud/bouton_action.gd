@@ -1,6 +1,7 @@
 class_name BoutonAction
 extends Control
-## Bouton rond tactile (attaque, esquive, compétences) avec cercle de recharge.
+## Bouton rond tactile (attaque, esquive, compétences) : icône du héros, petit nom dessous, et
+## pendant la recharge l'icône s'assombrit sous une part d'ombre qui se vide, avec les secondes restantes.
 ## Le toucher est géré par le HUD (plusieurs doigts à la fois) ; ce nœud ne fait que s'afficher.
 
 const COULEUR_FOND := Color(0.16, 0.11, 0.08, 0.72)
@@ -8,6 +9,7 @@ const COULEUR_BORD := Color("ac8036")
 const COULEUR_TEXTE := Color("e2d6ba")
 
 var texte := ""
+var icone: Texture2D
 var rayon := 60.0
 var recharge: Recharge
 var appuye := false
@@ -48,7 +50,19 @@ func _draw() -> void:
 	draw_circle(c, rayon, fond)
 	var police := ThemeDB.fallback_font
 	var taille_police := int(rayon * 0.34)
-	if recharge and not recharge.prete():
+	var en_recharge := recharge != null and not recharge.prete()
+	if icone:
+		# icône au centre, un peu haute pour laisser la place au nom
+		var cote := rayon * 1.22
+		var rect := Rect2(c - Vector2(cote, cote) / 2.0 - Vector2(0, rayon * 0.13), Vector2(cote, cote))
+		draw_texture_rect(icone, rect, false, Color(0.45, 0.45, 0.45) if en_recharge else Color.WHITE)
+		if not en_recharge:
+			var tp := int(rayon * 0.24)
+			var tn := police.get_string_size(texte, HORIZONTAL_ALIGNMENT_CENTER, -1, tp)
+			var pos := c + Vector2(-tn.x / 2.0, rayon * 0.72)
+			draw_string_outline(police, pos, texte, HORIZONTAL_ALIGNMENT_LEFT, -1, tp, 5, Color.BLACK)
+			draw_string(police, pos, texte, HORIZONTAL_ALIGNMENT_LEFT, -1, tp, COULEUR_TEXTE)
+	if en_recharge:
 		# part sombre proportionnelle au temps restant, comme une horloge qui se vide
 		var f := recharge.fraction()
 		var points := PackedVector2Array([c])
@@ -62,7 +76,7 @@ func _draw() -> void:
 		var ts := police.get_string_size(s, HORIZONTAL_ALIGNMENT_CENTER, -1, taille_police + 6)
 		draw_string_outline(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, taille_police + 6, 6, Color.BLACK)
 		draw_string(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, taille_police + 6, Color.WHITE)
-	else:
+	elif icone == null:
 		var ts := police.get_string_size(texte, HORIZONTAL_ALIGNMENT_CENTER, -1, taille_police)
 		draw_string_outline(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), texte, HORIZONTAL_ALIGNMENT_LEFT, -1, taille_police, 5, Color.BLACK)
 		draw_string(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), texte, HORIZONTAL_ALIGNMENT_LEFT, -1, taille_police, COULEUR_TEXTE)

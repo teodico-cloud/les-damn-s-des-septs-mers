@@ -21,7 +21,16 @@ func _init() -> void:
 
 
 func noms_boutons() -> Dictionary:
-	return {&"attaque": "Attaque", &"esquive": "Esquive", &"competence_1": "Parade", &"competence_2": "Fente"}
+	return {&"attaque": "Attaque", &"esquive": "Roulade", &"competence_1": "Parade", &"competence_2": "Fente"}
+
+
+func icones_boutons() -> Dictionary:
+	return {
+		&"attaque": preload("res://assets/ui/icones/sabre.svg"),
+		&"esquive": preload("res://assets/ui/icones/roulade.svg"),
+		&"competence_1": preload("res://assets/ui/icones/bouclier.svg"),
+		&"competence_2": preload("res://assets/ui/icones/fente.svg"),
+	}
 
 
 func _reinitialiser() -> void:

@@ -28,7 +28,16 @@ func pv_max() -> float:
 
 
 func noms_boutons() -> Dictionary:
-	return {&"attaque": "Attaque", &"esquive": "Esquive", &"competence_1": "Marque", &"competence_2": "Chaînes"}
+	return {&"attaque": "Attaque", &"esquive": "Téléport", &"competence_1": "Marque", &"competence_2": "Chaînes"}
+
+
+func icones_boutons() -> Dictionary:
+	return {
+		&"attaque": preload("res://assets/ui/icones/orbe.svg"),
+		&"esquive": preload("res://assets/ui/icones/teleportation.svg"),
+		&"competence_1": preload("res://assets/ui/icones/rune.svg"),
+		&"competence_2": preload("res://assets/ui/icones/chaines.svg"),
+	}
 
 
 func _pret() -> void:

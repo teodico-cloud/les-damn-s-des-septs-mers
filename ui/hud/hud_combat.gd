@@ -41,6 +41,7 @@ func _ready() -> void:
 	racine.add_child(joystick)
 
 	var noms: Dictionary = heros.noms_boutons()
+	var icones: Dictionary = heros.icones_boutons()
 	bouton_attaque = _bouton(racine, noms[&"attaque"], 96.0, null, Vector2(-170, -170), &"attaque")
 	bouton_esquive = _bouton(racine, noms[&"esquive"], 62.0, heros.recharge_esquive, Vector2(-345, -105), &"esquive")
 	bouton_competence_1 = _bouton(racine, noms[&"competence_1"], 62.0, heros.recharge_competence_1, Vector2(-330, -285), &"competence_1")
@@ -109,6 +110,7 @@ func _ready() -> void:
 func _bouton(parent: Control, texte: String, rayon: float, rec: Recharge, decalage: Vector2, action: StringName) -> BoutonAction:
 	var b := BoutonAction.new()
 	b.configurer(texte, rayon, rec)
+	b.icone = heros.icones_boutons().get(action) as Texture2D
 	b.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	b.position = decalage - Vector2(rayon, rayon)
 	parent.add_child(b)

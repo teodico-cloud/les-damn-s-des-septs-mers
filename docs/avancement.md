@@ -7,7 +7,7 @@ Dernière mise à jour : 22 octobre 2026.
 - **Héros : validés par Téo.** Bretteur et Occultiste, visages durs et détails pirates.
 - **Jalon 0 : validé par Téo** (« Tout marche » ; la vitrine tourne à 120 images/s sur son téléphone).
 - **Jalon 1 (combat solo du Bretteur) : validé par Téo.**
-- **Jalon 2 (coop Wi-Fi) : écrit et testé ici, en relecture avant APK.** Étape 1 (Occultiste, choix du héros,
+- **Jalon 2 (coop Wi-Fi) : relu, corrigé, APK envoyé à Téo pour l'essai sur deux téléphones.** Étape 1 (Occultiste, choix du héros,
   yeux rouges) envoyée à Téo en APK intermédiaire (0.2.6). Étapes 2 et 3 (coop, réanimation) : 89 tests
   automatiques + essai à deux copies du jeu (Wi-Fi parfait, moyen et mauvais simulés).
 
@@ -135,6 +135,20 @@ Matelots squelettes qui reviennent sans fin.
 - `EventBus.coup_porte` devra dire quel héros est touché (secousse de la bonne caméra).
 - Effets (éclair, chiffres) déclenchés par les règles : à rejouer chez l'invité à partir des événements.
 - Ennemis : noms stables nécessaires pour la réplication.
+
+## Relecture de fin du jalon 2 (agent relecteur) et corrections
+- Bloquant, corrigé : chez l'invité, les squelettes et le héros de l'hôte restaient figés (animation
+  envoyée à vitesse 0 à cause de l'arrêt sur image local). Test qui le détecte ajouté.
+- Bloquant, corrigé : l'essai à deux copies échouait au hasard (héros encore invulnérable) ; stable 6/6.
+- Corrigé : héros de l'invité envoyé hors de la salle au retour au départ ; annonce rouge pleine au bon
+  moment chez l'invité (calée sur l'hôte) ; écoute des annonces en broadcast ; adresse du Wi-Fi choisie
+  par interface (pas celle des données mobiles), adresse complète tapable ; coupure détectée en 3 à 5 s
+  et message « Connexion instable… » ; version différente ou partie complète refusées avec un message ;
+  squelettes lancés quand l'invité est prêt ; 2 squelettes si l'hôte continue seul ; cercle des Chaînes
+  visible chez l'invité.
+- Reste connu (mineur) : petits recalages de l'invité pendant une Fente ou une téléportation (la visée
+  assistée peut différer d'un téléphone à l'autre) ; long recalage après une pause de l'hôte (appel).
+- 22/10 (demande de Téo) : icônes des compétences sur les boutons, propres à chaque héros.
 
 ## Prochaines étapes
 1. Relecture de fin de jalon 2, corrections, APK.

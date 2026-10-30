@@ -89,6 +89,11 @@ func noms_boutons() -> Dictionary:
 	return {&"attaque": "Attaque", &"esquive": "Esquive", &"competence_1": "", &"competence_2": ""}
 
 
+## Icônes des 4 boutons (dessins dans assets/ui/icones/) ; une icône absente laisse le texte seul.
+func icones_boutons() -> Dictionary:
+	return {}
+
+
 func _pret() -> void:
 	pass
 
