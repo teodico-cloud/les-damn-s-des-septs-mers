@@ -132,6 +132,7 @@ func _hote() -> void:
 	#   3 s : met le héros de l'invité à terre, puis se place à côté de lui pour le relever ;
 	#   4 s : touche un squelette (l'invité doit voir son animation « touché » jouer, pas figée) et en
 	#         tue un autre (l'invité doit le voir éclater en os) ;
+	#   6 s : (hôte Bretteur) parade parfaite : l'invité doit en voir les effets ;
 	#   9 s : les deux héros tombent (retour au départ 3 s plus tard).
 	var partenaire_x_max := -INF
 	var max_vivants := 0
@@ -165,6 +166,20 @@ func _hote() -> void:
 					break
 		if i == 4:
 			await _capture("coop_hote.png")
+		if i == 5 and partie.heros_local == &"bretteur":
+			var h = arene.heros
+			h.commandes.demander(&"competence_1", h.horloge)
+			for k in 3:
+				await physics_frame
+			var source = null
+			for e in arene.generateur.get_children():
+				if e.etat != 0 and e.etat != 7:   # ni en train de sortir de terre, ni mort
+					source = e
+					break
+			if source and h.etat == 3:   # PARADE : on se tourne vers lui et il frappe
+				h.rotation.y = atan2(source.global_position.x - h.global_position.x, source.global_position.z - h.global_position.z)
+				h.recevoir_coup(10.0, source, false)
+			_verifier(h.etat == 4, "parade parfaite de l'hôte (riposte lancée)")   # RIPOSTE
 		if i == 7:
 			_verifier(p.est_vivant(), "le héros de l'invité a été relevé")
 		if i == 8:
@@ -208,6 +223,11 @@ func _invite() -> void:
 	var vu_releve := false
 	var touche_anim_max := 0.0
 	var vu_eclater := false
+	var parades_vues := [0]
+	var sur_parade := func(qui, _point):
+		if qui == arene.heros_partenaire:
+			parades_vues[0] += 1
+	root.get_node("EventBus").parade_parfaite.connect(sur_parade)
 	var hors_salle := 0.0
 	var avant := {}
 	var plus_grand_saut := 0.0
@@ -245,6 +265,8 @@ func _invite() -> void:
 	_verifier(touche_anim_max > 0.15, "le squelette touché joue son animation chez nous (jusqu'à %.2f s)" % touche_anim_max)
 	_verifier(vu_eclater, "le squelette tué éclate en os chez nous")
 	_verifier(fois_a_terre >= 2, "les deux à terre : vu chez nous")
+	if arene.heros_partenaire.archetype == &"bretteur":
+		_verifier(parades_vues[0] >= 1, "la parade parfaite de l'hôte s'affiche chez nous")
 	_verifier(hors_salle < 6.5, "notre héros n'est jamais sorti de la salle (%.2f m du centre au plus)" % hors_salle)
 	_verifier(h.est_vivant() and h.global_position.distance_to(Vector3(1.2, h.global_position.y, 1.5)) < 1.5,
 			"retour au départ chez nous (%s)" % _p(h))

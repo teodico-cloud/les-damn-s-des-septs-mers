@@ -94,6 +94,56 @@ static func _bouffee(parent: Node, pos: Vector3, nombre: int, duree: float, tail
 	p.finished.connect(p.queue_free)
 
 
+## Gerbe d'étincelles dorées (parade parfaite : lame contre lame) et un éclair de lumière bref.
+static func etincelles(parent: Node, pos: Vector3) -> void:
+	if parent == null or not parent.is_inside_tree():
+		return
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.amount = 32
+	p.lifetime = 0.4
+	if not _ressources.has("etincelle"):
+		var trait_ := BoxMesh.new()
+		trait_.size = Vector3(0.06, 0.3, 0.06)
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.vertex_color_use_as_albedo = true
+		trait_.material = mat
+		_ressources["etincelle"] = trait_
+		var degrade := Gradient.new()
+		degrade.set_color(0, Color(1.0, 0.8, 0.22, 1.0))   # or franc : le blanc se perd sur le sol clair
+		degrade.set_color(1, Color(1.0, 0.42, 0.05, 0.0))
+		_ressources["degrade_etincelle"] = degrade
+	p.mesh = _ressources["etincelle"]
+	p.color_ramp = _ressources["degrade_etincelle"]
+	p.particle_flag_align_y = true   # chaque étincelle file dans le sens de sa course
+	p.direction = Vector3.UP
+	p.spread = 80.0
+	p.initial_velocity_min = 4.0
+	p.initial_velocity_max = 8.5
+	p.gravity = Vector3(0, -14.0, 0)
+	p.damping_min = 1.0
+	p.damping_max = 3.0
+	p.scale_amount_min = 0.7
+	p.scale_amount_max = 1.4
+	p.position = pos
+	parent.add_child(p)
+	p.emitting = true
+	p.finished.connect(p.queue_free)
+	var lumiere := OmniLight3D.new()
+	lumiere.light_color = Color(1.0, 0.85, 0.45)
+	lumiere.omni_range = 4.0
+	lumiere.light_energy = 5.0
+	lumiere.shadow_enabled = false
+	lumiere.position = pos
+	parent.add_child(lumiere)
+	var t := lumiere.create_tween()
+	t.tween_property(lumiere, "light_energy", 0.0, 0.3).set_ease(Tween.EASE_OUT)
+	t.tween_callback(lumiere.queue_free)
+
+
 ## Cercle au sol qui s'élargit puis s'efface (zone des Chaînes spectrales).
 static func cercle(parent: Node, pos: Vector3, rayon: float, duree: float) -> void:
 	if parent == null or not parent.is_inside_tree():

@@ -67,6 +67,7 @@ func _ready() -> void:
 		EventBus.coup_porte.connect(_on_coup_porte)
 		EventBus.projectile_tire.connect(_on_projectile_tire)
 		EventBus.effet_visuel.connect(_on_effet_visuel)
+		EventBus.parade_parfaite.connect(_on_parade_parfaite)
 		EventBus.heros_mort.connect(_on_heros_mort)
 		EventBus.heros_reapparu.connect(_on_heros_reapparu)
 		heros_partenaire.etat_change.connect(_on_etat_partenaire)
@@ -211,6 +212,11 @@ func _on_projectile_tire(tireur: Node3D, depart: Vector3, direction: Vector3) ->
 func _on_effet_visuel(lanceur: Node3D, type: String, position: Vector3) -> void:
 	if _invite_pret:
 		_effet.rpc_id(Reseau.id_partenaire, _nom(lanceur), type, position)
+
+
+func _on_parade_parfaite(heros: Node3D, point: Vector3) -> void:
+	if _invite_pret:
+		_effet.rpc_id(Reseau.id_partenaire, _nom(heros), "parade_parfaite", point)
 
 
 func _on_heros_mort(h: Node) -> void:
@@ -413,6 +419,13 @@ func _effet(nom_lanceur: String, type: String, position: Vector3) -> void:
 
 
 func _effet_recu(nom_lanceur: String, type: String, position: Vector3) -> void:
+	if type == "parade_parfaite":
+		# décidée par l'hôte, même pour notre propre héros : on ne l'a pas encore vue ici
+		var heros := _trouver(nom_lanceur)
+		EventBus.parade_parfaite.emit(heros, position)
+		if heros == heros_local and heros.has_method("parade_parfaite_recue"):
+			heros.parade_parfaite_recue()
+		return
 	if nom_lanceur == String(heros_local.name):
 		return   # notre propre sort : déjà affiché chez nous
 	if type == "cercle_chaines":

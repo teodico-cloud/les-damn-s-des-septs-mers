@@ -12,7 +12,7 @@ signal combat_lance
 
 const PORT_JEU := 34778
 const PORT_ANNONCE := 34779
-const VERSION_RESEAU := 2        ## à augmenter quand le protocole change (refuse un autre APK) ; 2 : critiques, traînées du sabre
+const VERSION_RESEAU := 3        ## à augmenter quand le protocole change (refuse un autre APK) ; 3 : parade parfaite
 const DELAI_ANNONCE := 0.5
 
 enum Role { AUCUN, HOTE, INVITE }

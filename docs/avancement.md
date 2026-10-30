@@ -58,6 +58,21 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
   avec « ! », secousse plus forte. Jamais sur un héros.
 - Compteur d'images par seconde sous le bouton Menu (APK de test : pour juger la fluidité avec la horde).
 - Réseau : version 2 (un APK plus ancien est refusé en coop) ; animations envoyées par numéro.
+- APK 0.2.8 envoyé à Téo.
+
+## Parade parfaite (30/10, choix de Téo)
+- La Parade coupe un coup du Bretteur avant son impact (comme la roulade).
+- Parade parfaite : le coup arrive au plus 0,25 s après l'appui. Riposte critique (dégâts doublés),
+  étourdissement 2,2 s (1,4), Parade rendue aussitôt (enchaîner les parades dans la horde). Une parade
+  plus tôt reste une parade ordinaire (riposte normale, recharge de 4 s).
+- Indicateur avant : la zone rouge au sol devient dorée 0,4 s avant le coup (un peu avant la fenêtre
+  parfaite, pour laisser le temps de réagir : ≈ 0,2 s + le délai de l'écran tactile). Aussi chez l'invité.
+- Indicateur pendant : gerbe d'étincelles dorées, éclair de lumière, « PARFAIT ! » doré, court ralenti
+  (seul) ou arrêt de l'animation du héros (en coop), secousse.
+- Réseau : version 3. Non retenu : l'onde de choc qui repousse les squelettes proches.
+- Limite connue : contre les squelettes (30 PV), la riposte ordinaire tue déjà ; les dégâts doublés et
+  l'étourdissement plus long serviront contre les ennemis plus solides (mini-boss). En coop, l'invité voit
+  le monde 0,1 s en retard : sa zone dorée arrive un peu plus tard que chez l'hôte.
 
 ## Ce que Téo devra vérifier sur l'APK du jalon 2 (deux téléphones sur le même Wi-Fi)
 1. « Jouer à deux » : héberger sur l'un, rejoindre sur l'autre (la partie apparaît, ou avec le code).
@@ -99,6 +114,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 22/10/2026 | Occultiste, après relecture (choix de Téo) : le tir vise l'ennemi le plus proche de la direction du joystick (cône de 60°), sinon la direction du joystick ; il peut bouger dès que le projectile est parti (la cadence reste d'un tir toutes les 0,45 s) ; sans joystick, la téléportation part en arrière ; un sort coupé par un coup avant son effet rend sa recharge. |
 | 22/10/2026 | Icônes des compétences sur les boutons, propres à chaque héros (demande de Téo). |
 | 30/10/2026 | Combat « nerveux » : héros plus vif, hordes, coups qui claquent, coups critiques (choix de Téo, voir plus haut). Ennemis plus agressifs : non retenu. |
+| 30/10/2026 | Parade : elle coupe le coup en cours ; parade parfaite en bonus (0,25 s), zone dorée avant le coup + étincelles, « PARFAIT ! » et ralenti, Parade rendue. Onde de choc : non retenue. |
 
 ## Relecture du jalon 0 (agent relecteur) et corrections
 - Le CI refuse désormais un script ou un fichier de test cassé (chargement de tous les scripts + contrôle du
@@ -143,8 +159,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 - Noté pour plus tard : la visée assistée ignore les murs (à revoir avec les donjons).
 
 ## Questions pour Téo (après son essai)
-- Parade et Fente pendant l'élan d'un coup : aujourd'hui seule l'Esquive peut couper un coup avant
-  l'impact ; une Parade demandée trop tôt est perdue. Faut-il que la Parade puisse aussi couper le coup ?
+- ~~Parade pendant l'élan d'un coup~~ : tranché le 30/10 (oui, avec la parade parfaite).
 - Annonce des coups ennemis : si la zone au sol reste difficile à voir, ajouter un signe sur le
   squelette lui-même (lueur rouge des yeux, éclair).
 

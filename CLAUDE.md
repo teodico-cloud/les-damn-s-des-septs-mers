@@ -40,9 +40,9 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   - `data/equilibrage.tres` (+ `core/resources/equilibrage.gd`) : **toutes** les valeurs de réglage du combat.
   - `core/components/` : `Sante` (PV, invulnérabilité), `Recharge` (temps de recharge).
   - `game/combat/` : `Combat` (couches de collision, zones de coup, `porter_coup` qui tire aussi les coups
-    critiques), `CameraCombat`, `EffetsCombat` (chiffres, arrêt sur image, secousse), `Projectile` (tir de
-    l'Occultiste), `EffetsMagie` (fumée, éclats, cercle au sol, traînée du sabre, squelette qui éclate en
-    os ; purement visuels).
+    critiques), `CameraCombat`, `EffetsCombat` (chiffres, arrêts sur image et ralentis, secousse, effets
+    de la parade parfaite), `Projectile` (tir de l'Occultiste), `EffetsMagie` (fumée, éclats, cercle au
+    sol, traînée du sabre, squelette qui éclate en os, étincelles ; purement visuels).
   - `game/player/` : `Heros` (base commune : déplacement, visée, recharges, coup reçu, mort), un script
     par archétype (`Bretteur`, `Occultiste` ; `Heros.creer(&"occultiste")`) et `CommandesHeros` (ce que
     le joueur demande : seule entrée du héros, pour que le réseau puisse la remplir plus tard).
@@ -82,7 +82,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Captures mises en scène du combat (annonce, coup, fente) + état du combat dans la console :
   `xvfb-run -a godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720 -s "$PWD/tools/capture_combat.gd" -- build/apercus`
   (même chose pour l'Occultiste : `tools/capture_occultiste.gd` ; écran « Jouer à deux » : `tools/capture_coop_ecrans.gd` ;
-  horde, coup critique, os qui volent et traînées du sabre : `tools/capture_horde.gd`)
+  horde, coup critique, os qui volent et traînées du sabre : `tools/capture_horde.gd` ; zone rouge puis
+  dorée et parade parfaite : `tools/capture_parade.gd`)
 - Essai de la coop (hôte + invité sur cette machine, vérifications automatiques, aussi dans le CI) :
   `GODOT=<godot> tools/test_coop.sh [127.0.0.1|auto]` ; Wi-Fi imparfait simulé : préfixer
   `LATENCE_MS=30 GIGUE_MS=20 PERTE_PCT=3` ; captures des deux écrans : ajouter
@@ -159,6 +160,15 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   parfois disparu avant la capture. Ralentir (`Engine.time_scale = 0.1`) le temps de la capture.
 - Sur le sol clair de l'arène, un effet en mélange additif vire au blanc éblouissant : préférer le
   mélange normal avec une couleur franche (voir la traînée du sabre).
+- Parade parfaite (`Bretteur._intercepter_coup`) : décidée par l'hôte, annoncée par
+  `EventBus.parade_parfaite`. Chez l'invité, elle est montrée même pour son propre héros (exception à
+  « notre propre sort : déjà affiché » dans `SynchroArene._effet_recu`) et lui rend sa Parade.
+- Ralentis (`EffetsCombat.ralentir`) : une liste des ralentis en cours, le plus lent l'emporte. Ne pas
+  remettre `Engine.time_scale` à 1 ailleurs pendant un combat.
+- Capture d'un effet qui ralentit lui-même le jeu (parade parfaite) : `Engine.time_scale = 0.1` ne sert
+  à rien (le ralenti finit en temps réel) ; capturer à la toute première image après l'effet.
+- GUT : le 4e argument de `assert_signal_emitted_with_parameters` est le numéro de l'émission, pas un
+  message (un texte y provoque une erreur) ; vérifier avec `get_signal_parameters` à la place.
 - Recul des squelettes : la valeur de `equilibrage.tres` est une distance en mètres ; la vitesse de départ
   est `sqrt(2 × freinage × distance)`.
 - Coop : un message envoyé à un nœud que l'autre téléphone n'a pas encore (arène pas encore ouverte)

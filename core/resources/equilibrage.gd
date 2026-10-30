@@ -45,6 +45,15 @@ extends Resource
 @export var riposte_instant_impact := 0.36     ## secondes dans l'animation (avant accélération)
 @export var riposte_vitesse_animation := 1.2
 @export var riposte_distance_max := 3.0        ## au-delà, la riposte frappe dans le vide
+## Parade parfaite (choix de Téo) : le coup arrive au plus tant de secondes après l'appui sur Parade.
+## Riposte critique (dégâts doublés), étourdissement plus long, recharge rendue aussitôt.
+@export var parade_parfaite_fenetre := 0.25
+@export var riposte_etourdissement_parfaite := 2.2
+## La zone rouge au sol devient dorée tant de secondes avant le coup : c'est le moment de parer.
+## Plus tôt que la fenêtre parfaite, pour laisser le temps de réagir (≈ 0,2 s + le délai de l'écran).
+@export var parade_signal_avance := 0.4
+@export var parade_parfaite_ralenti := 0.35         ## secondes réelles de ralenti (seul ; en coop : arrêt local)
+@export var parade_parfaite_ralenti_vitesse := 0.25 ## vitesse du jeu pendant ce ralenti
 
 @export_group("Compétence : Fente")
 @export var fente_distance := 5.0

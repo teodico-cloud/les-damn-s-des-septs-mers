@@ -37,14 +37,15 @@ static func cibles_dans_sphere(monde: World3D, centre: Vector3, rayon: float, ma
 
 ## Applique un coup : renvoie les dégâts réellement infligés. Chez l'invité d'une partie à deux, rien :
 ## c'est l'hôte qui décide de tous les coups (l'invité ne fait que les afficher).
-## Les coups des héros sur les ennemis ont une chance d'être critiques (dégâts doublés).
-static func porter_coup(attaquant: Node3D, cible: Node3D, degats: float, lourd: bool) -> float:
+## Les coups des héros sur les ennemis ont une chance d'être critiques (dégâts doublés) ;
+## `critique_force` : toujours critique (riposte d'une parade parfaite).
+static func porter_coup(attaquant: Node3D, cible: Node3D, degats: float, lourd: bool, critique_force := false) -> float:
 	if Reseau.est_invite():
 		return 0.0
 	var critique := false
 	if attaquant is Heros and not (cible is Heros):
 		var chance := chance_critique if chance_critique >= 0.0 else EQ.critique_chance
-		if chance > 0.0 and randf() < chance:
+		if critique_force or (chance > 0.0 and randf() < chance):
 			critique = true
 			degats *= EQ.critique_multiplicateur
 	return cible.recevoir_coup(degats, attaquant, lourd, critique)

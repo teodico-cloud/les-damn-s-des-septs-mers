@@ -1,7 +1,8 @@
 class_name Bretteur
 extends Heros
 ## Le Bretteur : combo de 3 coups au sabre (le 3e est lourd), roulade qui traverse les ennemis,
-## Parade-riposte (un coup de face paré déclenche une riposte qui étourdit), Fente qui traverse.
+## Parade-riposte (un coup de face paré déclenche une riposte qui étourdit ; parée juste à temps,
+## c'est une parade parfaite), Fente qui traverse.
 
 
 var _combo := -1            ## coup du combo en cours (0, 1, 2)
@@ -9,6 +10,7 @@ var _fin_dernier_coup := -10.0
 var _impact_fait := false
 var _duree_action := 0.0
 var _cible_riposte: Node3D
+var _riposte_parfaite := false
 var _deja_touches: Array[Node3D] = []
 
 
@@ -70,8 +72,9 @@ func _etat_attaque(_delta: float) -> void:
 	var pas := EQ.combo_pas_en_avant / maxf(impact, 0.05) if _t < impact else 0.0
 	velocity.x = _direction.x * pas
 	velocity.z = _direction.z * pas
-	if commandes.en_attente(&"esquive", horloge) and recharge_esquive.prete():
-		_essayer_actions_prioritaires()   # l'esquive peut interrompre un coup à tout moment
+	if (commandes.en_attente(&"esquive", horloge) and recharge_esquive.prete()) \
+			or (commandes.en_attente(&"competence_1", horloge) and recharge_competence_1.prete()):
+		_essayer_actions_prioritaires()   # l'esquive et la parade peuvent interrompre un coup à tout moment
 		return
 	if not _impact_fait and _t >= impact:
 		_impact_fait = true
@@ -143,7 +146,8 @@ func _etat_parade() -> void:
 
 func _intercepter_coup(source: Node3D) -> bool:
 	if etat == Etat.PARADE and source and Combat.est_devant(self, source, EQ.parade_angle):
-		_riposter(source)
+		# parade parfaite (choix de Téo) : le coup arrive juste après l'appui sur Parade
+		_riposter(source, _t <= EQ.parade_parfaite_fenetre)
 		return true
 	return false
 
@@ -152,15 +156,21 @@ func _riposte_autorite(point: Vector3) -> void:
 	# chez l'invité, pas de cible réelle : seulement le geste (l'hôte applique les dégâts)
 	_faire_face(Combat.direction_plate(global_position, point))
 	_cible_riposte = null
+	_riposte_parfaite = false
 	_impact_fait = true
 	_duree_action = anim.get_animation("Block_Attack").length / EQ.riposte_vitesse_animation
 	_jouer("Block_Attack", EQ.riposte_vitesse_animation, 0.04, true)
 	_changer(Etat.RIPOSTE)
 
 
-func _riposter(source: Node3D) -> void:
+func _riposter(source: Node3D, parfaite := false) -> void:
 	_cible_riposte = source
-	_faire_face(Combat.direction_plate(global_position, source.global_position))
+	_riposte_parfaite = parfaite
+	var dir := Combat.direction_plate(global_position, source.global_position)
+	_faire_face(dir)
+	if parfaite:
+		recharge_competence_1.restant = 0.0   # on peut parer le squelette suivant aussitôt
+		EventBus.parade_parfaite.emit(self, global_position + dir * 0.7 + Vector3.UP * 1.2)
 	_impact_fait = false
 	_duree_action = anim.get_animation("Block_Attack").length / EQ.riposte_vitesse_animation
 	sante.rendre_invulnerable(_duree_action)
@@ -174,11 +184,16 @@ func _etat_riposte() -> void:
 		_impact_fait = true
 		if is_instance_valid(_cible_riposte) and _cible_riposte.has_method("est_vivant") and _cible_riposte.est_vivant() \
 				and global_position.distance_to(_cible_riposte.global_position) < EQ.riposte_distance_max:
-			Combat.porter_coup(self, _cible_riposte, EQ.riposte_degats, true)
+			Combat.porter_coup(self, _cible_riposte, EQ.riposte_degats, true, _riposte_parfaite)
 			if _cible_riposte.has_method("etourdir"):
-				_cible_riposte.etourdir(EQ.riposte_etourdissement)
+				_cible_riposte.etourdir(EQ.riposte_etourdissement_parfaite if _riposte_parfaite else EQ.riposte_etourdissement)
 	if _t >= _duree_action:
 		_changer(Etat.LIBRE)
+
+
+## Coop, invité : l'hôte a vu une parade parfaite de notre héros ; la Parade est rendue chez nous aussi.
+func parade_parfaite_recue() -> void:
+	recharge_competence_1.restant = 0.0
 
 
 # ---------------------------------------------------------------- fente

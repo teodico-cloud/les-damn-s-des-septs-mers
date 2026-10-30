@@ -8,6 +8,7 @@ extends CharacterBody3D
 const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 const MODELE := preload("res://assets/models/enemies/Skeleton_Minion.glb")
 const LAME := preload("res://assets/models/enemies/Skeleton_Blade.gltf")
+const COULEUR_ZONE := Color(1.0, 0.25, 0.1, 0.22)   ## zone de l'annonce au sol, pâle
 
 enum Etat { APPARITION, POURSUITE, PREPARATION, FRAPPE, RECUPERATION, TOUCHE, ETOURDI, MORT, ENCHAINE }
 
@@ -24,6 +25,7 @@ var visuel: Node3D
 var marque: MeshInstance3D      ## annonce du coup au sol : zone entière, pâle dès le début…
 var _remplissage: MeshInstance3D ## … et remplissage rouge qui grandit jusqu'au coup
 var _mat_marque: StandardMaterial3D
+var _mat_zone: StandardMaterial3D
 var _t := 0.0
 var _duree_etat := 0.0
 var _recharge_attaque := 0.0
@@ -96,7 +98,8 @@ func _attacher_lame() -> void:
 func _creer_marque() -> void:
 	# La zone entière est visible dès le début de l'annonce (sinon le petit disque du début reste
 	# caché sous les pieds des personnages) ; le remplissage montre le temps qu'il reste.
-	marque = _disque(Color(1.0, 0.25, 0.1, 0.22), 0)
+	marque = _disque(COULEUR_ZONE, 0)
+	_mat_zone = marque.material_override as StandardMaterial3D
 	marque.position = Vector3(0, 0.09, EQ.squelette_zone_avant)   # au-dessus des dalles (dessus à ~0,05)
 	marque.visible = false
 	add_child(marque)
@@ -237,11 +240,22 @@ func _preparer() -> void:
 		marque.visible = true
 
 
-## Zone au sol qui se remplit pendant l'annonce (aussi chez l'invité).
+## Zone au sol qui se remplit pendant l'annonce (aussi chez l'invité). Juste avant le coup, elle
+## devient dorée : c'est le moment de parer (parade parfaite) ou d'esquiver.
 func _preparer_visuel() -> void:
 	var p := clampf(_t / EQ.squelette_preparation, 0.0, 1.0)
 	_remplissage.scale = Vector3(maxf(p, 0.01), 1.0, maxf(p, 0.01))
-	_mat_marque.albedo_color = Color(1.0, 0.3 + 0.2 * p, 0.1, 0.3 + 0.35 * p)
+	if signal_parade():
+		_mat_marque.albedo_color = Color(1.0, 0.86, 0.25, 0.85)
+		_mat_zone.albedo_color = Color(1.0, 0.8, 0.2, 0.4)
+	else:
+		_mat_marque.albedo_color = Color(1.0, 0.3 + 0.2 * p, 0.1, 0.3 + 0.35 * p)
+		_mat_zone.albedo_color = COULEUR_ZONE
+
+
+## Vrai pendant les derniers instants de l'annonce (zone dorée).
+func signal_parade() -> bool:
+	return etat == Etat.PREPARATION and EQ.squelette_preparation - _t <= EQ.parade_signal_avance
 
 
 func _frapper() -> void:

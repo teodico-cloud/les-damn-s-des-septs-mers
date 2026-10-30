@@ -166,6 +166,7 @@ func test_parade_de_face_declenche_la_riposte() -> void:
 	_robuste(e)
 	_demander(&"competence_1")
 	await wait_physics_frames(2)
+	await _secondes(EQ.parade_parfaite_fenetre)   # parade ordinaire (la parfaite : test_parade.gd)
 	assert_eq(heros.etat, Heros.Etat.PARADE)
 	assert_eq(Combat.porter_coup(e, heros, 15.0, false), 0.0, "Le coup de face est paré")
 	assert_eq(heros.etat, Heros.Etat.RIPOSTE)

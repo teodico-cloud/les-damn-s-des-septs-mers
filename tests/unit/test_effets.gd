@@ -41,3 +41,19 @@ func test_coups_rapproches_puis_reprise() -> void:
 		await _attendre_reel(0.02)
 	await _attendre_reel(0.3)
 	assert_eq(Engine.time_scale, 1.0, "Plusieurs coups rapprochés : le jeu reprend quand même")
+
+
+func test_ralenti_de_la_parade_parfaite_puis_reprise() -> void:
+	var EQ: Equilibrage = load("res://data/equilibrage.tres")
+	var effets := await _effets()
+	await get_tree().physics_frame
+	EventBus.parade_parfaite.emit(null, Vector3.ZERO)
+	assert_almost_eq(Engine.time_scale, EQ.parade_parfaite_ralenti_vitesse, 0.001, "Court ralenti")
+	assert_true(effets.get_children().any(func(n): return n is Label3D and n.text == "PARFAIT !"), "« PARFAIT ! » affiché")
+	# un coup pendant le ralenti : l'arrêt sur image (plus lent) l'emporte, puis le ralenti continue
+	EventBus.coup_porte.emit(Vector3.ZERO, 10.0, false, false, null, null, false)
+	assert_almost_eq(Engine.time_scale, EQ.arret_image_vitesse, 0.001)
+	await _attendre_reel(EQ.arret_image + 0.06)
+	assert_almost_eq(Engine.time_scale, EQ.parade_parfaite_ralenti_vitesse, 0.001, "Le ralenti continue après l'arrêt")
+	await _attendre_reel(EQ.parade_parfaite_ralenti)
+	assert_eq(Engine.time_scale, 1.0, "Puis le jeu reprend sa vitesse normale")
