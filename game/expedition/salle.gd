@@ -21,6 +21,15 @@ var pics: Array[PiegePics] = []      ## salle piège : dalles à pics
 var tonneaux: Array[TonneauPoudre] = []   ## salle piège : tonneaux de poudre
 var _torches: Array[OmniLight3D] = []
 var _temps := 0.0
+var _mat_eau: ShaderMaterial
+## Quai : force des vagues (0 à 1), qui monte pendant le départ de la chaloupe.
+var houle := 0.0:
+	set(v):
+		houle = v
+		if _mat_eau:
+			_mat_eau.set_shader_parameter("houle", v)
+		if chaloupe:
+			chaloupe.set("houle", v)
 
 
 static func creer(p_modele: String, p_types_portes: Array) -> Salle:
@@ -95,6 +104,25 @@ static func entree(nom_heros: StringName, coop: bool) -> Vector3:
 	if not coop:
 		return Salles.ENTREE
 	return Salles.ENTREE_HOTE if nom_heros == &"HerosHote" else Salles.ENTREE_INVITE
+
+
+## Quai : ce point est-il dans la chaloupe (le cercle vert) ?
+func dans_chaloupe(p: Vector3) -> bool:
+	if zone_chaloupe == Vector3.INF:
+		return false
+	var d := p - zone_chaloupe
+	d.y = 0.0
+	return d.length() <= Expedition.EQ.exp_rayon_chaloupe
+
+
+## Quai : où sortent les squelettes des vagues — au bord de l'eau, loin de la chaloupe, et au fond.
+func points_vague() -> Array[Vector3]:
+	var r: Array[Vector3] = []
+	var x := -DEMI + PAS + 0.6
+	for z in [-5.2, 5.4, -3.4, 4.2]:
+		r.append(Vector3(x, 0, z))
+	r.append_array(apparitions())
+	return r
 
 
 func apparitions() -> Array[Vector3]:
@@ -193,14 +221,13 @@ func _quai(pos: Vector3) -> void:
 	var eau := MeshInstance3D.new()
 	var plan := PlaneMesh.new()
 	plan.size = Vector2(PAS + 0.4, DEMI * 2 + 6.4)
+	plan.subdivide_width = 14
+	plan.subdivide_depth = 60
 	eau.mesh = plan
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.04, 0.16, 0.2)
-	mat.metallic = 0.5
-	mat.roughness = 0.15
-	mat.emission_enabled = true
-	mat.emission = Color(0.01, 0.07, 0.09)
-	eau.material_override = mat
+	_mat_eau = ShaderMaterial.new()
+	_mat_eau.shader = load("res://game/expedition/eau.gdshader")
+	_mat_eau.set_shader_parameter("houle", houle)
+	eau.material_override = _mat_eau
 	eau.position = Vector3(-DEMI + PAS * 0.5, -0.45, 3.2)
 	add_child(eau)
 	chaloupe = Chaloupe.creer()

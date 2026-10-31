@@ -12,7 +12,7 @@ signal combat_lance
 
 const PORT_JEU := 34778
 const PORT_ANNONCE := 34779
-const VERSION_RESEAU := 6        ## à augmenter quand le protocole change (refuse un autre APK) ; 6 : arbalétriers, prêtres, pièges
+const VERSION_RESEAU := 7        ## à augmenter quand le protocole change (refuse un autre APK) ; 7 : Bosco, malédiction, chaloupe
 const DELAI_ANNONCE := 0.5
 
 enum Role { AUCUN, HOTE, INVITE }
@@ -159,15 +159,17 @@ func _refuser(raison: String) -> void:
 	quitter()
 
 
-## L'hôte lance la partie : les deux téléphones ouvrent l'arène (&"arene") ou l'expédition.
+## L'hôte lance la partie : les deux téléphones ouvrent l'arène (&"arene") ou l'expédition, avec le
+## niveau de malédiction choisi par l'hôte.
 func lancer_combat(destination: StringName = &"arene") -> void:
 	if role == Role.HOTE and id_partenaire != 0:
-		_lancer.rpc(String(destination))
+		_lancer.rpc(String(destination), Partie.malediction)
 
 
 @rpc("authority", "call_local", "reliable")
-func _lancer(destination: String) -> void:
+func _lancer(destination: String, malediction: int) -> void:
 	Partie.destination = StringName(destination)
+	Partie.malediction = clampi(malediction, 0, Malediction.MAX)
 	combat_lance.emit()
 
 

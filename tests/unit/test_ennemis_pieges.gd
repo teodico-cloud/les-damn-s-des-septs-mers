@@ -279,7 +279,7 @@ func test_composition_selon_la_salle() -> void:
 	assert_eq(Expedition.composition(2, PlanExpedition.COMBAT, false), {&"arbaletrier": EQ.exp_arbaletriers})
 	assert_eq(Expedition.composition(3, PlanExpedition.COMBAT, true),
 		{&"arbaletrier": EQ.exp_arbaletriers + 1, &"pretre": EQ.exp_pretres}, "À deux : un arbalétrier de plus")
-	assert_true(Expedition.composition(5, PlanExpedition.BOSCO, false).has(&"pretre"))
+	assert_eq(Expedition.composition(5, PlanExpedition.BOSCO, false), {}, "L'antre : le Bosco seul (son équipage vient à mi-vie)")
 
 
 func test_portes_piege_dans_le_plan() -> void:

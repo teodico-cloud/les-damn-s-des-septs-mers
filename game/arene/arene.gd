@@ -135,7 +135,7 @@ func invite_pret() -> void:
 
 # ---------------------------------------------------------------- orbes de vie (choix de Téo)
 func _on_ennemi_vaincu(e: Node) -> void:
-	var chance := chance_orbe if chance_orbe >= 0.0 else EQ.orbe_chance
+	var chance := chance_orbe if chance_orbe >= 0.0 else EQ.orbe_chance * Malediction.mult_orbes()
 	if not (e is Node3D) or randf() >= chance:
 		return
 	_compteur_orbes += 1

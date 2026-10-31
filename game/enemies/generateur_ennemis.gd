@@ -194,7 +194,7 @@ func _point_libre() -> Vector3:
 
 func _on_vaincu(e: Ennemi) -> void:
 	vaincus += 1
-	if not e.releve and e.type_ennemi() != &"pretre":
+	if not e.releve and e.type_ennemi() in [&"matelot", &"arbaletrier"]:   # (ni prêtre ni Bosco)
 		tombes.append({"pos": e.global_position, "type": e.type_ennemi(), "etat": 0})
 	if reserve == 0:
 		if vivants() == 0:

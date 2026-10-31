@@ -31,7 +31,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - `project.godot`, `export_presets.cfg` (Android arm64, paquet `fr.teodico.damnes`), `icon.svg`.
 - `ui/screens/` : écrans (écran titre `demarrage.tscn` = scène principale, avec « Mode test » : santé infinie,
   salle de départ ; `choix_heros.tscn` avant l'arène ou l'expédition ; `coop.tscn` « Jouer à deux » :
-  héberger / rejoindre, parties trouvées sur le Wi-Fi, code de secours, lancer l'expédition ou l'arène).
+  héberger / rejoindre, parties trouvées sur le Wi-Fi, code de secours, lancer l'expédition ou l'arène ;
+  `choix_malediction.gd` : le choix du niveau de malédiction, sur l'écran du héros en solo et pour l'hôte).
 - `game/vitrine/` : vitrine des héros (jalon 0) : héros, salle, actions au toucher, compteur d'images.
 - Combat (jalon 1) :
   - `autoload/event_bus.gd` : signaux globaux (`coup_porte`, `ennemi_vaincu`, `heros_mort`, `heros_reapparu`).
@@ -50,15 +51,20 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
     par archétype (`Bretteur`, `Occultiste` ; `Heros.creer(&"occultiste")`) et `CommandesHeros` (ce que
     le joueur demande : seule entrée du héros, pour que le réseau puisse la remplir plus tard).
   - `game/enemies/` : `Ennemi` (Matelot squelette, et base des autres : points d'extension `_modele`,
-    `_arme`, `_orienter_arme`, `_montrer_annonce`, `_quitter_etat`, `_incanter`…), `Arbaletrier`,
-    `PretreNoye` ; `Ennemi.creer_type(&"arbaletrier")` ; `GenerateurEnnemis` (horde : groupes de 2 à 4,
-    les manquants ressortent ensemble ; composition d'une salle ; tombes que le prêtre relève).
+    `_arme`, `_orienter_arme`, `_taille`, `coup_parable`, `_montrer_annonce`, `_quitter_etat`, `_incanter`…),
+    `Arbaletrier`, `PretreNoye`, `Bosco` (mini-boss : coup au sol parable, tourbillon et charge imparables,
+    sonné contre un mur, rage à mi-vie) ; `Ennemi.creer_type(&"arbaletrier")` ; `GenerateurEnnemis` (horde :
+    groupes de 2 à 4, les manquants ressortent ensemble ; composition d'une salle ; tombes que le prêtre relève).
   - `game/arene/` : arène d'entraînement (`Arene`), tout construit par code, en étapes que l'expédition
     remplace (lieu, départ, horde) ; orbes de vie ; `regles_coop.gd` (hôte) : réanimation du partenaire,
     retour au départ si les deux tombent (en expédition : défaite).
 - Expédition (jalon 3) : `game/expedition/`
-  - `expedition.gd` (`Expedition extends Arene`) : salle en cours, portes, coffre, chaloupe, défaite, fin ;
-    l'hôte décide et envoie chaque événement à l'invité (`SynchroArene.envoyer_lieu` → `evenement_lieu`).
+  - `expedition.gd` (`Expedition extends Arene`) : salle en cours, portes, coffre, antre du Bosco, chaloupe
+    (45 s à tenir à bord, vagues de squelettes), défaite, écran de fin ; l'hôte décide et envoie chaque
+    événement à l'invité (`SynchroArene.envoyer_lieu` → `evenement_lieu`).
+  - `malediction.gd` (`Malediction`) : niveau 0 à 5 choisi au départ (`Partie.malediction`, envoyé à l'invité
+    par `Reseau._lancer`), effets cumulés ; tous les effets passent par ses fonctions (`mult_pv`…).
+  - `eau.gdshader` : l'eau du quai, dont la houle grossit pendant le départ de la chaloupe.
   - `plan_expedition.gd` : règles de la suite des salles (graine) ; `salles.gd` : les salles faites main
     (données) ; `salle.gd` : construction d'une salle ; `porte.gd` ; `chaloupe.gd` (barque faite par code).
   - Salles piège : `piege_pics.gd` (`PiegePics`, dalle à pics calée sur l'horloge de la salle,
@@ -100,8 +106,10 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   dorée et parade parfaite : `tools/capture_parade.gd` ; expédition (titre, salles, portes, trésor,
   chaloupe, fin) : `tools/capture_expedition.gd` ; chaque salle seule, vue de jeu et de dessus :
   `tools/capture_salles.gd [modèle]` ; squelettes sur fond neutre, arbalétrier, carreau renvoyé, prêtre,
-  flaque, salles piège, explosion : `tools/capture_ennemis.gd`)
-- Où pointe l'arme d'un squelette dans chaque pose : `godot --headless --path . -s "$PWD/tools/sonde_arbalete.gd"`
+  flaque, salles piège, explosion : `tools/capture_ennemis.gd` ; Bosco (portrait, annonces, charge, sonné,
+  rage), choix de la malédiction, chaloupe sous les vagues, écran de fin : `tools/capture_bosco.gd`)
+- Où pointe l'arme d'un squelette dans chaque pose : `godot --headless --path . -s "$PWD/tools/sonde_arme.gd"`
+  (sans argument : l'arbalétrier ; sinon `-- <modèle.glb> <arme.gltf> <axe x|y|z> [animations…]`)
 - Essai de la coop (hôte + invité sur cette machine, vérifications automatiques, aussi dans le CI) :
   `GODOT=<godot> tools/test_coop.sh [127.0.0.1|auto]` ; Wi-Fi imparfait simulé : préfixer
   `LATENCE_MS=30 GIGUE_MS=20 PERTE_PCT=3` ; captures des deux écrans : ajouter
@@ -208,7 +216,17 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   `Ennemi.creer_type` et à `Ennemi.PREFIXES` (le préfixe du nom permet à l'invité de recréer le bon type).
 - Armes KayKit : l'arbalète est tenue en travers du corps ; dans la pose de visée elle pointait à 90° sur
   le côté. `Arbaletrier._orienter_arme` la tourne d'un quart de tour ; vérifier toute nouvelle arme avec
-  `tools/sonde_arbalete.gd` et les portraits de `capture_ennemis.gd`.
+  `tools/sonde_arme.gd` et les portraits de `capture_ennemis.gd` (la hache du Bosco va sans correction).
+- Nouvelle classe (`class_name`) : relancer `godot --headless --path . --import` avant les tests, sinon
+  « Identifier not declared » partout (le registre des classes n'est mis à jour que par l'import).
+- Squelette agrandi (Bosco, `_taille()`) : le modèle et la collision suivent ; `EffetsMagie.eclater` met
+  l'échelle sur l'image des os, jamais sur le corps physique (la physique refuse un corps mis à l'échelle).
+- Bosco : il ne recule pas et n'est pas interrompu (`recevoir_coup` à lui) ; étourdissements et chaînes
+  ×0,5 ; son masque de collision n'a que le monde (sa charge traverse son équipage). Sa rage ne part que
+  depuis la poursuite : frappé à mi-vie pendant qu'il est sonné, il enrage juste après.
+- Bosco en coop : l'attaque choisie part par `EventBus.effet_visuel` (« bosco_coup / tourbillon / charge »,
+  avec le bout de la charge), la rage par « bosco_rage » ; `Bosco.effet_recu` redessine la zone chez
+  l'invité. Ses PV max se calculent pareil des deux côtés (coop et malédiction connues des deux).
 - `Ennemi._changer` laisse l'annonce visible en FRAPPE (la zone du matelot dure pendant son coup) : un
   ennemi dont l'annonce doit disparaître au tir la cache lui-même (trait de l'arbalétrier).
 - Carreau : un héros intouchable le laisse passer **avant** toute parade. Pour mettre en scène un renvoi
@@ -219,6 +237,12 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   tombent sans fin (pesanteur) et l'image est vide.
 - Tirages au hasard (composition d'une salle, plan) : un test qui les vérifie répète le tirage plusieurs
   fois, sinon un défaut peut passer par chance.
+- Malédiction dans les tests : `Partie.destination = &"expedition"` est nécessaire (hors expédition, le niveau
+  vaut 0) ; remettre `Partie.destination = &"arene"` et `Partie.malediction = 0` après chaque test.
+- Chaloupe : `Expedition._verifier_chaloupe(delta)` fait avancer le compte (les tests lui passent un grand
+  `delta` plutôt que d'attendre 45 s) ; l'invité reçoit le compte dans l'instantané (« @chaloupe »).
+- Captures d'une annonce qui se remplit : le rendu est si lent que l'annonce est finie avant d'être
+  dessinée ; mettre `Engine.time_scale = 0.05` juste avant la capture (voir `capture_bosco.gd`).
 - Expédition, tests : `Arene.chance_orbe` impose la chance d'orbe (0 dans les tests qui comptent les PV) ;
   le Menu de l'expédition se confirme (2 appuis) ; un test qui appuie sur Menu doit débrancher
   `retour_menu` (sinon GUT changerait de scène).

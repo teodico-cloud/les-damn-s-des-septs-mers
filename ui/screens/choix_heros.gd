@@ -25,6 +25,7 @@ const HEROS := {
 }
 
 var cartes := {}          ## archétype -> Button
+var choix_malediction: ChoixMalediction   ## expédition en solo : niveau de malédiction
 var changer_de_scene := true   ## faux dans les tests
 
 
@@ -91,7 +92,11 @@ func _monde() -> void:
 	var camera := Camera3D.new()
 	camera.fov = 40.0
 	add_child(camera)
-	camera.look_at_from_position(Vector3(0, 2.3, 6.2), Vector3(0, 0.75, 0), Vector3.UP)
+	if Partie.destination == &"expedition" and Partie.mode == Partie.Mode.SOLO:
+		# le choix de la malédiction occupe le haut de l'écran : les héros, un peu plus loin, en dessous
+		camera.look_at_from_position(Vector3(0, 2.3, 8.6), Vector3(0, 1.45, 0), Vector3.UP)
+	else:
+		camera.look_at_from_position(Vector3(0, 2.3, 6.2), Vector3(0, 0.75, 0), Vector3.UP)
 	camera.current = true
 
 	for cle in HEROS:
@@ -153,6 +158,14 @@ func _interface() -> void:
 	retour.position = Vector2(24, 18)
 	retour.pressed.connect(retour_menu)
 	racine.add_child(retour)
+
+	# expédition en solo : la malédiction se choisit ici (à deux, l'hôte la choisit sur l'écran de coop)
+	if Partie.destination == &"expedition" and Partie.mode == Partie.Mode.SOLO:
+		choix_malediction = ChoixMalediction.new()
+		choix_malediction.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		choix_malediction.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		choix_malediction.position.y = 84
+		racine.add_child(choix_malediction)
 
 
 func _carte(info: Dictionary) -> Button:

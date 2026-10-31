@@ -146,8 +146,9 @@ func _etat_parade() -> void:
 
 
 func _intercepter_coup(source: Node3D) -> bool:
-	# (seulement les coups d'un squelette : ni les pics, ni une flaque, ni un carreau — voir renvoyer_carreau)
-	if etat == Etat.PARADE and source is Ennemi and Combat.est_devant(self, source, EQ.parade_angle):
+	# (seulement les coups d'un squelette : ni les pics, ni une flaque, ni un carreau — voir renvoyer_carreau ;
+	# ni le tourbillon ou la charge du Bosco, imparables : choix de Téo)
+	if etat == Etat.PARADE and source is Ennemi and source.coup_parable() and Combat.est_devant(self, source, EQ.parade_angle):
 		# parade parfaite (choix de Téo) : le coup arrive juste après l'appui sur Parade
 		_riposter(source, _t <= EQ.parade_parfaite_fenetre)
 		return true

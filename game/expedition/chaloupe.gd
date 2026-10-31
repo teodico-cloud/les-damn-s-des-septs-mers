@@ -11,6 +11,7 @@ const CREUX := 0.6
 
 var _temps := 0.0
 var _coque: Node3D
+var houle := 0.0      ## 0 à 1 : la chaloupe tangue de plus en plus pendant son départ
 
 
 static func creer() -> Chaloupe:
@@ -62,9 +63,10 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_temps += delta
-	_coque.position.y = 0.04 * sin(_temps * 1.6)
-	_coque.rotation_degrees.z = 2.5 * sin(_temps * 1.1)
-	_coque.rotation_degrees.x = 1.2 * sin(_temps * 0.8 + 1.0)
+	var k := 1.0 + 2.5 * houle
+	_coque.position.y = 0.04 * k * sin(_temps * 1.6)
+	_coque.rotation_degrees.z = 2.5 * k * sin(_temps * 1.1)
+	_coque.rotation_degrees.x = 1.2 * k * sin(_temps * 0.8 + 1.0)
 
 
 ## Coque : sections en U le long de la barque, plus étroites et plus hautes aux deux pointes.

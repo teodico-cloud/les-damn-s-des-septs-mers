@@ -163,6 +163,8 @@ func _afficher(v: Vue) -> void:
 			message.text = "Tu joues %s. En attente de ton partenaire…\n" % NOMS.get(Partie.heros_local, "?")
 			message.text += "S'il ne voit pas ta partie, il tape le code %d." % code if code > 0 \
 					else "Aucun Wi-Fi détecté : vérifie que le téléphone y est connecté."
+			var choix := ChoixMalediction.new()   # l'hôte choisit la malédiction (envoyée au lancement)
+			zone.add_child(choix)
 			bouton_lancer = _bouton("Lancer l'expédition", 520)
 			bouton_lancer.disabled = true
 			bouton_lancer.pressed.connect(lancer.bind(&"expedition"))

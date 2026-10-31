@@ -189,6 +189,8 @@ func _etat_heros() -> Dictionary:
 			d[String(h.name)] = h.instantane()
 	if arene and arene.get("temps_salle") != null:
 		d["@temps"] = arene.temps_salle   # horloge des pièges de la salle (expédition)
+		if arene.chaloupe_restant >= 0.0:
+			d["@chaloupe"] = Vector2(arene.chaloupe_restant, 1.0 if arene.a_bord else 0.0)   # départ de la chaloupe
 	return d
 
 
@@ -424,6 +426,9 @@ func _afficher_monde() -> void:
 			heros_partenaire.appliquer_instantane(dn[2], dn[3], dn[4], dn[5], dn[6], dn[7], dn[8] + age)
 	if dernier[1].has("@temps") and arene.has_method("caler_temps_salle"):
 		arene.caler_temps_salle(dernier[1]["@temps"] + age)   # pièges calés sur l'hôte
+	if dernier[1].has("@chaloupe") and arene.has_method("caler_chaloupe"):
+		var c: Vector2 = dernier[1]["@chaloupe"]
+		arene.caler_chaloupe(c.x, c.y > 0.5)
 	# squelettes (marionnettes)
 	for e in generateur.get_children():
 		if not (e is Ennemi):
@@ -486,10 +491,11 @@ func _effet_recu(nom_lanceur: String, type: String, position: Vector3) -> void:
 		return
 	if nom_lanceur == String(heros_local.name):
 		return   # notre propre sort : déjà affiché chez nous
-	if type == "relever" or type == "flaque_annonce":
-		var pretre := _trouver(nom_lanceur)
-		if pretre and pretre.has_method("effet_recu"):
-			pretre.effet_recu(type, position)
+	if type == "relever" or type == "flaque_annonce" or type.begins_with("bosco_"):
+		# prêtre noyé (cercles) ou Bosco (zone de l'attaque choisie, rage) : il dessine lui-même
+		var lanceur := _trouver(nom_lanceur)
+		if lanceur and lanceur.has_method("effet_recu"):
+			lanceur.effet_recu(type, position)
 		return
 	if type == "flaque":
 		FlaqueMaudite.creer(arene, position, false)   # l'image seulement : l'hôte compte les dégâts

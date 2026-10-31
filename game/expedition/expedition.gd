@@ -5,7 +5,9 @@ extends Arene
 ## s'ouvrent et annoncent la salle suivante. Choix de Téo : expédition courte (4 salles, l'antre du
 ## Bosco, la chaloupe) ; PV gardés d'une salle à l'autre (orbes de vie) ; en coop, la porte se prend
 ## quand les deux héros sont devant. Tomber seul, ou tomber tous les deux : l'expédition est perdue.
-## Monter dans la chaloupe : réussie. L'hôte décide de tout et envoie chaque salle à l'invité.
+## L'antre : le Bosco Maudit (mini-boss). La chaloupe : y tenir 45 s pendant que des squelettes sortent
+## de l'eau ; le compte n'avance que si un héros est à bord (choix de Téo) ; à 0 : réussie. La malédiction
+## choisie au départ durcit tout (voir Malediction). L'hôte décide de tout et envoie chaque salle à l'invité.
 
 const AUCUN_POINT: Array[Vector3] = []
 
@@ -26,6 +28,12 @@ var _critiques := 0
 var temps_salle := 0.0           ## horloge de la salle (pièges) ; chez l'invité, calée sur l'hôte
 var _portes_ouvertes_pour := -1  ## invité : n° de salle dont l'hôte a ouvert les portes
 var _coffre_ouvert_pour := -1
+var bosco: Bosco                  ## antre (hôte) : le Bosco Maudit
+var _bosco_debut_ms := -1
+var _bosco_fin_ms := -1
+var chaloupe_restant := -1.0      ## secondes avant le départ (-1 : personne n'est encore monté) ; invité : d'après l'hôte
+var a_bord := false               ## au moins un héros debout dans la chaloupe
+var vagues_lancees := 0
 
 
 # ---------------------------------------------------------------- mise en place
@@ -121,6 +129,9 @@ func _construire_salle(n: int, t: StringName, m: String, portes: Array) -> void:
 	types_portes = portes
 	_salle_demarree = false
 	temps_salle = 0.0
+	chaloupe_restant = -1.0
+	a_bord = false
+	vagues_lancees = 0
 	if salle:
 		remove_child(salle)
 		salle.queue_free()
@@ -141,17 +152,20 @@ func _demarrer_salle() -> void:
 	var coop := Reseau.est_en_coop()
 	var ensemble := EQ.exp_ensemble_coop if coop else EQ.exp_ensemble
 	match type_salle:
-		PlanExpedition.COMBAT, PlanExpedition.BOSCO:
-			var bosco := type_salle == PlanExpedition.BOSCO
-			var total := (EQ.exp_ennemis_bosco_coop if coop else EQ.exp_ennemis_bosco) if bosco \
-					else (EQ.exp_ennemis_salle_coop if coop else EQ.exp_ennemis_salle)
-			generateur.preparer_salle(total, ensemble, salle.apparitions(), composition(numero, type_salle, coop))
+		PlanExpedition.COMBAT:
+			var total := (EQ.exp_ennemis_salle_coop if coop else EQ.exp_ennemis_salle) + Malediction.bonus_ennemis()
+			generateur.preparer_salle(total, ensemble + Malediction.bonus_ensemble(), salle.apparitions(), composition(numero, type_salle, coop))
 			generateur.demarrer()
-			if bosco:
-				hud.afficher_message("L'antre du Bosco…\n(le Bosco arrive à la prochaine étape)", 3.0)
+		PlanExpedition.BOSCO:
+			generateur.preparer_salle(0, 0, AUCUN_POINT)
+			bosco = generateur._faire_apparaitre(salle.donnees.get("bosco", Vector3(0, 0, -2.6)), &"bosco") as Bosco
+			bosco.rotation.y = atan2(Salles.ENTREE.x - bosco.position.x, Salles.ENTREE.z - bosco.position.z)   # face à l'entrée
+			bosco.vaincu.connect(_on_bosco_vaincu)
+			_bosco_debut_ms = Time.get_ticks_msec()
+			hud.afficher_message("Le Bosco Maudit !", 2.5)
 		PlanExpedition.PIEGE:
-			var total := EQ.exp_ennemis_piege_coop if coop else EQ.exp_ennemis_piege
-			generateur.preparer_salle(total, maxi(ensemble - 2, 3), salle.apparitions(), composition(numero, type_salle, coop))
+			var total := (EQ.exp_ennemis_piege_coop if coop else EQ.exp_ennemis_piege) + Malediction.bonus_ennemis()
+			generateur.preparer_salle(total, maxi(ensemble - 2, 3) + Malediction.bonus_ensemble(), salle.apparitions(), composition(numero, type_salle, coop))
 			generateur.demarrer()
 			hud.afficher_message("Attention aux dalles qui rougeoient…\net frappez les tonneaux de poudre !", 3.0)
 		PlanExpedition.TRESOR:
@@ -160,11 +174,11 @@ func _demarrer_salle() -> void:
 			hud.afficher_message("Un coffre maudit…", 2.0)
 		PlanExpedition.CHALOUPE:
 			generateur.preparer_salle(0, 0, AUCUN_POINT)
-			hud.afficher_message("La chaloupe vous attend : montez à bord !", 3.0)
+			hud.afficher_message("Montez dans la chaloupe\net tenez bon %d s !" % int(EQ.chaloupe_duree), 3.0)
 
 
 ## Qui sort de terre dans une salle (le reste en matelots) : des arbalétriers à partir de la 2e salle,
-## un prêtre noyé à partir de la 3e et dans l'antre.
+## un prêtre noyé à partir de la 3e (l'antre : le Bosco seul, puis son équipage à mi-vie).
 static func composition(n: int, type: StringName, coop: bool) -> Dictionary:
 	var c := {}
 	var arb := EQ.exp_arbaletriers + (1 if coop else 0)
@@ -177,9 +191,6 @@ static func composition(n: int, type: StringName, coop: bool) -> Dictionary:
 		PlanExpedition.PIEGE:
 			if n >= 2:
 				c[&"arbaletrier"] = 1
-		PlanExpedition.BOSCO:
-			c[&"arbaletrier"] = arb + 1
-			c[&"pretre"] = EQ.exp_pretres
 	return c
 
 
@@ -275,7 +286,7 @@ func _physics_process(delta: float) -> void:
 		return
 	if not Reseau.est_invite() and not en_transition:
 		temps_salle += delta
-	salle.regler_pieges(temps_salle, not Reseau.est_invite())
+	salle.regler_pieges(temps_salle * Malediction.vitesse_pieges(), not Reseau.est_invite())
 	if Partie.debug_sante_infinie and not Reseau.est_invite():
 		for h in heros_actifs():
 			if h.est_vivant() and h.sante.pv < h.sante.pv_max:
@@ -298,7 +309,7 @@ func _physics_process(delta: float) -> void:
 		_prendre_porte(p)
 		return
 	_verifier_coffre()
-	_verifier_chaloupe()
+	_verifier_chaloupe(delta)
 
 
 func _verifier_coffre() -> void:
@@ -311,22 +322,77 @@ func _verifier_coffre() -> void:
 			salle.ouvrir_coffre()
 			for g in heros_actifs():
 				if g.est_vivant():
-					EventBus.soin.emit(g, g.sante.soigner(g.sante.pv_max * EQ.exp_tresor_soin))
+					EventBus.soin.emit(g, g.sante.soigner(g.sante.pv_max * EQ.exp_tresor_soin * Malediction.mult_coffre()))
 			if synchro:
 				synchro.envoyer_lieu("coffre", [numero])
 			hud.afficher_message("Le coffre maudit vous soigne !\n(le butin arrive au jalon 4)", 2.5)
 			return
 
 
-func _verifier_chaloupe() -> void:
+## Quai : la chaloupe part au bout de chaloupe_duree secondes passées avec au moins un héros à bord
+## (le compte s'arrête quand personne n'y est, sans rien perdre) ; des vagues de squelettes sortent
+## de l'eau à intervalles réguliers de ce compte (choix de Téo : « tenir 45 s à bord »).
+func _verifier_chaloupe(delta: float) -> void:
 	if salle.zone_chaloupe == Vector3.INF:
 		return
+	a_bord = false
 	for h in heros_actifs():
-		var d: Vector3 = h.global_position - salle.zone_chaloupe
-		d.y = 0.0
-		if not h.est_vivant() or d.length() > EQ.exp_rayon_chaloupe:
+		if h.est_vivant() and salle.dans_chaloupe(h.global_position):
+			a_bord = true
+	if chaloupe_restant < 0.0:
+		if not a_bord:
 			return
-	_terminer(true)
+		chaloupe_restant = EQ.chaloupe_duree
+		hud.afficher_message("La chaloupe se prépare…\nTenez bon à bord !", 2.5)
+	elif a_bord:
+		chaloupe_restant = maxf(chaloupe_restant - delta, 0.0)
+	var ecoule := EQ.chaloupe_duree - chaloupe_restant
+	while vagues_lancees < EQ.chaloupe_vagues and ecoule >= vagues_lancees * EQ.chaloupe_duree / EQ.chaloupe_vagues:
+		_lancer_vague(vagues_lancees)
+		vagues_lancees += 1
+	salle.houle = clampf(ecoule / EQ.chaloupe_duree, 0.0, 1.0)
+	_afficher_chaloupe()
+	if chaloupe_restant <= 0.0:
+		_terminer(true)
+
+
+## Une vague : des squelettes sortent de l'eau le long du quai (et du fond de la salle).
+func _lancer_vague(i: int) -> void:
+	var coop := is_instance_valid(heros_partenaire)
+	var n := (EQ.chaloupe_vague_coop if coop else EQ.chaloupe_vague) + (1 if Malediction.bonus_ennemis() > 0 else 0)
+	var points := salle.points_vague()
+	for k in n:
+		var p: Vector3 = points[(i * 2 + k) % points.size()]
+		var type := &"arbaletrier" if k == 0 and i + 1 >= EQ.chaloupe_arbaletrier_des else &"matelot"
+		generateur._faire_apparaitre(p, type)
+		EffetsMagie.eclaboussure(self, p)
+	if synchro:
+		synchro.envoyer_lieu("vague", [numero, points.slice(0, mini(n, points.size()))])
+
+
+## Le compte à rebours de la chaloupe, en haut de l'écran (hôte et invité).
+func _afficher_chaloupe() -> void:
+	if chaloupe_restant < 0.0:
+		hud.afficher_salle(_texte_salle())
+	elif a_bord:
+		hud.afficher_salle("La chaloupe part dans %d s" % ceili(chaloupe_restant))
+	else:
+		hud.afficher_salle("Remontez dans la chaloupe ! (%d s)" % ceili(chaloupe_restant))
+
+
+## Coop, invité : le compte à rebours de l'hôte.
+func caler_chaloupe(restant: float, p_a_bord: bool) -> void:
+	if salle == null or salle.zone_chaloupe == Vector3.INF or finie:
+		return
+	chaloupe_restant = restant
+	a_bord = p_a_bord
+	if restant >= 0.0:
+		salle.houle = clampf((EQ.chaloupe_duree - restant) / EQ.chaloupe_duree, 0.0, 1.0)
+	_afficher_chaloupe()
+
+
+func _on_bosco_vaincu(_e: Ennemi) -> void:
+	_bosco_fin_ms = Time.get_ticks_msec()
 
 
 ## Coop, invité : l'horloge de la salle de l'hôte (pièges réglés pareil des deux côtés).
@@ -355,19 +421,39 @@ func _terminer(p_reussite: bool) -> void:
 	_afficher_fin(p_reussite, lignes)
 
 
+## Les lignes de l'écran de fin (l'hôte les envoie telles quelles à l'invité). Écran enrichi (choix
+## de Téo) : malédiction et butin prévu, combat contre le Bosco.
 func _bilan(p_reussite: bool) -> Array:
 	var secondes := (Time.get_ticks_msec() - _debut_ms) / 1000
 	var total := EQ.exp_nb_salles + 2
+	var n := Malediction.niveau()
 	var lignes := [
 		"Progression : salle %d sur %d" % [mini(numero, total), total] if not p_reussite else "Toutes les salles traversées",
-		"Squelettes vaincus : %d" % generateur.vaincus,
-		"Coups critiques : %d" % _critiques,
-		"Orbes de vie ramassées : %d" % orbes_ramassees,
-		"Durée : %d min %02d s" % [secondes / 60, secondes % 60],
+		"%s — butin prévu %s" % [Malediction.titre(n), Malediction.texte_butin(n)],
 	]
+	var ligne_bosco := _ligne_bosco()
+	if ligne_bosco != "":
+		lignes.append(ligne_bosco)
+	lignes.append("Squelettes vaincus : %d" % generateur.vaincus)
 	if _parades > 0:
-		lignes.insert(3, "Parades parfaites : %d" % _parades)
+		lignes.append("Parades parfaites : %d" % _parades)
+	lignes.append("Coups critiques : %d" % _critiques)
+	lignes.append("Orbes de vie ramassées : %d" % orbes_ramassees)
+	lignes.append("Durée : %d min %02d s" % [secondes / 60, secondes % 60])
 	return lignes
+
+
+## « Bosco vaincu en 1 min 24 s », ou ce qu'il lui restait de PV ; vide si on ne l'a pas affronté.
+func _ligne_bosco() -> String:
+	if _bosco_debut_ms < 0:
+		return ""
+	if _bosco_fin_ms >= 0:
+		var s := (_bosco_fin_ms - _bosco_debut_ms) / 1000
+		return "Bosco vaincu en %d min %02d s" % [s / 60, s % 60]
+	if is_instance_valid(bosco) and bosco.sante:
+		return "Bosco : il lui restait %d %% de ses PV" % ceili(100.0 * bosco.sante.pv / bosco.sante.pv_max)
+	return ""
+
 
 
 func _afficher_fin(p_reussite: bool, lignes: Array) -> void:
@@ -404,6 +490,10 @@ func evenement_lieu(type: String, donnees: Array) -> void:
 				salle.ouvrir_coffre()
 		"fin":
 			_afficher_fin(donnees[0], donnees[1])
+		"vague":
+			if salle and numero == donnees[0]:
+				for p in donnees[1]:
+					EffetsMagie.eclaboussure(self, p)
 		"tonneau":
 			if salle and numero == donnees[0]:
 				var t := salle.get_node_or_null(NodePath(donnees[1])) as TonneauPoudre

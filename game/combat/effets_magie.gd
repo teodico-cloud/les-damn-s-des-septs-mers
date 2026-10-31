@@ -151,6 +151,11 @@ static func explosion(parent: Node, pos: Vector3) -> void:
 	etincelles(parent, pos)
 
 
+## Gerbe d'eau (squelettes qui sortent de l'eau, sur le quai de la chaloupe).
+static func eclaboussure(parent: Node, pos: Vector3) -> void:
+	_bouffee(parent, pos + Vector3.UP * 0.3, 18, 0.55, 1.1, Color(0.6, 0.85, 0.9, 0.85), Color(0.2, 0.4, 0.45, 0.0))
+
+
 ## Cercle au sol qui s'élargit puis s'efface (zone des Chaînes spectrales).
 static func cercle(parent: Node, pos: Vector3, rayon: float, duree: float) -> void:
 	if parent == null or not parent.is_inside_tree():
@@ -251,22 +256,25 @@ static func eclater(parent: Node, parties: Array, origine: Transform3D, depuis: 
 		if mi == null or mi.mesh == null:
 			continue
 		var boite := mi.mesh.get_aabb()
+		# un squelette agrandi (Bosco ×1,6) : l'échelle va à l'image, jamais au corps physique
+		var echelle := origine.basis.get_scale()
 		var corps := RigidBody3D.new()
 		corps.collision_layer = 0                      # personne ne s'y cogne…
 		corps.collision_mask = Combat.COUCHE_MONDE      # …mais ils tombent sur le sol et les murs
 		corps.mass = 0.4
 		var forme := CollisionShape3D.new()
 		var b := BoxShape3D.new()
-		b.size = (boite.size * 0.8).max(Vector3.ONE * 0.08)
+		b.size = (boite.size * echelle * 0.8).max(Vector3.ONE * 0.08)
 		forme.shape = b
 		corps.add_child(forme)
 		var vue := MeshInstance3D.new()
 		vue.mesh = mi.mesh
 		vue.material_override = mi.get_active_material(0)
-		vue.position = -boite.get_center()            # tourne autour de son propre centre
+		vue.position = -boite.get_center() * echelle  # tourne autour de son propre centre
+		vue.scale = echelle
 		vue.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		corps.add_child(vue)
-		corps.transform = Transform3D(origine.basis, origine * boite.get_center())
+		corps.transform = Transform3D(origine.basis.orthonormalized(), origine * boite.get_center())
 		parent.add_child(corps)
 		var sortie := (corps.global_position - depuis)
 		sortie.y = 0.0
@@ -277,6 +285,6 @@ static func eclater(parent: Node, parties: Array, origine: Transform3D, depuis: 
 		# (on rétrécit l'image, pas le corps : la physique n'accepte pas un corps mis à l'échelle)
 		var t := corps.create_tween()
 		t.tween_interval(duree * 0.75)
-		t.tween_property(vue, "scale", Vector3.ONE * 0.01, duree * 0.25)
+		t.tween_property(vue, "scale", echelle * 0.01, duree * 0.25)
 		t.tween_callback(corps.queue_free)
 	_bouffee(parent, origine.origin + Vector3.UP * 0.8, 14, 0.5, 1.0, Color(0.85, 0.82, 0.72, 0.7), Color(0.3, 0.3, 0.3, 0.0))

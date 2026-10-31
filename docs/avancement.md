@@ -15,8 +15,9 @@ Dernière mise à jour : 30 octobre 2026.
 - **Jalon 2 clos (30/10)** : coop validée par Téo sur deux téléphones ; relecture des ajouts corrigée
   (APK 0.2.10).
 - **Jalon 3, étape 1 (expédition) : faite**, APK intermédiaire 0.3.x.
-- **Jalon 3, étape 2 (arbalétrier, prêtre noyé, salles piège) : faite**, APK intermédiaire 0.3.x. Étape 3
-  (Bosco, malédiction, chaloupe sous les vagues, relecture) à venir.
+- **Jalon 3, étape 2 (arbalétrier, prêtre noyé, salles piège) : faite**, APK 0.3.13.
+- **Jalon 3, étape 3 (Bosco Maudit, malédiction, chaloupe sous les vagues, écran de fin) : faite** ;
+  relecture de fin de jalon puis APK.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -100,6 +101,32 @@ Matelots squelettes qui reviennent sans fin.
   squelettes ; Parade sans effet contre pics et flaque ; flaque sans étourdissement ; pas de prêtre dans le
   premier groupe ; trait de l'arbalétrier jamais doré.
 
+## Bosco, malédiction, chaloupe (jalon 3, étape 3 — choix de Téo du 31/10)
+- **Bosco Maudit** (antre) : grand squelette guerrier KayKit (×1,6) à hache géante, 1 400 PV (~1 min 30 en
+  solo pour un bon joueur ; ×1,8 à deux). Il ne recule pas et n'est pas interrompu par les coups.
+  - Coup de hache au sol, droit devant (4,6 m) : zone rouge qui devient **dorée** → **le seul qui se pare**
+    (parade parfaite possible ; la riposte l'étourdit, deux fois moins longtemps qu'un matelot).
+  - Tourbillon (cercle de 3,2 m) et charge (ligne vers le héros, jusqu'à 12 m) : **rouge sombre, imparables**
+    (il faut s'éloigner ou rouler). Charge finie contre un mur ou un meuble : **sonné 2 s** (étoiles).
+  - À mi-vie : **rage** (cri, yeux et lueur rouges, 25 % plus rapide) et **3 matelots** appelés.
+  - Barre de vie en haut de l'écran. Vaincu : son équipage s'effondre avec lui, la porte de la chaloupe s'ouvre.
+- **Malédiction** choisie au départ (écran du héros en solo ; l'hôte sur « Jouer à deux », envoyée à l'invité),
+  effets cumulés : 1 Os durcis (squelettes +25 % PV) ; 2 Équipage nombreux (+2 squelettes par salle, 1 de plus
+  debout, +1 par vague de la chaloupe) ; 3 Lames maudites (+25 % de dégâts des squelettes, pas des pièges) ;
+  4 Mer avare (orbes 2 fois plus rares, coffre moitié moins) ; 5 Bosco enragé dès le début, pièges plus
+  rapides. Butin prévu +20 % par niveau (affiché ; le butin arrive au jalon 4). Niveau affiché sous les PV.
+- **Chaloupe sous les vagues** : y monter lance un compte de 45 s, qui n'avance que si un héros debout est à
+  bord (sinon « Remontez dans la chaloupe ! », sans rien perdre). 5 vagues de 3 squelettes (4 à deux) sortent
+  de l'eau le long du quai, un arbalétrier par vague dès la 3e ; la houle et le tangage grossissent.
+- **Écran de fin enrichi** : malédiction et butin prévu, « Bosco vaincu en … » (ou ses PV restants).
+- Annexes proposées et non retenues par Téo : départs « piège » / « salle 3 » au mode test, explosion plus
+  grande, mort du Bosco mise en scène.
+- Petits choix faits sans Téo, à lui signaler : riposte et chaînes deux fois moins longues sur le Bosco ; son
+  équipage s'effondre avec lui ; la rage attend la fin d'une attaque ou d'un étourdissement ; 3 matelots même
+  à deux ; les vagues de la chaloupe n'avancent qu'avec le compte (pas de vague tant que personne n'est à bord).
+- Réseau version 7. Tests : 23 nouveaux (vérifiés par sabotage) ; essai coop de l'expédition étendu (malédiction
+  reçue, Bosco, zone de sa charge, rage, compte à rebours de la chaloupe chez l'invité).
+
 ## Combat « nerveux » (30/10, demande de Téo : « vraiment Diablo like »)
 Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pas les ennemis plus agressifs).
 - Héros plus vif : marche 6,2 m/s (5,2) ; combo 25 % plus rapide ; bouger le joystick 0,05 s après
@@ -173,6 +200,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 22/10/2026 | Icônes des compétences sur les boutons, propres à chaque héros (demande de Téo). |
 | 30/10/2026 | Combat « nerveux » : héros plus vif, hordes, coups qui claquent, coups critiques (choix de Téo, voir plus haut). Ennemis plus agressifs : non retenu. |
 | 30/10/2026 | Parade : elle coupe le coup en cours ; parade parfaite en bonus (0,25 s), zone dorée avant le coup + étincelles, « PARFAIT ! » et ralenti, Parade rendue. Onde de choc : non retenue. |
+| 31/10/2026 | Jalon 3, étape 3 (choix de Téo) : Bosco « brute à la hache » (tourbillon, charge qui le laisse sonné 2 s contre un mur, coup au sol ; rage à mi-vie + 3 matelots) ; coups mi-parables (seul le coup au sol se pare, les gros coups rouge sombre sont imparables) ; ~1 min 30 en solo ; malédiction 0–5 choisie au départ avec l'échelle proposée (+20 % de butin par niveau) ; chaloupe : tenir 45 s à bord, le compte s'arrête si personne n'y est ; annexe retenue : écran de fin enrichi. |
 | 30/10/2026 | Jalon 3, étape 2 (choix de Téo) : la Parade renvoie les carreaux d'arbalète ; un coup interrompt l'incantation du prêtre noyé ; salles piège avec dalles à pics et tonneaux de poudre explosifs ; l'arène d'entraînement garde seulement les matelots. |
 | 30/10/2026 | Réglages (choix de Téo) : le joystick ne coupe plus le 3e coup du combo (le lourd va au bout) ; fenêtre de la parade parfaite 0,35 s (zone dorée 0,4 s avant le coup). Étape 2 du jalon 3 lancée. |
 | 30/10/2026 | Jalon 2 : coop essayée par Téo sur ses deux téléphones, « ça marche » (porte franchie). |
@@ -262,8 +290,8 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 - Tranché par Téo : le 3e coup n'est plus coupé par le joystick ; fenêtre parfaite portée à 0,35 s.
 
 ## Prochaines étapes
-1. Essai de Téo de l'expédition avec les nouveaux ennemis et les salles piège (seul et à deux).
-2. Jalon 3, étape 3 : Bosco Maudit, malédiction 0–5, chaloupe sous les vagues ; relecture ; APK.
+1. Essai de Téo de l'expédition complète (seul et à deux), dont le temps contre le Bosco et la malédiction.
+2. Jalon 4 : butin et sauvegarde.
 
 ## Points à trancher plus tard
 - Clé de signature définitive : passer à la vraie clé (secrète) **avant** que les sauvegardes comptent,

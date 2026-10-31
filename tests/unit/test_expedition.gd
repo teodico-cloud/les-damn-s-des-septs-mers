@@ -248,7 +248,9 @@ func test_chaloupe_reussite() -> void:
 	assert_eq(e.salle.portes.size(), 0, "Plus de porte : la chaloupe")
 	e.heros.global_position = e.salle.zone_chaloupe
 	await wait_physics_frames(3)
-	assert_true(e.finie and e.reussite, "Monter dans la chaloupe : expédition réussie")
+	assert_false(e.finie, "Monter dans la chaloupe lance le compte à rebours (choix de Téo : tenir 45 s)")
+	e._verifier_chaloupe(EQ.chaloupe_duree)
+	assert_true(e.finie and e.reussite, "45 s à bord : expédition réussie")
 	assert_not_null(e.hud.panneau_fin, "Écran de fin")
 
 
@@ -268,7 +270,7 @@ func test_bosco_puis_chaloupe() -> void:
 	assert_eq(e.salle.portes.size(), 1)
 	assert_eq(e.salle.portes[0].type, PlanExpedition.CHALOUPE, "Une seule porte : la chaloupe")
 	await _nettoyer(e)
-	assert_eq(e.generateur.vaincus, EQ.exp_ennemis_bosco)
+	assert_eq(e.generateur.vaincus, 1, "Le Bosco (vaincu d'un coup ici : pas de rage)")
 	e.heros.global_position = e.salle.portes[0].devant()
 	await wait_seconds(EQ.exp_fondu * 2.0 + 0.3)
 	assert_eq(e.type_salle, PlanExpedition.CHALOUPE)

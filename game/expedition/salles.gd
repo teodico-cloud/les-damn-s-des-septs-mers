@@ -220,6 +220,7 @@ const MODELES := {
 		],
 		"torches": [Vector3(-3.2, 0, -6.4), Vector3(3.2, 0, -6.4), Vector3(-6.4, 0, -3.2)],
 		"lumieres": [[Vector3(0.0, 2.5, -1.5), ROUGE, 1.6, 8.0]],
+		"bosco": Vector3(-0.4, 0, -2.4),     # il surgit au milieu de l'antre, face à l'entrée
 		"apparitions": [Vector3(-2.0, 0, -3.0), Vector3(2.4, 0, -3.0), Vector3(-3.4, 0, 0.0),
 				Vector3(0.0, 0, -1.0), Vector3(3.4, 0, -0.8), Vector3(-1.0, 0, 2.0)],
 	},

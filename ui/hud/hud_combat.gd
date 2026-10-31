@@ -36,6 +36,9 @@ var mode_expedition := false
 var label_salle: Label
 var voile: ColorRect           ## fondu au noir entre deux salles
 var panneau_fin: Control
+var barre_boss: Control        ## vie du Bosco, en haut au centre, quand il est là
+var _boss: Node3D
+var label_malediction: Label   ## expédition : niveau de malédiction, sous les PV
 var _premier_appui_menu := -100.0   ## expédition : heure du 1er appui sur Menu (on attend le 2e)
 
 
@@ -138,6 +141,25 @@ func _ready() -> void:
 	label_salle.position.y = 22
 	label_salle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	racine.add_child(label_salle)
+
+	barre_boss = Control.new()
+	barre_boss.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	barre_boss.size = Vector2(620, 58)
+	barre_boss.position = Vector2(-310, 70)
+	barre_boss.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	barre_boss.visible = false
+	barre_boss.draw.connect(_dessiner_boss)
+	racine.add_child(barre_boss)
+
+	label_malediction = Label.new()
+	label_malediction.add_theme_font_size_override("font_size", 22)
+	label_malediction.add_theme_color_override("font_color", Color("b48cff"))
+	label_malediction.add_theme_color_override("font_outline_color", Color.BLACK)
+	label_malediction.add_theme_constant_override("outline_size", 6)
+	label_malediction.position = Vector2(28, 64)
+	label_malediction.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label_malediction.visible = false
+	racine.add_child(label_malediction)
 
 	voile = ColorRect.new()
 	voile.color = Color(0, 0, 0, 0)
@@ -366,6 +388,50 @@ func _process(delta: float) -> void:
 	heros.commandes.deplacement = camera.joystick_vers_monde(v) if camera else Vector3(v.x, 0, v.y)
 
 	_textes_a_terre()
+	_suivre_boss()
+	var n := Malediction.niveau() if mode_expedition else 0
+	label_malediction.visible = n > 0 and panneau_fin == null
+	if n > 0:
+		label_malediction.text = "Malédiction %d" % n
+
+
+## Barre de vie du Bosco : visible tant qu'il est là et debout (chez l'hôte comme chez l'invité).
+func _suivre_boss() -> void:
+	if _boss == null or not is_instance_valid(_boss) or not _boss.is_in_group("boss"):
+		_boss = get_tree().get_first_node_in_group("boss") as Node3D
+	var visible_boss := _boss != null and panneau_fin == null
+	if barre_boss.visible != visible_boss:
+		barre_boss.visible = visible_boss
+		# les textes de la coop descendent sous la barre du Bosco
+		label_partenaire.position.y = 80 + (66 if visible_boss else 0)
+		label_alerte.position.y = 130 + (66 if visible_boss else 0)
+	if visible_boss:
+		barre_boss.queue_redraw()
+
+
+func _dessiner_boss() -> void:
+	if _boss == null or not is_instance_valid(_boss) or _boss.get("sante") == null:
+		return
+	var s: Sante = _boss.sante
+	var enrage: bool = _boss.get("enrage") == true
+	var police := ThemeDB.fallback_font
+	var nom := "Le Bosco Maudit — enragé" if enrage else "Le Bosco Maudit"
+	var largeur := barre_boss.size.x
+	barre_boss.draw_string_outline(police, Vector2(0, 20), nom, HORIZONTAL_ALIGNMENT_CENTER, largeur, 24, 6, Color.BLACK)
+	barre_boss.draw_string(police, Vector2(0, 20), nom, HORIZONTAL_ALIGNMENT_CENTER, largeur, 24, Color(1.0, 0.55, 0.45) if enrage else COULEUR_OS)
+	var r := Rect2(Vector2(0, 28), Vector2(largeur, 26))
+	var fond := StyleBoxFlat.new()
+	fond.bg_color = Color(0.05, 0.03, 0.03, 0.75)
+	fond.border_color = Color("ac8036")
+	fond.set_border_width_all(3)
+	fond.set_corner_radius_all(8)
+	barre_boss.draw_style_box(fond, r)
+	var f: float = clampf(s.pv / s.pv_max, 0.0, 1.0)
+	if f > 0.0:
+		var plein := StyleBoxFlat.new()
+		plein.bg_color = Color(0.85, 0.12, 0.08) if enrage else Color(0.55, 0.06, 0.08)
+		plein.set_corner_radius_all(6)
+		barre_boss.draw_style_box(plein, Rect2(r.position + Vector2(4, 4), Vector2((r.size.x - 8) * f, r.size.y - 8)))
 
 
 ## Textes quand un héros est à terre (solo : compte à rebours ; coop : réanimation ou retour au départ).

@@ -83,6 +83,8 @@ func _derouler(args: PackedStringArray) -> void:
 			return _echec("personne ne s'est connecté")
 		print("MESURE hote connecte partenaire=%s" % reseau.heros_partenaire)
 		await _attendre(0.5)
+		if destination == &"expedition":
+			partie.malediction = 2   # l'invité doit jouer au même niveau (envoyé au lancement)
 		reseau.lancer_combat(destination)
 	else:
 		partie.mode = 2   # INVITE
@@ -350,6 +352,25 @@ func _hote_expedition() -> void:
 	pretre._maudire(arene.heros_partenaire.global_position)
 	await _attendre(2.5)
 	print("MESURE hote temps_salle=%.2f" % arene.temps_salle)
+	# étape 3 : le Bosco (l'invité doit voir sa charge et sa rage), puis la chaloupe (compte à rebours)
+	var bosco = gen._faire_apparaitre(Vector3(0.0, 0, -3.0), &"bosco")
+	await _attendre(2.5)   # sortie de terre
+	bosco._commencer(3, Vector3(0, 0, 1))   # charge
+	await _attendre(0.6)
+	bosco.sante.subir(bosco.sante.pv - bosco.sante.pv_max * 0.45, arene.heros)   # à mi-vie : la rage
+	var fin_rage := Time.get_ticks_msec() + 6000   # (il enrage dès qu'il n'est plus sonné ni en pleine attaque)
+	while not bosco.enrage and Time.get_ticks_msec() < fin_rage:
+		await process_frame
+	await _attendre(1.0)
+	print("MESURE hote bosco pv=%.0f/%.0f enrage=%s" % [bosco.sante.pv, bosco.sante.pv_max, bosco.enrage])
+	var n: int = arene.numero + 1
+	arene.synchro.envoyer_lieu("salle", [n, "chaloupe", "quai", []])
+	arene._transition(n, &"chaloupe", "quai", [])
+	await _attendre(1.5)
+	arene.heros.global_position = arene.salle.zone_chaloupe
+	arene.heros_partenaire.global_position = arene.salle.zone_chaloupe + Vector3(0.6, 0, 0.3)
+	await _attendre(3.0)
+	print("MESURE hote chaloupe=%.1f vagues=%d" % [arene.chaloupe_restant, arene.vagues_lancees])
 	arene._terminer(true)
 	await _attendre(2.0)
 
@@ -388,25 +409,40 @@ func _invite_expedition() -> void:
 	var entree_hote: Vector3 = load("res://game/expedition/salles.gd").ENTREE_HOTE
 	var dp := Vector2(p.global_position.x - entree_hote.x, p.global_position.z - entree_hote.z).length()
 	_verifier(dp < 1.0, "le héros de l'hôte aussi (à %.2f m)" % dp)
+	_verifier(partie.malediction == 2, "malédiction choisie par l'hôte reçue (%d)" % partie.malediction)
 	var vu_arb := false
 	var vu_pretre := false
+	var vu_bosco := false
+	var vu_charge := false
+	var vu_rage := false
+	var vu_compte := false
 	var vu_carreau := false
 	var vu_flaque := false
 	var Carreau = load("res://game/combat/carreau.gd")
 	var Flaque = load("res://game/combat/flaque_maudite.gd")
-	fin = Time.get_ticks_msec() + 12000
+	fin = Time.get_ticks_msec() + 30000
 	while not arene.finie and Time.get_ticks_msec() < fin:
 		await process_frame
 		for e in arene.generateur.get_children():
 			if e.has_method("type_ennemi") and e.marionnette:
 				vu_arb = vu_arb or e.type_ennemi() == &"arbaletrier"
 				vu_pretre = vu_pretre or e.type_ennemi() == &"pretre"
+				if e.type_ennemi() == &"bosco":
+					vu_bosco = true
+					vu_charge = vu_charge or (e.attaque == 3 and e._annonce.visible)
+					vu_rage = vu_rage or e.enrage
+		if arene.chaloupe_restant > 0.0 and arene.chaloupe_restant < 44.0 and arene.hud.label_salle.text.begins_with("La chaloupe part dans"):
+			vu_compte = true
 		for n in arene.get_children():
 			vu_carreau = vu_carreau or (n.get_script() == Carreau and n.marionnette)
 			vu_flaque = vu_flaque or (n.get_script() == Flaque and not n.active)
 	_verifier(vu_arb and vu_pretre, "arbalétrier et prêtre noyé recréés chez nous (%s, %s)" % [vu_arb, vu_pretre])
 	_verifier(vu_carreau, "carreau de l'arbalétrier vu chez nous")
 	_verifier(vu_flaque, "flaque maudite vue chez nous (sans dégâts : c'est l'hôte qui les compte)")
+	_verifier(vu_bosco, "Bosco recréé chez nous")
+	_verifier(vu_charge, "zone de sa charge dessinée chez nous")
+	_verifier(vu_rage, "sa rage vue chez nous")
+	_verifier(vu_compte, "compte à rebours de la chaloupe chez nous (%.1f s)" % arene.chaloupe_restant)
 	print("MESURE invite temps_salle=%.2f" % arene.temps_salle)
 	_verifier(arene.temps_salle > 2.0, "horloge des pièges calée sur l'hôte (%.2f s)" % arene.temps_salle)
 	_verifier(arene.finie and arene.reussite and arene.hud.panneau_fin != null, "écran de fin reçu de l'hôte")

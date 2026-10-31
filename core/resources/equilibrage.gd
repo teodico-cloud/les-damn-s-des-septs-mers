@@ -180,8 +180,6 @@ extends Resource
 @export var exp_nb_salles := 4                ## salles avant l'antre du Bosco (choix de Téo : expédition courte)
 @export var exp_ennemis_salle := 9            ## squelettes à vaincre dans une salle de combat (seul)
 @export var exp_ennemis_salle_coop := 13      ## … à deux
-@export var exp_ennemis_bosco := 14           ## antre du Bosco (en attendant le Bosco, étape 3 : une grosse horde)
-@export var exp_ennemis_bosco_coop := 20
 @export var exp_ensemble := 5                 ## squelettes debout en même temps dans une salle (seul)
 @export var exp_ensemble_coop := 7            ## … à deux
 @export var exp_ennemis_piege := 5            ## salle piège : peu de squelettes (les pièges font le reste)
@@ -194,6 +192,60 @@ extends Resource
 @export var exp_rayon_chaloupe := 2.2         ## mètres : monter dans la chaloupe
 @export var exp_fondu := 0.4                  ## secondes de fondu au noir entre deux salles
 @export var exp_delai_defaite := 2.5          ## secondes entre la chute et l'écran de fin
+
+@export_group("Bosco Maudit (mini-boss de l'antre)")
+@export var bosco_pv := 1400.0                ## ~1 min 30 de combat en solo (choix de Téo), pour un bon joueur
+@export var bosco_pv_coop := 1.8              ## à deux : PV ×1,8 pour garder la même durée
+@export var bosco_taille := 1.6               ## grand squelette guerrier (×1,6) ; sa hache encore ×1,4
+@export var bosco_vitesse := 2.6              ## m/s en marchant vers le héros
+@export var bosco_pause := 1.1                ## secondes entre deux attaques
+@export var bosco_etourdissement := 0.5       ## part de la durée d'un étourdissement ou des chaînes qu'il subit
+# coup de hache au sol, droit devant (le seul qui se pare : zone dorée à la fin)
+@export var bosco_coup_annonce := 1.0
+@export var bosco_coup_degats := 22.0
+@export var bosco_coup_longueur := 4.6        ## mètres devant lui
+@export var bosco_coup_largeur := 1.8
+@export var bosco_coup_portee := 4.0          ## il le lance si le héros est plus près que ça
+@export var bosco_coup_recuperation := 0.9
+# tourbillon de hache (imparable : rouge sombre, il faut s'éloigner ou rouler)
+@export var bosco_tourbillon_annonce := 1.1
+@export var bosco_tourbillon_degats := 30.0
+@export var bosco_tourbillon_rayon := 3.2
+@export var bosco_tourbillon_duree := 0.8     ## secondes à tourner
+@export var bosco_tourbillon_recuperation := 1.0
+@export var bosco_tourbillon_portee := 2.6    ## il le préfère quand le héros est tout près
+# charge (imparable) : en ligne droite ; contre un mur, il reste sonné
+@export var bosco_charge_annonce := 1.0
+@export var bosco_charge_degats := 26.0
+@export var bosco_charge_vitesse := 14.0
+@export var bosco_charge_longueur := 12.0     ## mètres au plus
+@export var bosco_charge_largeur := 1.6
+@export var bosco_charge_distance := 5.0      ## il charge si le héros est plus loin que ça
+@export var bosco_charge_recharge := 5.0      ## secondes entre deux charges
+@export var bosco_charge_sonne := 2.0         ## secondes sonné contre un mur (choix de Téo)
+@export var bosco_charge_recuperation := 0.8  ## sans mur : il s'arrête et repart
+# rage à mi-vie (choix de Téo)
+@export var bosco_rage_seuil := 0.5
+@export var bosco_rage_cri := 1.6             ## secondes de cri (il appelle son équipage)
+@export var bosco_rage_renforts := 3          ## matelots appelés
+@export var bosco_rage_vitesse := 1.25        ## plus rapide : marche, annonces et pauses (÷1,25)
+
+@export_group("Malédiction (choisie au départ, de 0 à 5, effets cumulés)")
+@export var mal_pv := 0.25                    ## 1 Os durcis : squelettes +25 % PV
+@export var mal_ennemis_salle := 2            ## 2 Équipage nombreux : +2 squelettes par salle…
+@export var mal_ensemble := 1                 ## … et 1 de plus debout à la fois
+@export var mal_degats := 0.25                ## 3 Lames maudites : squelettes +25 % de dégâts
+@export var mal_orbes := 0.5                  ## 4 Mer avare : orbes 2 fois plus rares…
+@export var mal_coffre := 0.5                 ## … et coffre qui soigne moitié moins
+@export var mal_vitesse_pieges := 1.3         ## 5 Bosco enragé dès le début, pièges plus rapides
+@export var mal_butin := 0.2                  ## +20 % de butin par niveau (affiché ; le butin arrive au jalon 4)
+
+@export_group("Chaloupe sous les vagues (sortie de l'expédition)")
+@export var chaloupe_duree := 45.0            ## secondes à tenir à bord (choix de Téo) ; le compte s'arrête si personne n'y est
+@export var chaloupe_vagues := 5              ## vagues de squelettes qui sortent de l'eau pendant ce temps
+@export var chaloupe_vague := 3               ## squelettes par vague (seul)
+@export var chaloupe_vague_coop := 4
+@export var chaloupe_arbaletrier_des := 3     ## à partir de la 3e vague, l'un d'eux est un arbalétrier
 
 @export_group("Orbes de vie")
 @export var orbe_chance := 0.3                ## chance qu'un squelette vaincu lâche une orbe (choix de Téo)

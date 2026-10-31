@@ -14,7 +14,7 @@ const COULEUR_ZONE := Color(1.0, 0.25, 0.1, 0.22)   ## zone de l'annonce au sol,
 
 enum Etat { APPARITION, POURSUITE, PREPARATION, FRAPPE, RECUPERATION, TOUCHE, ETOURDI, MORT, ENCHAINE, INCANTATION }
 ## Types d'ennemis (le nom de chaque ennemi commence par son préfixe : l'invité recrée le bon type).
-const PREFIXES := {&"matelot": "Squelette", &"arbaletrier": "Arbaletrier", &"pretre": "Pretre"}
+const PREFIXES := {&"matelot": "Squelette", &"arbaletrier": "Arbaletrier", &"pretre": "Pretre", &"bosco": "Bosco"}
 
 static var _mat_yeux_rouges: StandardMaterial3D
 static var _mat_chaine: StandardMaterial3D
@@ -55,12 +55,13 @@ static func creer(rapide := false) -> Ennemi:
 	return e
 
 
-## Crée un ennemi du type voulu (&"matelot", &"arbaletrier", &"pretre").
+## Crée un ennemi du type voulu (&"matelot", &"arbaletrier", &"pretre", &"bosco").
 static func creer_type(type: StringName, rapide := false) -> Ennemi:
 	var e: Ennemi
 	match type:
 		&"arbaletrier": e = Arbaletrier.new()
 		&"pretre": e = PretreNoye.new()
+		&"bosco": e = Bosco.new()
 		_: e = Ennemi.new()
 	e._apparition_rapide = rapide
 	return e
@@ -99,6 +100,16 @@ func _boucles() -> Array:
 	return ["Idle_Combat", "Running_C"]
 
 
+## Taille du squelette (1 : matelot ; le Bosco est plus grand) : modèle et volume de collision.
+func _taille() -> float:
+	return 1.0
+
+
+## Le coup qu'il porte en ce moment peut-il être paré ? (Bosco : seulement son coup de hache au sol.)
+func coup_parable() -> bool:
+	return true
+
+
 ## Après la construction du modèle (lueur, matière…).
 func _preparer_modele() -> void:
 	pass
@@ -129,15 +140,17 @@ func _ready() -> void:
 	# (c'est le héros qui se heurte aux ennemis quand il marche, pas l'inverse)
 	collision_mask = Combat.COUCHE_MONDE | Combat.COUCHE_ENNEMIS
 
+	var k := _taille()
 	var forme := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
-	capsule.radius = 0.45
-	capsule.height = 1.9
+	capsule.radius = 0.45 * k
+	capsule.height = 1.9 * k
 	forme.shape = capsule
-	forme.position.y = 0.95
+	forme.position.y = 0.95 * k
 	add_child(forme)
 
 	visuel = _modele().instantiate()
+	visuel.scale = Vector3.ONE * k
 	add_child(visuel)
 	anim = visuel.find_child("AnimationPlayer", true, false)
 	for boucle in _boucles():
@@ -149,7 +162,7 @@ func _ready() -> void:
 	_preparer_modele()
 
 	sante = Sante.new()
-	sante.pv_max = _pv()
+	sante.pv_max = _pv() * Malediction.mult_pv()   # (malédiction 1 « Os durcis » ; 1 hors expédition)
 	add_child(sante)
 	sante.mort.connect(_on_mort)
 

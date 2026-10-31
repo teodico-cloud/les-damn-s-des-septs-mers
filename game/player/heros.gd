@@ -279,7 +279,7 @@ func recevoir_coup(degats: float, source: Node3D, _lourd: bool, _critique := fal
 		return 0.0
 	if _intercepter_coup(source):
 		return 0.0
-	var reel := sante.subir(degats, source)
+	var reel := sante.subir(degats * Malediction.mult_degats_recus(source), source)
 	if reel <= 0.0:
 		return 0.0
 	EventBus.coup_porte.emit(global_position + Vector3.UP * 2.2, reel, true, true, self, source, false)
@@ -299,7 +299,7 @@ func recevoir_coup(degats: float, source: Node3D, _lourd: bool, _critique := fal
 func subir_continu(degats: float, source: Node3D) -> float:
 	if etat == Etat.MORT or marionnette:
 		return 0.0
-	var reel := sante.subir(degats, source)
+	var reel := sante.subir(degats * Malediction.mult_degats_recus(source), source)
 	if reel > 0.0:
 		EventBus.coup_porte.emit(global_position + Vector3.UP * 2.2, reel, false, true, self, source, false)
 	return reel
