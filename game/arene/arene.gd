@@ -30,6 +30,11 @@ var _temps := 0.0
 static var chance_orbe := -1.0
 
 
+## Chance qu'un squelette vaincu lâche une orbe (imposée par les tests, sinon réglage × malédiction 4).
+static func chance_orbe_effective() -> float:
+	return chance_orbe if chance_orbe >= 0.0 else EQ.orbe_chance * Malediction.mult_orbes()
+
+
 func _ready() -> void:
 	get_tree().set_quit_on_go_back(false)
 	_ambiance()
@@ -135,7 +140,7 @@ func invite_pret() -> void:
 
 # ---------------------------------------------------------------- orbes de vie (choix de Téo)
 func _on_ennemi_vaincu(e: Node) -> void:
-	var chance := chance_orbe if chance_orbe >= 0.0 else EQ.orbe_chance * Malediction.mult_orbes()
+	var chance := chance_orbe_effective()
 	if not (e is Node3D) or randf() >= chance:
 		return
 	_compteur_orbes += 1

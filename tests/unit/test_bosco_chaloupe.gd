@@ -244,6 +244,152 @@ func test_enrage_plus_rapide() -> void:
 	assert_almost_eq(b._duree_annonce(), normale / EQ.bosco_rage_vitesse, 0.001)
 
 
+func test_riposte_sur_le_bosco_qui_approche() -> void:
+	# (relecture) le Bosco lance son coup de loin (jusqu'à 4 m) : la riposte doit encore l'atteindre
+	var b := _bosco()
+	b._recharge_charge = 99.0      # pas de charge : on veut le coup au sol
+	b._dernier_tourbillon = true   # ni de tourbillon
+	var h: Bretteur = _heros(&"bretteur", Vector3(0, 0, 7.0))
+	await _secondes(0.1)
+	await _attendre_debut_attaque(b)
+	assert_eq(b.attaque, Bosco.Attaque.COUP)
+	var distance := b.global_position.distance_to(h.global_position)
+	assert_gt(distance, EQ.riposte_distance_max, "Il frappe de plus loin qu'une riposte ordinaire (%.1f m)" % distance)
+	h.rotation.y = atan2(b.global_position.x - h.global_position.x, b.global_position.z - h.global_position.z)
+	await _attendre_annonce(b, 0.15)
+	h.commandes.demander(&"competence_1", h.horloge)
+	await _secondes(0.9)
+	assert_eq(h.sante.pv, 100.0, "Paré")
+	assert_lt(b.sante.pv, EQ.bosco_pv, "La riposte l'atteint")
+	assert_eq(b.etat, Ennemi.Etat.ETOURDI, "et l'étourdit")
+
+
+func _attendre_debut_attaque(b: Bosco) -> void:
+	for i in 300:
+		if b.etat == Ennemi.Etat.PREPARATION:
+			return
+		await wait_physics_frames(1)
+
+
+func test_chaines_pendant_le_cri() -> void:
+	# (relecture) des chaînes au début du cri coupaient l'appel : l'équipage ne venait jamais
+	var gen := _generateur()
+	var b := _bosco(gen)
+	var _h := _heros(&"occultiste", Vector3(0, 0, 9.0))
+	await wait_physics_frames(2)
+	b.sante.subir(b.sante.pv_max * 0.51)
+	await wait_physics_frames(3)
+	assert_eq(b.etat, Ennemi.Etat.INCANTATION)
+	b.immobiliser(2.0)
+	await wait_physics_frames(2)
+	var matelots := gen.get_children().filter(func(e): return e is Ennemi and e.type_ennemi() == &"matelot")
+	assert_eq(matelots.size(), EQ.bosco_rage_renforts, "Son équipage vient quand même")
+
+
+func test_l_equipage_sort_devant_lui() -> void:
+	var gen := _generateur()
+	var b := _bosco(gen)
+	await wait_physics_frames(2)
+	b.rotation.y = 0.0
+	b._appeler_renforts()
+	for m in b.renforts:
+		assert_gt(b.to_local(m.position).z, 0.0, "Devant lui, pas dans son dos (contre un mur)")
+
+
+func test_salle_videe_une_seule_fois() -> void:
+	# (relecture) le Bosco vaincu avec son équipage debout annonçait la salle vidée deux fois
+	Partie.debug_depart = &"bosco"
+	var e := await _expedition()
+	await _secondes(0.3)
+	var annonces := [0]
+	e.generateur.salle_videe.connect(func(): annonces[0] += 1)
+	e.bosco.sante.subir(e.bosco.sante.pv_max * 0.51)
+	await _attendre_renforts(e.bosco)
+	assert_eq(e.bosco.renforts.size(), EQ.bosco_rage_renforts)
+	e.bosco.sante.subir(99999.0, e.heros)
+	await wait_physics_frames(3)
+	assert_eq(annonces[0], 1, "Une seule fois")
+
+
+func _attendre_renforts(b: Bosco) -> void:
+	for i in 400:
+		if b.renforts.size() > 0:
+			return
+		await wait_physics_frames(1)
+
+
+func test_rien_ne_suit_dans_la_salle_suivante() -> void:
+	# (relecture) une flaque posée juste avant de prendre la porte blessait dans la salle suivante
+	var e := await _expedition()
+	FlaqueMaudite.creer(e, Salles.ENTREE, true)
+	var c := Carreau.new()
+	e.add_child(c)
+	e._changer_de_salle(2, PlanExpedition.TRESOR, "tresor", [])
+	await wait_physics_frames(2)
+	assert_eq(e.get_children().filter(func(n): return n is FlaqueMaudite or n is Carreau).size(), 0)
+
+
+# ---------------------------------------------------------------- malédiction, dans le jeu
+func test_mer_avare_dans_le_jeu() -> void:
+	Partie.destination = &"expedition"
+	Partie.malediction = 4
+	Arene.chance_orbe = -1.0
+	assert_almost_eq(Arene.chance_orbe_effective(), EQ.orbe_chance * EQ.mal_orbes, 0.001, "Orbes 2 fois plus rares")
+	Arene.chance_orbe = 0.0
+	Partie.debug_depart = &"tresor"
+	var e := await _expedition()
+	e.heros.sante.definir_pv(20.0)
+	e.heros.global_position = e.salle.coffre.global_position + Vector3(1.2, 0, 0.6)
+	await wait_physics_frames(3)
+	assert_eq(e.heros.sante.pv, 20.0 + 100.0 * EQ.exp_tresor_soin * EQ.mal_coffre, "Coffre moitié moins")
+
+
+func test_pieges_plus_rapides_dans_le_jeu() -> void:
+	Partie.destination = &"expedition"
+	Partie.malediction = 5
+	var e := await _expedition()
+	e._changer_de_salle(2, PlanExpedition.PIEGE, "salle_pics", [])
+	await wait_physics_frames(2)
+	var p: PiegePics = e.salle.pics[0]
+	# un instant où la dalle est au repos à vitesse normale, mais déjà en alerte à ×1,3
+	var t := -1.0
+	for i in 400:
+		var x := i * 0.01
+		if p.phase(x) == 0 and p.phase(x * EQ.mal_vitesse_pieges) == 1:
+			t = x
+			break
+	assert_gt(t, 0.0)
+	e.temps_salle = t
+	await wait_physics_frames(1)
+	assert_true(p._alerte.visible, "Malédiction 5 : les pics vont plus vite")
+	assert_eq(e.generateur.reserve + e.generateur.vivants(), EQ.exp_ennemis_piege + EQ.mal_ennemis_salle, "Salle piège : +2 squelettes aussi")
+	assert_eq(e.generateur.nombre, maxi(EQ.exp_ensemble - 2, 3) + EQ.mal_ensemble)
+
+
+func test_tourbillon_dangereux_pendant_la_rotation() -> void:
+	var b := _bosco()
+	var h := _heros(&"occultiste", Vector3(0, 0, 5.0))
+	await wait_physics_frames(2)
+	b._commencer(Bosco.Attaque.TOURBILLON, Vector3(0, 0, 1))
+	await _attendre_annonce(b)
+	await _secondes(0.25)
+	assert_eq(h.sante.pv, EQ.occ_pv_max, "Hors du cercle au début")
+	h.global_position = Vector3(0, 0, 2.0)   # il entre dans le cercle pendant que la hache tourne
+	await _secondes(0.15)
+	assert_eq(h.sante.pv, EQ.occ_pv_max - EQ.bosco_tourbillon_degats, "Touché quand même (une fois)")
+
+
+func test_horde_quand_l_invite_part() -> void:
+	Partie.destination = &"expedition"
+	Partie.malediction = 2
+	var e := await _expedition()
+	e._changer_de_salle(2, PlanExpedition.PIEGE, "salle_pics", [])
+	await wait_physics_frames(2)
+	e.generateur.nombre = 99
+	e._continuer_seul()
+	assert_eq(e.generateur.nombre, maxi(EQ.exp_ensemble - 2, 3) + EQ.mal_ensemble, "Salle piège et malédiction gardées")
+
+
 # ---------------------------------------------------------------- l'antre
 func _expedition() -> Expedition:
 	var e: Expedition = load("res://game/expedition/expedition.tscn").instantiate()
@@ -402,14 +548,64 @@ func test_vagues_de_la_chaloupe() -> void:
 	await wait_physics_frames(2)
 	assert_eq(e.vagues_lancees, 1, "Une vague dès qu'on monte")
 	e._verifier_chaloupe(EQ.chaloupe_duree - 1.0)
-	assert_eq(e.vagues_lancees, EQ.chaloupe_vagues)
-	var sortis := e.generateur.get_children().filter(func(x): return x is Ennemi)
-	assert_eq(sortis.size(), EQ.chaloupe_vagues * EQ.chaloupe_vague)
-	assert_eq(sortis.filter(func(x): return x.type_ennemi() == &"arbaletrier").size(),
-			EQ.chaloupe_vagues - EQ.chaloupe_arbaletrier_des + 1, "Un arbalétrier par vague à partir de la 3e")
-	for s in sortis:
-		assert_false(e.salle.dans_chaloupe(s.global_position), "Ils ne sortent pas dans la chaloupe")
+	assert_lt(e.vagues_lancees, EQ.chaloupe_vagues, "Quai plein : la vague suivante attend")
+	assert_lte(e.generateur.vivants(), EQ.chaloupe_max_debout + EQ.chaloupe_vague - 1, "Jamais plus d'une vague au-delà du plafond")
+	var tous: Array = []
+	for tour in 6:   # on vainc ceux qui sont sortis : les vagues en retard sortent
+		for s in e.generateur.get_children():
+			if s is Ennemi and s.est_vivant():
+				tous.append(s.type_ennemi())
+				s.sante.subir(9999.0, e.heros)
+		await wait_physics_frames(2)
+		e._verifier_chaloupe(0.0)
+	assert_eq(e.vagues_lancees, EQ.chaloupe_vagues, "Toutes les vagues sont sorties")
+	assert_eq(tous.size(), EQ.chaloupe_vagues * EQ.chaloupe_vague)
+	assert_eq(tous.count(&"arbaletrier"), EQ.chaloupe_vagues - EQ.chaloupe_arbaletrier_des + 1, "Un arbalétrier par vague à partir de la 3e")
+	for p in e.salle.points_vague():
+		assert_false(e.salle.dans_chaloupe(p), "Ils ne sortent pas dans la chaloupe")
+		assert_lt(p.x, -Salle.DEMI + 2 * Salle.PAS, "Ils sortent de l'eau, au bord du quai")
 	assert_gt(e.salle.houle, 0.9, "La houle a grossi")
+
+
+func test_equipage_nombreux_dans_les_vagues() -> void:
+	Partie.destination = &"expedition"
+	Partie.malediction = 2
+	Partie.debug_depart = &"chaloupe"
+	var e := await _expedition()
+	e.heros.global_position = e.salle.zone_chaloupe
+	await wait_physics_frames(2)
+	assert_eq(e.generateur.vivants(), EQ.chaloupe_vague + 1, "Malédiction 2 : un squelette de plus par vague")
+
+
+func test_instantane_du_quai_tient_dans_un_paquet_wifi() -> void:
+	# quai à deux, malédiction 2 : au plus plafond - 1 + une vague de 5 debout, plus 3 vaincus
+	var gen := _generateur()
+	var debout := EQ.chaloupe_max_debout - 1 + EQ.chaloupe_vague_coop + 1
+	for i in debout + 3:
+		var x := Ennemi.creer_type(&"arbaletrier" if i % 4 == 0 else &"matelot", true)
+		x.name = "%s_%d" % [Ennemi.PREFIXES[x.type_ennemi()], 100 + i]
+		x.position = Vector3(i - 7, 0, 2)
+		gen.add_child(x)
+	var a := _heros(&"bretteur", Vector3(0, 0, 5))
+	a.name = "HerosHote"
+	var b := _heros(&"occultiste", Vector3(1, 0, 5))
+	b.name = "HerosInvite"
+	await wait_physics_frames(3)
+	var morts := 0
+	for x in gen.get_children():
+		if morts < 3:
+			x.sante.subir(9999.0, a)
+			morts += 1
+	var s := SynchroArene.new()
+	autofree(s)
+	s.generateur = gen
+	s.heros_local = a
+	s.heros_partenaire = b
+	var d := s._etat_heros()
+	d["@temps"] = 12.5
+	d["@chaloupe"] = Vector2(23.0, 1.0)
+	var taille := var_to_bytes([99999, d, s._etat_ennemis(), 99999]).size()
+	assert_lt(taille, 1392, "Instantané du quai : %d octets pour %d debout" % [taille, debout])
 
 
 func test_ecran_de_fin_enrichi() -> void:

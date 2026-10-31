@@ -181,12 +181,17 @@ func _riposter(source: Node3D, parfaite := false) -> void:
 	_changer(Etat.RIPOSTE)
 
 
+## La riposte atteint l'ennemi paré jusqu'à la portée de son propre coup (le Bosco frappe à 4 m).
+func _portee_riposte(cible: Node3D) -> float:
+	return maxf(EQ.riposte_distance_max, cible.portee_riposte() if cible.has_method("portee_riposte") else 0.0)
+
+
 func _etat_riposte() -> void:
 	_immobile()
 	if not _impact_fait and _t >= EQ.riposte_instant_impact / EQ.riposte_vitesse_animation:
 		_impact_fait = true
 		if is_instance_valid(_cible_riposte) and _cible_riposte.has_method("est_vivant") and _cible_riposte.est_vivant() \
-				and global_position.distance_to(_cible_riposte.global_position) < EQ.riposte_distance_max:
+				and global_position.distance_to(_cible_riposte.global_position) < _portee_riposte(_cible_riposte):
 			Combat.porter_coup(self, _cible_riposte, EQ.riposte_degats, true, _riposte_parfaite)
 			if _cible_riposte.has_method("etourdir"):
 				_cible_riposte.etourdir(EQ.riposte_etourdissement_parfaite if _riposte_parfaite else EQ.riposte_etourdissement)

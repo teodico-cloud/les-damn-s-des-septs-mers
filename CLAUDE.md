@@ -237,6 +237,14 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   tombent sans fin (pesanteur) et l'image est vide.
 - Tirages au hasard (composition d'une salle, plan) : un test qui les vérifie répète le tirage plusieurs
   fois, sinon un défaut peut passer par chance.
+- Riposte : elle atteint l'ennemi paré jusqu'à `Ennemi.portee_riposte()` (3 m, Bosco ~5,6 m). Un ennemi qui
+  frappe de loin doit l'augmenter, sinon la parade réussit mais la riposte frappe dans le vide.
+- « Salle vidée » ne part qu'une fois par salle (`GenerateurEnnemis._videe`) : le butin s'y branchera.
+- Au changement de salle, os, flaques et carreaux de la salle d'avant sont retirés (`_construire_salle`) :
+  tout effet posé sous l'expédition (et non sous la salle) doit y être ajouté.
+- Chaloupe : une vague attend tant que `chaloupe_max_debout` squelettes sont debout, pour que l'instantané
+  tienne dans un paquet Wi-Fi (test `test_instantane_du_quai_tient_dans_un_paquet_wifi`).
+- Messages du centre de l'écran en expédition : `Expedition._message` (hôte et invité), pas `hud.afficher_message`.
 - Malédiction dans les tests : `Partie.destination = &"expedition"` est nécessaire (hors expédition, le niveau
   vaut 0) ; remettre `Partie.destination = &"arene"` et `Partie.malediction = 0` après chaque test.
 - Chaloupe : `Expedition._verifier_chaloupe(delta)` fait avancer le compte (les tests lui passent un grand

@@ -38,6 +38,7 @@ var voile: ColorRect           ## fondu au noir entre deux salles
 var panneau_fin: Control
 var barre_boss: Control        ## vie du Bosco, en haut au centre, quand il est là
 var _boss: Node3D
+var _boss_dessine := Vector2(-1, -1)   ## (PV, rage) déjà dessinés : on ne redessine que s'ils changent
 var label_malediction: Label   ## expédition : niveau de malédiction, sous les PV
 var _premier_appui_menu := -100.0   ## expédition : heure du 1er appui sur Menu (on attend le 2e)
 
@@ -406,7 +407,10 @@ func _suivre_boss() -> void:
 		label_partenaire.position.y = 80 + (66 if visible_boss else 0)
 		label_alerte.position.y = 130 + (66 if visible_boss else 0)
 	if visible_boss:
-		barre_boss.queue_redraw()
+		var etat := Vector2(_boss.sante.pv if _boss.get("sante") else 0.0, 1.0 if _boss.get("enrage") == true else 0.0)
+		if etat != _boss_dessine:
+			_boss_dessine = etat
+			barre_boss.queue_redraw()
 
 
 func _dessiner_boss() -> void:

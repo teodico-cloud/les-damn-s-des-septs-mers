@@ -246,6 +246,7 @@ extends Resource
 @export var chaloupe_vague := 3               ## squelettes par vague (seul)
 @export var chaloupe_vague_coop := 4
 @export var chaloupe_arbaletrier_des := 3     ## à partir de la 3e vague, l'un d'eux est un arbalétrier
+@export var chaloupe_max_debout := 8          ## une vague attend tant qu'il y a déjà ce nombre de squelettes debout
 
 @export_group("Orbes de vie")
 @export var orbe_chance := 0.3                ## chance qu'un squelette vaincu lâche une orbe (choix de Téo)

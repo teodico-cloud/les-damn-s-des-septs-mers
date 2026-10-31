@@ -139,22 +139,29 @@ func _construire_salle(n: int, t: StringName, m: String, portes: Array) -> void:
 		for o in orbes.get_children():
 			o.queue_free()
 	for c in get_children():
-		if c is RigidBody3D:
-			c.queue_free()   # os des squelettes de la salle d'avant
+		if c is RigidBody3D or c is FlaqueMaudite or c is Carreau:
+			c.queue_free()   # os, flaques et carreaux de la salle d'avant (une flaque y blessait encore)
 	salle = Salle.creer(m, portes)
 	add_child(salle)
 	move_child(salle, 0)
+
+
+## Squelettes debout à la fois dans la salle en cours (salle piège : moins ; malédiction 2 : +1).
+func _ensemble(coop: bool) -> int:
+	var n := EQ.exp_ensemble_coop if coop else EQ.exp_ensemble
+	if type_salle == PlanExpedition.PIEGE:
+		n = maxi(n - 2, 3)
+	return n + Malediction.bonus_ensemble()
 
 
 ## Hôte (ou seul) : la salle commence (squelettes, ou coffre et portes ouvertes).
 func _demarrer_salle() -> void:
 	_salle_demarree = true
 	var coop := Reseau.est_en_coop()
-	var ensemble := EQ.exp_ensemble_coop if coop else EQ.exp_ensemble
 	match type_salle:
 		PlanExpedition.COMBAT:
 			var total := (EQ.exp_ennemis_salle_coop if coop else EQ.exp_ennemis_salle) + Malediction.bonus_ennemis()
-			generateur.preparer_salle(total, ensemble + Malediction.bonus_ensemble(), salle.apparitions(), composition(numero, type_salle, coop))
+			generateur.preparer_salle(total, _ensemble(coop), salle.apparitions(), composition(numero, type_salle, coop))
 			generateur.demarrer()
 		PlanExpedition.BOSCO:
 			generateur.preparer_salle(0, 0, AUCUN_POINT)
@@ -162,19 +169,19 @@ func _demarrer_salle() -> void:
 			bosco.rotation.y = atan2(Salles.ENTREE.x - bosco.position.x, Salles.ENTREE.z - bosco.position.z)   # face à l'entrée
 			bosco.vaincu.connect(_on_bosco_vaincu)
 			_bosco_debut_ms = Time.get_ticks_msec()
-			hud.afficher_message("Le Bosco Maudit !", 2.5)
+			_message("Le Bosco Maudit !", 2.5)
 		PlanExpedition.PIEGE:
 			var total := (EQ.exp_ennemis_piege_coop if coop else EQ.exp_ennemis_piege) + Malediction.bonus_ennemis()
-			generateur.preparer_salle(total, maxi(ensemble - 2, 3) + Malediction.bonus_ensemble(), salle.apparitions(), composition(numero, type_salle, coop))
+			generateur.preparer_salle(total, _ensemble(coop), salle.apparitions(), composition(numero, type_salle, coop))
 			generateur.demarrer()
-			hud.afficher_message("Attention aux dalles qui rougeoient…\net frappez les tonneaux de poudre !", 3.0)
+			_message("Attention aux dalles qui rougeoient…\net frappez les tonneaux de poudre !", 3.0)
 		PlanExpedition.TRESOR:
 			generateur.preparer_salle(0, 0, AUCUN_POINT)
 			_ouvrir_portes()
-			hud.afficher_message("Un coffre maudit…", 2.0)
+			_message("Un coffre maudit…", 2.0)
 		PlanExpedition.CHALOUPE:
 			generateur.preparer_salle(0, 0, AUCUN_POINT)
-			hud.afficher_message("Montez dans la chaloupe\net tenez bon %d s !" % int(EQ.chaloupe_duree), 3.0)
+			_message("Montez dans la chaloupe\net tenez bon %d s !" % int(EQ.chaloupe_duree), 3.0)
 
 
 ## Qui sort de terre dans une salle (le reste en matelots) : des arbalétriers à partir de la 2e salle,
@@ -192,6 +199,13 @@ static func composition(n: int, type: StringName, coop: bool) -> Dictionary:
 			if n >= 2:
 				c[&"arbaletrier"] = 1
 	return c
+
+
+## Message au centre de l'écran, chez l'hôte et chez l'invité.
+func _message(texte: String, duree: float) -> void:
+	hud.afficher_message(texte, duree)
+	if synchro:
+		synchro.envoyer_lieu("message", [numero, texte, duree])
 
 
 func _on_salle_videe() -> void:
@@ -325,7 +339,7 @@ func _verifier_coffre() -> void:
 					EventBus.soin.emit(g, g.sante.soigner(g.sante.pv_max * EQ.exp_tresor_soin * Malediction.mult_coffre()))
 			if synchro:
 				synchro.envoyer_lieu("coffre", [numero])
-			hud.afficher_message("Le coffre maudit vous soigne !\n(le butin arrive au jalon 4)", 2.5)
+			_message("Le coffre maudit vous soigne !\n(le butin arrive au jalon 4)", 2.5)
 			return
 
 
@@ -343,11 +357,13 @@ func _verifier_chaloupe(delta: float) -> void:
 		if not a_bord:
 			return
 		chaloupe_restant = EQ.chaloupe_duree
-		hud.afficher_message("La chaloupe se prépare…\nTenez bon à bord !", 2.5)
+		_message("La chaloupe se prépare…\nTenez bon à bord !", 2.5)
 	elif a_bord:
 		chaloupe_restant = maxf(chaloupe_restant - delta, 0.0)
 	var ecoule := EQ.chaloupe_duree - chaloupe_restant
-	while vagues_lancees < EQ.chaloupe_vagues and ecoule >= vagues_lancees * EQ.chaloupe_duree / EQ.chaloupe_vagues:
+	# une vague attend que le quai se vide un peu (instantané de la coop sous un paquet Wi-Fi, téléphone)
+	while vagues_lancees < EQ.chaloupe_vagues and ecoule >= vagues_lancees * EQ.chaloupe_duree / EQ.chaloupe_vagues \
+			and generateur.vivants() < EQ.chaloupe_max_debout:
 		_lancer_vague(vagues_lancees)
 		vagues_lancees += 1
 	salle.houle = clampf(ecoule / EQ.chaloupe_duree, 0.0, 1.0)
@@ -361,13 +377,15 @@ func _lancer_vague(i: int) -> void:
 	var coop := is_instance_valid(heros_partenaire)
 	var n := (EQ.chaloupe_vague_coop if coop else EQ.chaloupe_vague) + (1 if Malediction.bonus_ennemis() > 0 else 0)
 	var points := salle.points_vague()
+	var sortis: Array[Vector3] = []
 	for k in n:
-		var p: Vector3 = points[(i * 2 + k) % points.size()]
+		var p: Vector3 = points[(i * 3 + k) % points.size()]
 		var type := &"arbaletrier" if k == 0 and i + 1 >= EQ.chaloupe_arbaletrier_des else &"matelot"
 		generateur._faire_apparaitre(p, type)
 		EffetsMagie.eclaboussure(self, p)
+		sortis.append(p)
 	if synchro:
-		synchro.envoyer_lieu("vague", [numero, points.slice(0, mini(n, points.size()))])
+		synchro.envoyer_lieu("vague", [numero, sortis])   # les gerbes là où ils sortent vraiment
 
 
 ## Le compte à rebours de la chaloupe, en haut de l'écran (hôte et invité).
@@ -490,6 +508,9 @@ func evenement_lieu(type: String, donnees: Array) -> void:
 				salle.ouvrir_coffre()
 		"fin":
 			_afficher_fin(donnees[0], donnees[1])
+		"message":
+			if numero == donnees[0] or en_transition:
+				hud.afficher_message(donnees[1], donnees[2])
 		"vague":
 			if salle and numero == donnees[0]:
 				for p in donnees[1]:
@@ -504,7 +525,7 @@ func evenement_lieu(type: String, donnees: Array) -> void:
 func _continuer_seul() -> void:
 	heros.reapparition_auto = false   # l'expédition continue : tomber seul la perd
 	if not finie and generateur.reserve != 0:
-		generateur.nombre = EQ.exp_ensemble
+		generateur.nombre = _ensemble(false)   # (relecture : la malédiction et la salle piège étaient oubliées)
 
 
 func _on_partenaire_parti(raison: String) -> void:

@@ -124,7 +124,7 @@ Matelots squelettes qui reviennent sans fin.
 - Petits choix faits sans Téo, à lui signaler : riposte et chaînes deux fois moins longues sur le Bosco ; son
   équipage s'effondre avec lui ; la rage attend la fin d'une attaque ou d'un étourdissement ; 3 matelots même
   à deux ; les vagues de la chaloupe n'avancent qu'avec le compte (pas de vague tant que personne n'est à bord).
-- Réseau version 7. Tests : 23 nouveaux (vérifiés par sabotage) ; essai coop de l'expédition étendu (malédiction
+- Réseau version 7. Tests : 180 en tout, dont 34 nouveaux (vérifiés par sabotage) ; essai coop de l'expédition étendu (malédiction
   reçue, Bosco, zone de sa charge, rage, compte à rebours de la chaloupe chez l'invité).
 
 ## Combat « nerveux » (30/10, demande de Téo : « vraiment Diablo like »)
@@ -288,6 +288,26 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
   avec une matière partagée ; chez l'invité, os qui partent loin du tueur et traînée dans la bonne
   direction ; seuil de fluidité de l'essai coop remis à 0,4 m ; l'essai vérifie une parade PARFAITE.
 - Tranché par Téo : le 3e coup n'est plus coupé par le joystick ; fenêtre parfaite portée à 0,35 s.
+
+## Relecture de fin du jalon 3 (agent relecteur) et corrections — 31/10
+Aucun plantage ni blocage trouvé. Corrigé (chaque correction a un test qui échoue sans elle) :
+- **Riposte contre le Bosco** : il lance son coup au sol à ~4 m, la riposte (portée 3 m) frappait dans le
+  vide ; elle atteint maintenant l'ennemi paré jusqu'à la portée de son propre coup (`portee_riposte`).
+- Chaînes posées au début du cri de rage : les 3 matelots ne venaient jamais ; ils viennent quand même.
+- L'équipage du Bosco sortait derrière lui (parfois contre un mur) : il sort devant, jamais dans un mur.
+- Sur le quai à deux, trop de squelettes faisaient dépasser l'instantané d'un paquet Wi-Fi : une vague attend
+  tant qu'il y a déjà 8 squelettes debout (test de taille du quai ajouté). Toutes les vagues sortent de l'eau.
+- Gerbes d'eau chez l'invité au mauvais endroit ; messages du centre de l'écran (Bosco, pièges, coffre,
+  chaloupe) seulement chez l'hôte : corrigés.
+- « Salle vidée » annoncé deux fois quand le Bosco meurt avec son équipage (aurait doublé le butin au jalon 4).
+- Une flaque (ou un carreau en vol) suivait dans la salle suivante et blessait encore.
+- Partenaire parti : la horde de l'hôte oubliait la malédiction et la règle des salles piège.
+- Tourbillon : il ne blessait qu'au tout début de la rotation ; il blesse tant que la hache tourne (une fois).
+- Mot « Chaloupe » sur la tête du héros à bord : placé au-dessus de la barque. Barre du Bosco redessinée
+  seulement quand ses PV changent.
+- Restés en l'état, à signaler à Téo : à la malédiction 5, le Bosco enragé dès le début pousse quand même son
+  cri à mi-vie (et appelle son équipage) ; « Os durcis » s'applique aussi au Bosco (combat plus long) ; à deux,
+  un seul héros debout à bord suffit pour partir ; l'équipage qui s'effondre peut lâcher des orbes.
 
 ## Prochaines étapes
 1. Essai de Téo de l'expédition complète (seul et à deux), dont le temps contre le Bosco et la malédiction.

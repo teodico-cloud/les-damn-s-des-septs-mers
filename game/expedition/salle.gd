@@ -115,13 +115,12 @@ func dans_chaloupe(p: Vector3) -> bool:
 	return d.length() <= Expedition.EQ.exp_rayon_chaloupe
 
 
-## Quai : où sortent les squelettes des vagues — au bord de l'eau, loin de la chaloupe, et au fond.
+## Quai : où sortent les squelettes des vagues — de l'eau, au bord du quai, loin de la chaloupe.
 func points_vague() -> Array[Vector3]:
 	var r: Array[Vector3] = []
-	var x := -DEMI + PAS + 0.6
-	for z in [-5.2, 5.4, -3.4, 4.2]:
-		r.append(Vector3(x, 0, z))
-	r.append_array(apparitions())
+	for z in [-5.4, 5.4, -4.2, 4.4, -3.0, 3.6]:
+		for x in [-DEMI + PAS + 0.5, -DEMI + PAS + 1.6]:
+			r.append(Vector3(x, 0, z))
 	return r
 
 
@@ -262,7 +261,7 @@ func _quai(pos: Vector3) -> void:
 	mot.modulate = Color("6cffa0")
 	mot.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	mot.no_depth_test = true
-	mot.position = zone_chaloupe + Vector3.UP * 1.6
+	mot.position = pos + Vector3.UP * 1.9   # au-dessus de la barque (pas sur la tête du héros à bord)
 	add_child(mot)
 
 

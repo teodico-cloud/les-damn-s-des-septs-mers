@@ -23,6 +23,7 @@ var vaincus := 0
 var _compteur := 0
 var _renfort_prevu := false
 var _generation := 0           ## change à chaque nouvelle salle : un renfort prévu avant est oublié
+var _videe := false            ## « salle vidée » déjà annoncé pour cette salle (une seule fois, butin du jalon 4)
 var a_venir: Array[StringName] = []   ## types des prochains ennemis (vide : des matelots)
 var tombes: Array[Dictionary] = []    ## {pos, type, etat : 0 libre, 1 réservée par un prêtre, 2 relevée}
 var _rng := RandomNumberGenerator.new()
@@ -52,6 +53,7 @@ func preparer_salle(total: int, ensemble: int, points: Array[Vector3], compositi
 			e.queue_free()
 	_generation += 1
 	_renfort_prevu = false
+	_videe = false
 	demarre = false
 	reserve = total
 	nombre = ensemble
@@ -198,7 +200,9 @@ func _on_vaincu(e: Ennemi) -> void:
 		tombes.append({"pos": e.global_position, "type": e.type_ennemi(), "etat": 0})
 	if reserve == 0:
 		if vivants() == 0:
-			salle_videe.emit()
+			if not _videe:   # (le Bosco et son équipage qui s'effondre l'annonçaient deux fois)
+				_videe = true
+				salle_videe.emit()
 		return   # plus personne à faire sortir dans cette salle
 	if _renfort_prevu:
 		return   # les morts suivants rejoindront le même renfort

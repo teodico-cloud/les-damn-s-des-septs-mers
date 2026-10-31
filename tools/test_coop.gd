@@ -416,6 +416,7 @@ func _invite_expedition() -> void:
 	var vu_charge := false
 	var vu_rage := false
 	var vu_compte := false
+	var vu_message := false
 	var vu_carreau := false
 	var vu_flaque := false
 	var Carreau = load("res://game/combat/carreau.gd")
@@ -433,6 +434,8 @@ func _invite_expedition() -> void:
 					vu_rage = vu_rage or e.enrage
 		if arene.chaloupe_restant > 0.0 and arene.chaloupe_restant < 44.0 and arene.hud.label_salle.text.begins_with("La chaloupe part dans"):
 			vu_compte = true
+		if arene.hud.label_message.visible and arene.hud.label_message.text.begins_with("Montez dans la chaloupe"):
+			vu_message = true
 		for n in arene.get_children():
 			vu_carreau = vu_carreau or (n.get_script() == Carreau and n.marionnette)
 			vu_flaque = vu_flaque or (n.get_script() == Flaque and not n.active)
@@ -443,6 +446,7 @@ func _invite_expedition() -> void:
 	_verifier(vu_charge, "zone de sa charge dessinée chez nous")
 	_verifier(vu_rage, "sa rage vue chez nous")
 	_verifier(vu_compte, "compte à rebours de la chaloupe chez nous (%.1f s)" % arene.chaloupe_restant)
+	_verifier(vu_message, "message de l'hôte au centre de l'écran chez nous aussi")
 	print("MESURE invite temps_salle=%.2f" % arene.temps_salle)
 	_verifier(arene.temps_salle > 2.0, "horloge des pièges calée sur l'hôte (%.2f s)" % arene.temps_salle)
 	_verifier(arene.finie and arene.reussite and arene.hud.panneau_fin != null, "écran de fin reçu de l'hôte")

@@ -110,6 +110,11 @@ func coup_parable() -> bool:
 	return true
 
 
+## Distance jusqu'à laquelle la riposte d'une parade l'atteint encore (Bosco : sa hache porte loin).
+func portee_riposte() -> float:
+	return EQ.riposte_distance_max
+
+
 ## Après la construction du modèle (lueur, matière…).
 func _preparer_modele() -> void:
 	pass

@@ -223,13 +223,15 @@ func _frapper() -> void:
 			if _t >= 0.35:
 				_finir(EQ.bosco_coup_recuperation)
 		Attaque.TOURBILLON:
-			if not _impact_fait:
-				_impact_fait = true
-				for h in _heros_vivants():
-					var d: Vector3 = h.global_position - global_position
-					d.y = 0.0
-					if d.length() <= EQ.bosco_tourbillon_rayon + 0.3:
-						Combat.porter_coup(self, h, EQ.bosco_tourbillon_degats, true)
+			# dangereux tant qu'il tourne (une fois par héros) : entrer dans le cercle pendant la rotation blesse aussi
+			for h in _heros_vivants():
+				if h in _touches:
+					continue
+				var d: Vector3 = h.global_position - global_position
+				d.y = 0.0
+				if d.length() <= EQ.bosco_tourbillon_rayon + 0.3:
+					_touches.append(h)
+					Combat.porter_coup(self, h, EQ.bosco_tourbillon_degats, true)
 			if _t >= EQ.bosco_tourbillon_duree:
 				_finir(EQ.bosco_tourbillon_recuperation)
 		Attaque.CHARGE:
@@ -309,8 +311,10 @@ func _appeler_renforts() -> void:
 		return
 	var n := EQ.bosco_rage_renforts
 	for i in n:
-		var a := rotation.y + PI * 0.5 + PI * (i + 0.5) / n   # en arc devant lui
+		var a := rotation.y - PI * 0.5 + PI * (i + 0.5) / n   # en arc devant lui
 		var pos := global_position + Vector3(sin(a), 0, cos(a)) * 3.0
+		pos.x = clampf(pos.x, -Salle.DEMI + 0.8, Salle.DEMI - 0.8)   # jamais dans un mur
+		pos.z = clampf(pos.z, -Salle.DEMI + 0.8, Salle.DEMI - 0.8)
 		renforts.append(gen._faire_apparaitre(Vector3(pos.x, 0, pos.z), &"matelot"))
 
 
@@ -340,12 +344,21 @@ func coup_parable() -> bool:
 	return attaque == Attaque.COUP
 
 
+## Paré, son coup au sol laisse le héros jusqu'à ~5 m de lui : la riposte doit encore l'atteindre
+## (vu par le relecteur : à 4 m, elle frappait dans le vide).
+func portee_riposte() -> float:
+	return 0.6 + EQ.bosco_coup_longueur + 0.4
+
+
 ## Zone dorée à la fin de l'annonce : seulement pour le coup qui se pare.
 func signal_parade() -> bool:
 	return attaque == Attaque.COUP and etat == Etat.PREPARATION and _duree_annonce() - _t <= EQ.parade_signal_avance
 
 
 func _quitter_etat(ancien: Etat, nouvel: Etat) -> void:
+	if ancien == Etat.INCANTATION and _rage_faite and not _renforts_appeles and not marionnette and nouvel != Etat.MORT:
+		_renforts_appeles = true   # cri coupé (chaînes, étourdissement) : son équipage vient quand même
+		_appeler_renforts()
 	if nouvel == Etat.ETOURDI or nouvel == Etat.ENCHAINE:
 		_montrer_etoiles(nouvel == Etat.ETOURDI)
 	elif ancien == Etat.ETOURDI:
