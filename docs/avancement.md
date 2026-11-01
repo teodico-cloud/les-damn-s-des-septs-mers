@@ -143,7 +143,17 @@ Matelots squelettes qui reviennent sans fin.
 - **À deux : chacun le sien.** L'hôte tire le butin des deux joueurs ; celui de l'invité est invisible chez
   l'hôte et n'apparaît que chez l'invité ; l'hôte décide du ramassage et tient les deux sacs (envoyés avec la fin).
 - Catalogue (`game/butin/butin.gd`) : 3 armes par héros, 6 reliques, 5 objets uniques (3 Légendaires, 2 Maudits).
-  Les effets entrent en jeu à l'étape 2 (liste à valider par Téo d'abord). Modèles : armes du pack KayKit
+  Effets validés par Téo le 01/11 (branchés à l'étape 2) : Commun = effet de base ; Rare = base +25 % et 1
+  effet en plus ; Épique = base +50 % et 2 effets en plus. Sabre +10 % dégâts ; hache +30 % dégâts, coups 15 %
+  plus lents ; coutelas coups 15 % plus rapides, +8 % critiques ; baguette tirs 20 % plus rapides ; bâton
+  projectile +30 %, tirs 15 % plus lents ; grimoire Marque et Chaînes rechargées 20 % plus vite. Reliques :
+  clé +25 % sur un squelette étourdi ou enchaîné ; fiole orbes +40 % ; chandelle +15 PV max ; doublon terni
+  +30 % de doublons ; trousseau roulade/téléportation rechargée 25 % plus vite ; flasque 10 % des PV à chaque
+  salle nettoyée. Effets en plus : +8 % dégâts, +10 PV max, +6 % critiques, +6 % vitesse, recharges −8 %,
+  vol de vie 3 %, +15 % doublons, épines 20 % (corps-à-corps). Uniques : Lame du Noyé (traînée d'eau maudite
+  de la roulade), Grimoire du Pendu (squelette tué par les sorts relevé ~6 s), Sablier de la Marée (esquive au
+  dernier moment : squelettes figés 1,5 s), Talisman du Pendu (+40 % dégâts, orbes sans effet), Cœur de Kraken
+  (+50 % PV max, 20 % moins vite). Sans arme trouvée : arme de départ sans bonus. Modèles : armes du pack KayKit
   Adventurers, reliques du pack Dungeon.
 - Petits choix faits sans Téo, à lui signaler : un héros à terre ne ramasse rien ; objet ramassable seulement
   une fois retombé (0,35 s) ; l'équipage du Bosco qui s'effondre lâche aussi son butin.
@@ -225,6 +235,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 30/10/2026 | Combat « nerveux » : héros plus vif, hordes, coups qui claquent, coups critiques (choix de Téo, voir plus haut). Ennemis plus agressifs : non retenu. |
 | 30/10/2026 | Parade : elle coupe le coup en cours ; parade parfaite en bonus (0,25 s), zone dorée avant le coup + étincelles, « PARFAIT ! » et ralenti, Parade rendue. Onde de choc : non retenue. |
 | 31/10/2026 | Jalon 3, étape 3 (choix de Téo) : Bosco « brute à la hache » (tourbillon, charge qui le laisse sonné 2 s contre un mur, coup au sol ; rage à mi-vie + 3 matelots) ; coups mi-parables (seul le coup au sol se pare, les gros coups rouge sombre sont imparables) ; ~1 min 30 en solo ; malédiction 0–5 choisie au départ avec l'échelle proposée (+20 % de butin par niveau) ; chaloupe : tenir 45 s à bord, le compte s'arrête si personne n'y est ; annexe retenue : écran de fin enrichi. |
+| 01/11/2026 | Jalon 4, étape 2 (choix de Téo) : liste des objets validée telle quelle (armes, reliques, effets en plus des Rares et Épiques, 5 objets uniques ; voir « Butin au sol ») ; on change d'équipement **entre deux expéditions** seulement ; défaite = **tout le sac perdu** (« sécurisés dès le ramassage » de la conception = à soi dès qu'on le prend, personne ne peut le voler) ; annexe retenue : comparaison ▲▼ avec l'objet porté. Non retenues : « Équiper le meilleur », annonce d'un objet rare. |
 | 31/10/2026 | Jalon 4 (choix de Téo) : butin au sol façon Diablo (colonnes de lumière par rareté, ramassé en passant dessus, chacun le sien à deux, perdu en cas de défaite) ; les armes changent d'apparence en main dès ce jalon ; cale de base dès maintenant (8 objets, tri au-delà). Ordre : 1) butin au sol et ramassage, 2) inventaire, équipement, effets en combat et sauvegarde (liste des objets à valider avant), 3) tri de la cale, relecture, APK. |
 | 30/10/2026 | Jalon 3, étape 2 (choix de Téo) : la Parade renvoie les carreaux d'arbalète ; un coup interrompt l'incantation du prêtre noyé ; salles piège avec dalles à pics et tonneaux de poudre explosifs ; l'arène d'entraînement garde seulement les matelots. |
 | 30/10/2026 | Réglages (choix de Téo) : le joystick ne coupe plus le 3e coup du combo (le lourd va au bout) ; fenêtre de la parade parfaite 0,35 s (zone dorée 0,4 s avant le coup). Étape 2 du jalon 3 lancée. |
