@@ -40,6 +40,8 @@ var barre_boss: Control        ## vie du Bosco, en haut au centre, quand il est 
 var _boss: Node3D
 var _boss_dessine := Vector2(-1, -1)   ## (PV, rage) déjà dessinés : on ne redessine que s'ils changent
 var label_malediction: Label   ## expédition : niveau de malédiction, sous les PV
+var label_sac: Label           ## expédition : objets et doublons dans le sac (non sécurisés)
+var fil_butin: VBoxContainer   ## ce qu'on vient de ramasser (s'efface tout seul)
 var _premier_appui_menu := -100.0   ## expédition : heure du 1er appui sur Menu (on attend le 2e)
 
 
@@ -162,6 +164,18 @@ func _ready() -> void:
 	label_malediction.visible = false
 	racine.add_child(label_malediction)
 
+	label_sac = label_malediction.duplicate() as Label
+	label_sac.add_theme_color_override("font_color", Color("e0b04a"))
+	label_sac.position = Vector2(28, 94)
+	label_sac.visible = false
+	racine.add_child(label_sac)
+
+	fil_butin = VBoxContainer.new()
+	fil_butin.position = Vector2(28, 136)
+	fil_butin.add_theme_constant_override("separation", 2)
+	fil_butin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	racine.add_child(fil_butin)
+
 	voile = ColorRect.new()
 	voile.color = Color(0, 0, 0, 0)
 	voile.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -276,6 +290,32 @@ func _demander_menu() -> void:
 	menu_demande.emit()
 
 
+## Un objet ou des doublons ramassés : une ligne à la couleur de la rareté, qui s'efface (4 au plus).
+func afficher_ramasse(texte: String, couleur: Color) -> void:
+	var l := Label.new()
+	l.text = texte
+	l.add_theme_font_size_override("font_size", 26)
+	l.add_theme_color_override("font_color", couleur)
+	l.add_theme_color_override("font_outline_color", Color.BLACK)
+	l.add_theme_constant_override("outline_size", 7)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fil_butin.add_child(l)
+	while fil_butin.get_child_count() > 4:
+		var vieux := fil_butin.get_child(0)
+		fil_butin.remove_child(vieux)
+		vieux.queue_free()
+	var t := l.create_tween()
+	t.tween_interval(2.6)
+	t.tween_property(l, "modulate:a", 0.0, 0.6)
+	t.tween_callback(l.queue_free)
+
+
+## Le sac de l'expédition (non sécurisé : perdu en cas de défaite).
+func afficher_sac(objets: int, doublons: int) -> void:
+	label_sac.visible = true
+	label_sac.text = "Sac : %d objet%s · %d doublons" % [objets, "s" if objets > 1 else "", doublons]
+
+
 ## Nom de la salle en cours (expédition).
 func afficher_salle(texte: String) -> void:
 	label_salle.text = texte
@@ -288,13 +328,16 @@ func fondu(vers_noir: bool, duree: float) -> void:
 	t.tween_property(voile, "color:a", 1.0 if vers_noir else 0.0, duree)
 
 
-## Écran de fin d'expédition : titre, lignes du bilan, bouton de retour au menu.
-func afficher_resultats(reussite: bool, lignes: Array) -> void:
+## Écran de fin d'expédition : titre, lignes du bilan, butin rapporté (à la couleur de sa rareté),
+## bouton de retour au menu.
+func afficher_resultats(reussite: bool, lignes: Array, objets: Array = []) -> void:
 	if panneau_fin:
 		return
 	relacher_tout()
 	label_mort.visible = false
 	label_message.visible = false
+	label_sac.visible = false
+	fil_butin.visible = false
 	var fond := ColorRect.new()
 	fond.color = Color(0.02, 0.03, 0.04, 0.0)
 	fond.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -305,7 +348,7 @@ func afficher_resultats(reussite: bool, lignes: Array) -> void:
 	colonne.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	colonne.grow_vertical = Control.GROW_DIRECTION_BOTH
 	colonne.alignment = BoxContainer.ALIGNMENT_CENTER
-	colonne.add_theme_constant_override("separation", 14)
+	colonne.add_theme_constant_override("separation", 14 if objets.is_empty() else 8)
 	fond.add_child(colonne)
 	var titre := Label.new()
 	titre.text = "Expédition réussie !" if reussite else "Expédition perdue…"
@@ -319,9 +362,31 @@ func afficher_resultats(reussite: bool, lignes: Array) -> void:
 		var ligne := Label.new()
 		ligne.text = String(l)
 		ligne.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		ligne.add_theme_font_size_override("font_size", 30)
+		ligne.add_theme_font_size_override("font_size", 26 if not objets.is_empty() else 30)
 		ligne.add_theme_color_override("font_color", COULEUR_OS)
 		colonne.add_child(ligne)
+	if not objets.is_empty():
+		var flot := HFlowContainer.new()
+		flot.alignment = FlowContainer.ALIGNMENT_CENTER
+		flot.custom_minimum_size = Vector2(1100, 0)
+		flot.add_theme_constant_override("h_separation", 26)
+		var tries := objets.duplicate()
+		tries.sort_custom(func(x, y): return int(x.get("rarete", 0)) > int(y.get("rarete", 0)))   # les plus rares d'abord
+		for o in tries.slice(0, 10):
+			var n := Label.new()
+			n.text = Butin.nom(o)
+			n.add_theme_font_size_override("font_size", 24)
+			n.add_theme_color_override("font_color", Butin.couleur(o))
+			n.add_theme_color_override("font_outline_color", Color.BLACK)
+			n.add_theme_constant_override("outline_size", 6)
+			flot.add_child(n)
+		if tries.size() > 10:
+			var reste := Label.new()
+			reste.text = "… et %d autres" % (tries.size() - 10)
+			reste.add_theme_font_size_override("font_size", 24)
+			reste.add_theme_color_override("font_color", COULEUR_OS)
+			flot.add_child(reste)
+		colonne.add_child(flot)
 	var espace := Control.new()
 	espace.custom_minimum_size = Vector2(0, 16)
 	colonne.add_child(espace)

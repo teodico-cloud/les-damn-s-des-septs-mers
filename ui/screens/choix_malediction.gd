@@ -1,7 +1,7 @@
 class_name ChoixMalediction
 extends PanelContainer
 ## Choix du niveau de malédiction avant une expédition (choix de Téo : 0 à 5, choisi au départ) :
-## « < Malédiction 3 — Lames maudites > », les effets cumulés et le butin prévu. Écrit dans
+## « < Malédiction 3 — Lames maudites > », les effets cumulés et le bonus de butin. Écrit dans
 ## Partie.malediction (l'hôte l'envoie à l'invité au lancement). Tous les niveaux sont ouverts
 ## jusqu'à la sauvegarde (jalon 4).
 
@@ -67,7 +67,7 @@ func choisir(n: int, relatif: bool) -> void:
 	Partie.malediction = niveau
 	label_titre.text = Malediction.titre(niveau)
 	label_effets.text = Malediction.effets(niveau).replace("\n", " · ")   # (une ou deux lignes : compact)
-	label_butin.text = "Butin prévu %s (le butin arrive au jalon 4)" % Malediction.texte_butin(niveau)
+	label_butin.text = "Butin %s : plus d'objets, et plus rares" % Malediction.texte_butin(niveau)
 	bouton_moins.disabled = niveau <= 0
 	bouton_plus.disabled = niveau >= Malediction.MAX
 	change.emit(niveau)

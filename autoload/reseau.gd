@@ -12,7 +12,7 @@ signal combat_lance
 
 const PORT_JEU := 34778
 const PORT_ANNONCE := 34779
-const VERSION_RESEAU := 7        ## à augmenter quand le protocole change (refuse un autre APK) ; 7 : Bosco, malédiction, chaloupe
+const VERSION_RESEAU := 8        ## à augmenter quand le protocole change (refuse un autre APK) ; 7 : Bosco, malédiction, chaloupe ; 8 : butin
 const DELAI_ANNONCE := 0.5
 
 enum Role { AUCUN, HOTE, INVITE }

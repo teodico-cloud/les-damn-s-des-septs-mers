@@ -70,6 +70,13 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   - Salles piège : `piege_pics.gd` (`PiegePics`, dalle à pics calée sur l'horloge de la salle,
     `Expedition.temps_salle`) et `tonneau_poudre.gd` (`TonneauPoudre`, explose et blesse les squelettes).
   - `assets/ui/portes/*.svg` : icônes des portes (combat, trésor, piège, Bosco, chaloupe).
+- Butin (jalon 4) : `game/butin/`
+  - `butin.gd` (`Butin`) : catalogue (armes par héros, reliques, objets uniques), raretés et couleurs, tirage
+    (malédiction comprise). Un objet = un petit dictionnaire `{"id", "base", "rarete", "effets"}`.
+  - `objet_au_sol.gd` (`ObjetAuSol`) : objet ou doublons au sol (saut, colonne de lumière, nom), à un joueur.
+  - Dans `expedition.gd` : `_on_ennemi_vaincu_butin` (hôte : tirage pour chaque joueur), `_lacher`,
+    `_ramasser_butin`, `sacs` (nom du héros → objets et doublons ; perdus en cas de défaite).
+  - Modèles : `assets/models/armes/` (armes KayKit Adventurers, 4 textures partagées) et `assets/models/decor/`.
   - `game/reseau/synchro_arene.gd` (nœud « Synchro » de l'arène) : l'hôte simule tout et envoie 30
     instantanés/s + les événements ; l'invité prédit son héros et affiche le reste en « marionnettes »
     (`marionnette = true` sur Heros et Ennemi : affichés d'après l'hôte, sans règles).
@@ -107,7 +114,9 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   chaloupe, fin) : `tools/capture_expedition.gd` ; chaque salle seule, vue de jeu et de dessus :
   `tools/capture_salles.gd [modèle]` ; squelettes sur fond neutre, arbalétrier, carreau renvoyé, prêtre,
   flaque, salles piège, explosion : `tools/capture_ennemis.gd` ; Bosco (portrait, annonces, charge, sonné,
-  rage), choix de la malédiction, chaloupe sous les vagues, écran de fin : `tools/capture_bosco.gd`)
+  rage), choix de la malédiction, chaloupe sous les vagues, écran de fin : `tools/capture_bosco.gd` ;
+  butin (vitrine du catalogue, au sol, ramassage, trésor du Bosco, fins) : `tools/capture_butin.gd`,
+  `SEULEMENT_VITRINE=1` pour la vitrine seule)
 - Où pointe l'arme d'un squelette dans chaque pose : `godot --headless --path . -s "$PWD/tools/sonde_arme.gd"`
   (sans argument : l'arbalétrier ; sinon `-- <modèle.glb> <arme.gltf> <axe x|y|z> [animations…]`)
 - Essai de la coop (hôte + invité sur cette machine, vérifications automatiques, aussi dans le CI) :
@@ -239,7 +248,13 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   fois, sinon un défaut peut passer par chance.
 - Riposte : elle atteint l'ennemi paré jusqu'à `Ennemi.portee_riposte()` (3 m, Bosco ~5,6 m). Un ennemi qui
   frappe de loin doit l'augmenter, sinon la parade réussit mais la riposte frappe dans le vide.
-- « Salle vidée » ne part qu'une fois par salle (`GenerateurEnnemis._videe`) : le butin s'y branchera.
+- « Salle vidée » ne part qu'une fois par salle (`GenerateurEnnemis._videe`).
+- Butin : tiré à chaque `EventBus.ennemi_vaincu` (hôte ou seul). À deux, celui de l'invité existe aussi chez
+  l'hôte, **invisible** (l'hôte décide du ramassage) ; l'invité reçoit le sien par `envoyer_lieu("butin")`.
+  Un objet ne se ramasse qu'une fois retombé (`ObjetAuSol.pose`) : dans un test, le mettre à `true` plutôt
+  que d'attendre en temps réel. Les noms des joueurs (`HerosHote` / `HerosInvite`) servent de clés aux sacs.
+- Tirages du butin : un test de rareté ou de chance répète le tirage (des centaines de fois, graine fixée),
+  sinon un sabotage (minimum oublié…) passe par chance.
 - Au changement de salle, os, flaques et carreaux de la salle d'avant sont retirés (`_construire_salle`) :
   tout effet posé sous l'expédition (et non sous la salle) doit y être ajouté.
 - Chaloupe : une vague attend tant que `chaloupe_max_debout` squelettes sont debout, pour que l'instantané

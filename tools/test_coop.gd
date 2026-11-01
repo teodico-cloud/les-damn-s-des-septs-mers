@@ -352,6 +352,22 @@ func _hote_expedition() -> void:
 	pretre._maudire(arene.heros_partenaire.global_position)
 	await _attendre(2.5)
 	print("MESURE hote temps_salle=%.2f" % arene.temps_salle)
+	# jalon 4 : un objet pour l'invité (lui seul le voit), un pour l'hôte (l'invité ne le voit pas) ; le
+	# héros de l'invité passe sur le sien : l'hôte le met dans son sac et le dit à l'invité
+	var objet_invite := {"id": "coop01", "base": "baton", "rarete": 2, "effets": []}
+	var objet_hote := {"id": "coop02", "base": "sabre", "rarete": 1, "effets": []}
+	var ici: Vector3 = arene.heros_partenaire.global_position + Vector3(1.6, 0, 0)
+	arene._lacher(arene.heros_partenaire, objet_invite, 0, ici, ici)
+	arene._lacher(arene.heros, objet_hote, 0, Vector3(-4.5, 0, -4.5), Vector3(-4.5, 0, -4.5))
+	await _attendre(1.0)
+	var chez_hote = arene.butin_au_sol.get_node_or_null("Butin_coop01")
+	_verifier(chez_hote != null and not chez_hote.visible, "le butin de l'invité : invisible chez l'hôte")
+	arene.heros_partenaire.global_position = ici
+	await _attendre(1.0)
+	var sac_invite: Dictionary = arene.sacs.get("HerosInvite", {"objets": []})
+	_verifier(sac_invite["objets"].any(func(o): return o["id"] == "coop01"), "le héros de l'invité ramasse son butin (décidé par l'hôte)")
+	_verifier(not arene.sacs.get("HerosHote", {"objets": []})["objets"].any(func(o): return o["id"] == "coop01"),
+			"… dans le sac de l'invité, pas dans celui de l'hôte")
 	# étape 3 : le Bosco (l'invité doit voir sa charge et sa rage), puis la chaloupe (compte à rebours)
 	var bosco = gen._faire_apparaitre(Vector3(0.0, 0, -3.0), &"bosco")
 	await _attendre(2.5)   # sortie de terre
@@ -419,11 +435,19 @@ func _invite_expedition() -> void:
 	var vu_message := false
 	var vu_carreau := false
 	var vu_flaque := false
+	var vu_butin := false
+	var vu_butin_hote := false
 	var Carreau = load("res://game/combat/carreau.gd")
 	var Flaque = load("res://game/combat/flaque_maudite.gd")
 	fin = Time.get_ticks_msec() + 30000
 	while not arene.finie and Time.get_ticks_msec() < fin:
 		await process_frame
+		if arene.butin_au_sol:
+			var b = arene.butin_au_sol.get_node_or_null("Butin_coop01")
+			if b and b.visible and not vu_butin:
+				vu_butin = true
+				await _capture("exp_coop_invite_butin.png")
+			vu_butin_hote = vu_butin_hote or arene.butin_au_sol.get_node_or_null("Butin_coop02") != null
 		for e in arene.generateur.get_children():
 			if e.has_method("type_ennemi") and e.marionnette:
 				vu_arb = vu_arb or e.type_ennemi() == &"arbaletrier"
@@ -450,6 +474,14 @@ func _invite_expedition() -> void:
 	print("MESURE invite temps_salle=%.2f" % arene.temps_salle)
 	_verifier(arene.temps_salle > 2.0, "horloge des pièges calée sur l'hôte (%.2f s)" % arene.temps_salle)
 	_verifier(arene.finie and arene.reussite and arene.hud.panneau_fin != null, "écran de fin reçu de l'hôte")
+	_verifier(vu_butin, "notre butin, tiré par l'hôte, apparaît chez nous")
+	_verifier(not vu_butin_hote, "le butin de l'hôte n'apparaît pas chez nous (chacun le sien)")
+	var sac: Dictionary = arene.sacs.get(String(h.name), {"objets": []})
+	_verifier(sac["objets"].any(func(o): return o["id"] == "coop01"), "ramassé : dans notre sac (%d objets)" % sac["objets"].size())
+	if arene.hud.panneau_fin:
+		var textes: Array = arene.hud.panneau_fin.find_children("*", "Label", true, false).map(func(l): return l.text)
+		_verifier(textes.any(func(x): return x.begins_with("Butin rapporté : ")) and "Bâton de corail" in textes,
+				"écran de fin : notre butin rapporté, avec le bâton")
 
 
 ## Compare ce que l'invité affiche avec le dernier instantané reçu de l'hôte.

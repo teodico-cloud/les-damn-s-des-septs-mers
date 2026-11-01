@@ -3,7 +3,7 @@ extends RefCounted
 ## La malédiction de l'expédition (choix de Téo) : un niveau de 0 à 5 choisi avant le départ (écran du
 ## héros en solo, écran « Jouer à deux » pour l'hôte, transmis à l'invité). Les effets se cumulent : le
 ## niveau 3 contient aussi les effets 1 et 2. Plus le niveau est haut, meilleur sera le butin (+20 % par
-## niveau ; affiché dès maintenant, le butin arrive au jalon 4). Seulement en expédition (l'arène reste
+## niveau : plus d'objets, et plus rares). Seulement en expédition (l'arène reste
 ## au niveau 0). Les deux téléphones connaissent le niveau : chacun calcule les mêmes PV maximum.
 
 const EQ: Equilibrage = preload("res://data/equilibrage.tres")
@@ -68,7 +68,7 @@ static func vitesse_pieges() -> float:
 	return EQ.mal_vitesse_pieges if niveau() >= 5 else 1.0
 
 
-## Bonus de butin prévu (×1,0 à ×2,0).
+## Bonus de butin (×1,0 à ×2,0) : multiplie la chance qu'un squelette lâche un objet.
 static func mult_butin(n := -1) -> float:
 	return 1.0 + EQ.mal_butin * (niveau() if n < 0 else n)
 

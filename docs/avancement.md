@@ -1,6 +1,6 @@
 # Avancement
 
-Dernière mise à jour : 30 octobre 2026.
+Dernière mise à jour : 1er novembre 2026.
 
 ## Où on en est
 - **Phase A (conception) : terminée et validée.** Voir `docs/conception.md`.
@@ -17,7 +17,8 @@ Dernière mise à jour : 30 octobre 2026.
 - **Jalon 3, étape 1 (expédition) : faite**, APK intermédiaire 0.3.x.
 - **Jalon 3, étape 2 (arbalétrier, prêtre noyé, salles piège) : faite**, APK 0.3.13.
 - **Jalon 3, étape 3 (Bosco Maudit, malédiction, chaloupe sous les vagues, écran de fin) : faite** ;
-  relecture de fin de jalon puis APK.
+  relecture de fin de jalon puis APK 0.3.14.
+- **Jalon 4, étape 1 (butin au sol, façon Diablo) : faite** (branche `jalon-4`), APK intermédiaire.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -114,11 +115,11 @@ Matelots squelettes qui reviennent sans fin.
   effets cumulés : 1 Os durcis (squelettes +25 % PV) ; 2 Équipage nombreux (+2 squelettes par salle, 1 de plus
   debout, +1 par vague de la chaloupe) ; 3 Lames maudites (+25 % de dégâts des squelettes, pas des pièges) ;
   4 Mer avare (orbes 2 fois plus rares, coffre moitié moins) ; 5 Bosco enragé dès le début, pièges plus
-  rapides. Butin prévu +20 % par niveau (affiché ; le butin arrive au jalon 4). Niveau affiché sous les PV.
+  rapides. Butin +20 % par niveau (chance d'objet, et raretés poussées vers le haut). Niveau affiché sous les PV.
 - **Chaloupe sous les vagues** : y monter lance un compte de 45 s, qui n'avance que si un héros debout est à
   bord (sinon « Remontez dans la chaloupe ! », sans rien perdre). 5 vagues de 3 squelettes (4 à deux) sortent
   de l'eau le long du quai, un arbalétrier par vague dès la 3e ; la houle et le tangage grossissent.
-- **Écran de fin enrichi** : malédiction et butin prévu, « Bosco vaincu en … » (ou ses PV restants).
+- **Écran de fin enrichi** : malédiction et bonus de butin, « Bosco vaincu en … » (ou ses PV restants).
 - Annexes proposées et non retenues par Téo : départs « piège » / « salle 3 » au mode test, explosion plus
   grande, mort du Bosco mise en scène.
 - Petits choix faits sans Téo, à lui signaler : riposte et chaînes deux fois moins longues sur le Bosco ; son
@@ -126,6 +127,29 @@ Matelots squelettes qui reviennent sans fin.
   à deux ; les vagues de la chaloupe n'avancent qu'avec le compte (pas de vague tant que personne n'est à bord).
 - Réseau version 7. Tests : 180 en tout, dont 34 nouveaux (vérifiés par sabotage) ; essai coop de l'expédition étendu (malédiction
   reçue, Bosco, zone de sa charge, rage, compte à rebours de la chaloupe chez l'invité).
+
+## Butin au sol (jalon 4, étape 1 — choix de Téo du 31/10)
+- **Façon Diablo** : un squelette vaincu lâche, **pour chaque joueur séparément**, peut-être un objet (matelot
+  6 %, arbalétrier 10 %, prêtre noyé 15 %, ×1,2 par niveau de malédiction) et peut-être des doublons (35 %,
+  2 à 6). Le Bosco : 2 objets (au moins un Épique, jamais de Commun) + 40 doublons ; le coffre : 2 objets
+  (au moins Rare) + 25 doublons. Tout est dans `equilibrage.tres` (groupe « Butin »).
+- L'objet saute hors du squelette, flotte et tourne, avec une **colonne de lumière** et son nom à la couleur de
+  sa rareté : Commun blanc, Rare bleu, Épique violet (+ halo), Légendaire or, Maudit vert. Les objets uniques
+  luisent. Quand plusieurs tombent au même endroit, les noms s'étagent.
+- **Ramassé en passant dessus** (une fois retombé, héros debout) : ligne colorée à gauche (4 au plus, s'efface),
+  « Sac : n objets · n doublons » sous la malédiction. Le butin laissé dans une salle est perdu.
+- **Défaite : tout le sac est perdu** (« Butin perdu : … »). Victoire : « Butin rapporté : … » et les noms des
+  objets (les plus rares d'abord, 10 au plus) sur l'écran de fin.
+- **À deux : chacun le sien.** L'hôte tire le butin des deux joueurs ; celui de l'invité est invisible chez
+  l'hôte et n'apparaît que chez l'invité ; l'hôte décide du ramassage et tient les deux sacs (envoyés avec la fin).
+- Catalogue (`game/butin/butin.gd`) : 3 armes par héros, 6 reliques, 5 objets uniques (3 Légendaires, 2 Maudits).
+  Les effets entrent en jeu à l'étape 2 (liste à valider par Téo d'abord). Modèles : armes du pack KayKit
+  Adventurers, reliques du pack Dungeon.
+- Petits choix faits sans Téo, à lui signaler : un héros à terre ne ramasse rien ; objet ramassable seulement
+  une fois retombé (0,35 s) ; l'équipage du Bosco qui s'effondre lâche aussi son butin.
+- Réseau version 8. Tests : 197 en tout, dont 17 nouveaux (vérifiés par sabotage : 22 sabotages, tous vus) ;
+  essai coop de l'expédition étendu (butin de l'invité invisible chez l'hôte, vu et ramassé chez l'invité,
+  celui de l'hôte jamais vu chez l'invité, écran de fin de l'invité).
 
 ## Combat « nerveux » (30/10, demande de Téo : « vraiment Diablo like »)
 Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pas les ennemis plus agressifs).
@@ -201,6 +225,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 30/10/2026 | Combat « nerveux » : héros plus vif, hordes, coups qui claquent, coups critiques (choix de Téo, voir plus haut). Ennemis plus agressifs : non retenu. |
 | 30/10/2026 | Parade : elle coupe le coup en cours ; parade parfaite en bonus (0,25 s), zone dorée avant le coup + étincelles, « PARFAIT ! » et ralenti, Parade rendue. Onde de choc : non retenue. |
 | 31/10/2026 | Jalon 3, étape 3 (choix de Téo) : Bosco « brute à la hache » (tourbillon, charge qui le laisse sonné 2 s contre un mur, coup au sol ; rage à mi-vie + 3 matelots) ; coups mi-parables (seul le coup au sol se pare, les gros coups rouge sombre sont imparables) ; ~1 min 30 en solo ; malédiction 0–5 choisie au départ avec l'échelle proposée (+20 % de butin par niveau) ; chaloupe : tenir 45 s à bord, le compte s'arrête si personne n'y est ; annexe retenue : écran de fin enrichi. |
+| 31/10/2026 | Jalon 4 (choix de Téo) : butin au sol façon Diablo (colonnes de lumière par rareté, ramassé en passant dessus, chacun le sien à deux, perdu en cas de défaite) ; les armes changent d'apparence en main dès ce jalon ; cale de base dès maintenant (8 objets, tri au-delà). Ordre : 1) butin au sol et ramassage, 2) inventaire, équipement, effets en combat et sauvegarde (liste des objets à valider avant), 3) tri de la cale, relecture, APK. |
 | 30/10/2026 | Jalon 3, étape 2 (choix de Téo) : la Parade renvoie les carreaux d'arbalète ; un coup interrompt l'incantation du prêtre noyé ; salles piège avec dalles à pics et tonneaux de poudre explosifs ; l'arène d'entraînement garde seulement les matelots. |
 | 30/10/2026 | Réglages (choix de Téo) : le joystick ne coupe plus le 3e coup du combo (le lourd va au bout) ; fenêtre de la parade parfaite 0,35 s (zone dorée 0,4 s avant le coup). Étape 2 du jalon 3 lancée. |
 | 30/10/2026 | Jalon 2 : coop essayée par Téo sur ses deux téléphones, « ça marche » (porte franchie). |
@@ -310,8 +335,10 @@ Aucun plantage ni blocage trouvé. Corrigé (chaque correction a un test qui éc
   un seul héros debout à bord suffit pour partir ; l'équipage qui s'effondre peut lâcher des orbes.
 
 ## Prochaines étapes
-1. Essai de Téo de l'expédition complète (seul et à deux), dont le temps contre le Bosco et la malédiction.
-2. Jalon 4 : butin et sauvegarde.
+1. Essai de Téo du butin au sol (seul et à deux).
+2. Liste détaillée des objets et de leurs effets, à faire valider par Téo.
+3. Jalon 4, étape 2 : inventaire, équipement (1 arme, 2 reliques), effets en combat, arme en main, sauvegarde.
+4. Jalon 4, étape 3 : tri de la cale (8 objets), relecture, APK.
 
 ## Points à trancher plus tard
 - Clé de signature définitive : passer à la vraie clé (secrète) **avant** que les sauvegardes comptent,

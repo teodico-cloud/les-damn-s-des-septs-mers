@@ -613,7 +613,7 @@ func test_ecran_de_fin_enrichi() -> void:
 	Partie.malediction = 3
 	var e := await _expedition()
 	var lignes := e._bilan(false)
-	assert_has(lignes, "Malédiction 3 — Lames maudites — butin prévu ×1,6")
+	assert_has(lignes, "Malédiction 3 — Lames maudites — bonus de butin ×1,6")
 
 
 # ---------------------------------------------------------------- coop (invité)

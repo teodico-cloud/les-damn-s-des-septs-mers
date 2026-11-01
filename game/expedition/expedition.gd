@@ -31,6 +31,9 @@ var _coffre_ouvert_pour := -1
 var bosco: Bosco                  ## antre (hôte) : le Bosco Maudit
 var _bosco_debut_ms := -1
 var _bosco_fin_ms := -1
+var sacs := {}                    ## butin non sécurisé : nom du héros -> {"objets": [...], "doublons": n} (hôte : les deux)
+var butin_au_sol: Node3D           ## objets et doublons tombés dans la salle (à deux : ceux de l'autre sont invisibles)
+var _rng_butin := RandomNumberGenerator.new()
 var chaloupe_restant := -1.0      ## secondes avant le départ (-1 : personne n'est encore monté) ; invité : d'après l'hôte
 var a_bord := false               ## au moins un héros debout dans la chaloupe
 var vagues_lancees := 0
@@ -81,6 +84,8 @@ func _pret() -> void:
 		hud.voile.color.a = 1.0          # écran noir jusqu'à la première salle de l'hôte
 		return
 	generateur.salle_videe.connect(_on_salle_videe)
+	EventBus.ennemi_vaincu.connect(_on_ennemi_vaincu_butin)
+	_rng_butin.randomize()
 	EventBus.explosion.connect(_on_explosion)
 	EventBus.parade_parfaite.connect(_compter_parade)
 	EventBus.coup_porte.connect(_compter_critique)
@@ -138,6 +143,9 @@ func _construire_salle(n: int, t: StringName, m: String, portes: Array) -> void:
 	if orbes:   # (pas encore créées pour la toute première salle)
 		for o in orbes.get_children():
 			o.queue_free()
+	if butin_au_sol:
+		for o in butin_au_sol.get_children():
+			o.queue_free()   # le butin laissé derrière soi est perdu
 	for c in get_children():
 		if c is RigidBody3D or c is FlaqueMaudite or c is Carreau:
 			c.queue_free()   # os, flaques et carreaux de la salle d'avant (une flaque y blessait encore)
@@ -308,6 +316,7 @@ func _physics_process(delta: float) -> void:
 	if Reseau.est_invite():
 		porte_prise(heros_actifs())   # seulement les « 1/2 » ; c'est l'hôte qui décide
 		return
+	_ramasser_butin()
 	if _defaite_dans >= 0.0:
 		_defaite_dans -= delta
 		if _defaite_dans < 0.0:
@@ -339,7 +348,13 @@ func _verifier_coffre() -> void:
 					EventBus.soin.emit(g, g.sante.soigner(g.sante.pv_max * EQ.exp_tresor_soin * Malediction.mult_coffre()))
 			if synchro:
 				synchro.envoyer_lieu("coffre", [numero])
-			_message("Le coffre maudit vous soigne !\n(le butin arrive au jalon 4)", 2.5)
+			for g in heros_actifs():   # et crache son trésor, pour chacun
+				var devant: Vector3 = salle.coffre.global_position + Vector3(0, 0, 1.3)
+				for i in EQ.butin_coffre_objets:
+					_lacher(g, Butin.tirer_objet(_rng_butin, g.archetype, Malediction.niveau(), Butin.Rarete.RARE), 0,
+							salle.coffre.global_position, _autour(devant))
+				_lacher(g, {}, roundi(EQ.butin_coffre_doublons * Malediction.mult_butin()), salle.coffre.global_position, _autour(devant))
+			_message("Le coffre maudit vous soigne\net crache son trésor !", 2.5)
 			return
 
 
@@ -435,19 +450,19 @@ func _terminer(p_reussite: bool) -> void:
 		return
 	var lignes := _bilan(p_reussite)
 	if synchro:
-		synchro.envoyer_lieu("fin", [p_reussite, lignes])
-	_afficher_fin(p_reussite, lignes)
+		synchro.envoyer_lieu("fin", [p_reussite, lignes, sacs])
+	_afficher_fin(p_reussite, lignes, sacs)
 
 
 ## Les lignes de l'écran de fin (l'hôte les envoie telles quelles à l'invité). Écran enrichi (choix
-## de Téo) : malédiction et butin prévu, combat contre le Bosco.
+## de Téo) : malédiction et bonus de butin, combat contre le Bosco.
 func _bilan(p_reussite: bool) -> Array:
 	var secondes := (Time.get_ticks_msec() - _debut_ms) / 1000
 	var total := EQ.exp_nb_salles + 2
 	var n := Malediction.niveau()
 	var lignes := [
 		"Progression : salle %d sur %d" % [mini(numero, total), total] if not p_reussite else "Toutes les salles traversées",
-		"%s — butin prévu %s" % [Malediction.titre(n), Malediction.texte_butin(n)],
+		"%s — bonus de butin %s" % [Malediction.titre(n), Malediction.texte_butin(n)],
 	]
 	var ligne_bosco := _ligne_bosco()
 	if ligne_bosco != "":
@@ -474,14 +489,122 @@ func _ligne_bosco() -> String:
 
 
 
-func _afficher_fin(p_reussite: bool, lignes: Array) -> void:
+func _afficher_fin(p_reussite: bool, lignes: Array, p_sacs: Dictionary = {}) -> void:
 	finie = true
 	reussite = p_reussite
 	generateur.reserve = 0
 	for e in generateur.get_children():
 		e.set_physics_process(false)   # tout s'arrête derrière l'écran de fin
+	if not p_sacs.is_empty():
+		sacs = p_sacs   # (invité : le sac final, décidé par l'hôte)
+	var sac: Dictionary = sacs.get(String(heros.name), {"objets": [], "doublons": 0})
+	var nb: int = sac["objets"].size()
+	var resume := "%d objet%s et %d doublons" % [nb, "s" if nb > 1 else "", sac["doublons"]]
+	var lignes_fin := lignes.duplicate()
+	lignes_fin.insert(1, ("Butin rapporté : " if p_reussite else "Butin perdu : ") + resume)
 	hud.afficher_salle("")
-	hud.afficher_resultats(p_reussite, lignes)
+	hud.afficher_resultats(p_reussite, lignes_fin, sac["objets"] if p_reussite else [])
+
+
+# ---------------------------------------------------------------- butin (jalon 4, choix de Téo : au sol, façon Diablo)
+## Hôte (ou seul) : un squelette vaincu lâche, pour chaque joueur séparément, peut-être un objet et des
+## doublons ; le Bosco, beaucoup plus (au moins un Épique). À deux, chacun ne voit que le sien.
+func _on_ennemi_vaincu_butin(e: Node) -> void:
+	if finie or not (e is Ennemi) or not e.is_inside_tree():
+		return
+	var depart: Vector3 = e.global_position
+	var n := Malediction.niveau()
+	for h in heros_actifs():
+		if e is Bosco:
+			for i in EQ.butin_bosco_objets:
+				var minimum := Butin.Rarete.EPIQUE if i == 0 else Butin.Rarete.RARE
+				_lacher(h, Butin.tirer_objet(_rng_butin, h.archetype, n, minimum), 0, depart, _autour(depart))
+			_lacher(h, {}, roundi(EQ.butin_bosco_doublons * Malediction.mult_butin()), depart, _autour(depart))
+			continue
+		if _rng_butin.randf() < Butin.chance_objet(e.type_ennemi()):
+			_lacher(h, Butin.tirer_objet(_rng_butin, h.archetype, n), 0, depart, _autour(depart))
+		if _rng_butin.randf() < EQ.butin_doublons_chance:
+			var d := roundi(_rng_butin.randi_range(EQ.butin_doublons_min, EQ.butin_doublons_max) * Malediction.mult_butin())
+			_lacher(h, {}, d, depart, _autour(depart))
+
+
+## Une place libre autour d'un point, dans la salle (sur le quai, jamais dans l'eau).
+func _autour(p: Vector3) -> Vector3:
+	var a := _rng_butin.randf() * TAU
+	var r := _rng_butin.randf_range(0.6, 1.5)
+	var q := p + Vector3(cos(a) * r, 0, sin(a) * r)
+	q.x = clampf(q.x, -Salle.DEMI + 0.7, Salle.DEMI - 0.7)
+	q.z = clampf(q.z, -Salle.DEMI + 0.7, Salle.DEMI - 0.7)
+	if salle and salle.zone_chaloupe != Vector3.INF:
+		q.x = maxf(q.x, -Salle.DEMI + Salle.PAS + 0.4)
+	return Vector3(q.x, 0.0, q.z)
+
+
+## Pose un objet (ou des doublons) pour le joueur de `h` ; envoie à l'invité ce qui lui revient.
+func _lacher(h: Node3D, objet: Dictionary, doublons: int, depart: Vector3, pos: Vector3) -> void:
+	var o := ObjetAuSol.creer(objet, doublons, String(h.name), depart, pos)
+	o.visible = h == heros   # à deux, l'hôte ne voit pas le butin de l'invité (chacun le sien)
+	o.etage = _etage(o.proprietaire, pos)
+	_conteneur_butin().add_child(o)
+	if synchro and h != heros:
+		synchro.envoyer_lieu("butin", [numero, o.id, objet, doublons, depart, pos])
+
+
+## Combien d'objets du même joueur sont déjà tombés tout près : le nom du nouveau monte d'autant.
+func _etage(proprietaire: String, pos: Vector3) -> int:
+	var n := 0
+	for o in _conteneur_butin().get_children():
+		if o.proprietaire == proprietaire and not o.is_queued_for_deletion() \
+				and Vector2(o.position.x - pos.x, o.position.z - pos.z).length() < 1.4:
+			n += 1
+	return n % 4
+
+
+func _conteneur_butin() -> Node3D:
+	if butin_au_sol == null:
+		butin_au_sol = Node3D.new()
+		butin_au_sol.name = "ButinAuSol"
+		add_child(butin_au_sol)
+	return butin_au_sol
+
+
+## Hôte (ou seul) : un héros debout qui passe sur son butin le ramasse, dans le sac d'expédition
+## (perdu en cas de défaite).
+func _ramasser_butin() -> void:
+	if butin_au_sol == null:
+		return
+	for o in butin_au_sol.get_children():
+		if o.is_queued_for_deletion():
+			continue
+		var h := _heros_nomme(o.proprietaire)
+		if h == null or not h.est_vivant() or not o.a_portee(h.global_position):
+			continue
+		_mettre_au_sac(o.proprietaire, o.objet, o.doublons)
+		if synchro and h != heros:
+			synchro.envoyer_lieu("ramasse", [o.id, o.objet, o.doublons])
+		o.queue_free()
+
+
+func _heros_nomme(nom: String) -> Heros:
+	for h in heros_actifs():
+		if String(h.name) == nom:
+			return h
+	return null
+
+
+func _mettre_au_sac(proprietaire: String, objet: Dictionary, doublons: int) -> void:
+	if not sacs.has(proprietaire):
+		sacs[proprietaire] = {"objets": [], "doublons": 0}
+	var sac: Dictionary = sacs[proprietaire]
+	if not objet.is_empty():
+		sac["objets"].append(objet)
+	sac["doublons"] += doublons
+	if proprietaire == String(heros.name):
+		if objet.is_empty():
+			hud.afficher_ramasse("+%d doublons" % doublons, Color("e0b04a"))
+		else:
+			hud.afficher_ramasse(Butin.nom_complet(objet), Butin.couleur(objet))
+		hud.afficher_sac(sac["objets"].size(), sac["doublons"])
 
 
 # ---------------------------------------------------------------- coop
@@ -507,10 +630,22 @@ func evenement_lieu(type: String, donnees: Array) -> void:
 			if salle and numero == donnees[0] and not en_transition:
 				salle.ouvrir_coffre()
 		"fin":
-			_afficher_fin(donnees[0], donnees[1])
+			_afficher_fin(donnees[0], donnees[1], donnees[2] if donnees.size() > 2 else {})
 		"message":
 			if numero == donnees[0] or en_transition:
 				hud.afficher_message(donnees[1], donnees[2])
+		"butin":   # [n° de salle, id, objet, doublons, départ, position] : notre butin, tiré par l'hôte
+			if salle and numero == donnees[0] and not en_transition:
+				var o := ObjetAuSol.creer(donnees[2], donnees[3], String(heros.name), donnees[4], donnees[5])
+				o.id = donnees[1]
+				o.name = "Butin_" + o.id
+				o.etage = _etage(o.proprietaire, donnees[5])
+				_conteneur_butin().add_child(o)
+		"ramasse":   # [id, objet, doublons] : l'hôte a vu notre héros passer dessus
+			var o := _conteneur_butin().get_node_or_null("Butin_" + String(donnees[0]))
+			if o:
+				o.queue_free()
+			_mettre_au_sac(String(heros.name), donnees[1], donnees[2])
 		"vague":
 			if salle and numero == donnees[0]:
 				for p in donnees[1]:

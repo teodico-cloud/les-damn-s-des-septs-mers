@@ -238,7 +238,7 @@ extends Resource
 @export var mal_orbes := 0.5                  ## 4 Mer avare : orbes 2 fois plus rares…
 @export var mal_coffre := 0.5                 ## … et coffre qui soigne moitié moins
 @export var mal_vitesse_pieges := 1.3         ## 5 Bosco enragé dès le début, pièges plus rapides
-@export var mal_butin := 0.2                  ## +20 % de butin par niveau (affiché ; le butin arrive au jalon 4)
+@export var mal_butin := 0.2                  ## +20 % de chance d'objet par niveau
 
 @export_group("Chaloupe sous les vagues (sortie de l'expédition)")
 @export var chaloupe_duree := 45.0            ## secondes à tenir à bord (choix de Téo) ; le compte s'arrête si personne n'y est
@@ -247,6 +247,24 @@ extends Resource
 @export var chaloupe_vague_coop := 4
 @export var chaloupe_arbaletrier_des := 3     ## à partir de la 3e vague, l'un d'eux est un arbalétrier
 @export var chaloupe_max_debout := 8          ## une vague attend tant qu'il y a déjà ce nombre de squelettes debout
+
+@export_group("Butin (jalon 4 : au sol, façon Diablo ; chacun le sien à deux)")
+@export var butin_objet_matelot := 0.06       ## chance qu'un matelot lâche un objet (pour chaque joueur)
+@export var butin_objet_arbaletrier := 0.1
+@export var butin_objet_pretre := 0.15
+@export var butin_doublons_chance := 0.35     ## chance de lâcher des doublons (pièces)
+@export var butin_doublons_min := 2
+@export var butin_doublons_max := 6
+@export var butin_bosco_objets := 2           ## le Bosco : 2 objets pour chacun, au moins un Épique
+@export var butin_bosco_doublons := 40
+@export var butin_coffre_objets := 2          ## le coffre de la salle trésor : 2 objets au moins Rares
+@export var butin_coffre_doublons := 25
+@export var butin_rayon := 1.1                ## mètres : on ramasse en passant dessus
+@export var butin_arme := 0.5                 ## part des objets qui sont des armes (le reste : reliques)
+## Poids des raretés : Commun, Rare, Épique, Légendaire, Maudit
+@export var butin_poids_raretes: PackedFloat32Array = [62.0, 26.0, 9.0, 2.0, 1.0]
+## Malédiction : chaque niveau multiplie ces poids par (1 + valeur × niveau) — raretés meilleures
+@export var butin_malediction_raretes: PackedFloat32Array = [0.0, 0.15, 0.3, 0.5, 0.5]
 
 @export_group("Orbes de vie")
 @export var orbe_chance := 0.3                ## chance qu'un squelette vaincu lâche une orbe (choix de Téo)
