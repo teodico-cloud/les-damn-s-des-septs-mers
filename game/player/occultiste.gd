@@ -73,14 +73,24 @@ func _rendre_recharge() -> void:
 
 # ---------------------------------------------------------------- projectile maudit
 func _attaque_possible() -> bool:
-	return horloge - _dernier_tir >= EQ.occ_tir_cadence
+	return horloge - _dernier_tir >= EQ.occ_tir_cadence / mult_attaque()
+
+
+## Vitesse du geste de tir : l'arme portée la change (baguette plus vive, bâton plus lent).
+func _vitesse_tir() -> float:
+	return EQ.occ_tir_vitesse_animation * mult_attaque()
+
+
+## Grimoire noyé, Grimoire du Pendu : Marque et Chaînes rechargées plus vite.
+func _reduction_competences() -> float:
+	return b("recharge_sorts")
 
 
 func _commencer_attaque() -> void:
 	_direction = direction_tir()
 	_faire_face(_direction)
 	_effet_fait = false
-	_jouer(EQ.occ_tir_animation, EQ.occ_tir_vitesse_animation, 0.06, true)
+	_jouer(EQ.occ_tir_animation, _vitesse_tir(), 0.06, true)
 	_changer(Etat.ATTAQUE)
 
 
@@ -89,7 +99,7 @@ func _etat_tir() -> void:
 	if commandes.en_attente(&"esquive", horloge) and recharge_esquive.prete():
 		_essayer_actions_prioritaires()   # la téléportation coupe un tir à tout moment
 		return
-	if not _effet_fait and _t >= EQ.occ_tir_instant / EQ.occ_tir_vitesse_animation:
+	if not _effet_fait and _t >= EQ.occ_tir_instant / _vitesse_tir():
 		_effet_fait = true
 		_tirer()
 	if _effet_fait:
@@ -101,7 +111,7 @@ func _etat_tir() -> void:
 		if commandes.deplacement.length() > 0.25:
 			_changer(Etat.LIBRE)   # le projectile est parti : le joystick coupe la fin du geste
 			return
-	if _t >= anim.get_animation(EQ.occ_tir_animation).length / EQ.occ_tir_vitesse_animation:
+	if _t >= anim.get_animation(EQ.occ_tir_animation).length / _vitesse_tir():
 		_changer(Etat.LIBRE)
 
 

@@ -2,11 +2,11 @@ class_name Butin
 extends RefCounted
 ## Le butin (jalon 4) : catalogue des objets et tirage au hasard. Un objet est un petit dictionnaire,
 ## facile à envoyer à l'invité et à sauvegarder :
-##   {"id": "3fa9…", "base": "sabre", "rarete": 1, "effets": []}
-## Raretés : Commun (statistiques), Rare (+1 effet), Épique (+2 effets), Légendaire (un objet unique qui
-## change la façon de jouer), Maudit (un objet unique puissant, avec une contrepartie). Les effets se
-## branchent sur le combat à l'étape 2 (liste à faire valider par Téo) ; ici, l'objet existe, tombe,
-## se ramasse et se perd. Les armes sont tirées pour le héros du joueur ; les reliques vont aux deux.
+##   {"id": "3fa9…", "base": "sabre", "rarete": 1, "effets": {"vol_de_vie": 0.03}}
+## (« effets » : ses effets en plus, tirés quand il tombe ; l'effet de base vient du catalogue.)
+## Raretés : Commun (effet de base), Rare (+1 effet), Épique (+2 effets), Légendaire (un objet unique qui
+## change la façon de jouer), Maudit (un objet unique puissant, avec une contrepartie). Ce que font les
+## effets : Equipement. Les armes sont tirées pour le héros du joueur ; les reliques vont aux deux.
 
 const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 const ARMES := "res://assets/models/armes/"
@@ -19,43 +19,63 @@ const COULEURS: Array[Color] = [Color(0.88, 0.86, 0.8), Color(0.35, 0.62, 1.0), 
 		Color(1.0, 0.66, 0.15), Color(0.32, 1.0, 0.5)]
 
 ## Objets de base (Commun, Rare, Épique). « heros » vide : une relique, pour les deux héros. « echelle » :
-## taille au sol des petits objets (sinon 0,9 pour une arme, 0,7 pour une relique).
+## taille au sol des petits objets (sinon 0,9 pour une arme, 0,7 pour une relique). « effets » : l'effet de
+## base (Commun ; ×1,25 Rare, ×1,5 Épique, défauts compris jamais), voir Equipement pour leur sens.
+## « echelle_main » : taille dans la main du héros (le bâton et les grimoires KayKit sont grands).
 const BASES := {
 	# armes du Bretteur
-	"sabre": {"nom": "Sabre d'abordage", "type": "arme", "heros": "bretteur", "modele": ARMES + "sword_1handed.gltf"},
-	"hache": {"nom": "Hache d'abordage", "type": "arme", "heros": "bretteur", "modele": ARMES + "axe_1handed.gltf"},
-	"coutelas": {"nom": "Coutelas du quartier-maître", "type": "arme", "heros": "bretteur", "modele": ARMES + "dagger.gltf"},
+	"sabre": {"nom": "Sabre d'abordage", "type": "arme", "heros": "bretteur", "modele": ARMES + "sword_1handed.gltf",
+			"effets": {"degats": 0.10}},
+	"hache": {"nom": "Hache d'abordage", "type": "arme", "heros": "bretteur", "modele": ARMES + "axe_1handed.gltf",
+			"effets": {"degats": 0.30, "vitesse_attaque": -0.15}},
+	"coutelas": {"nom": "Coutelas du quartier-maître", "type": "arme", "heros": "bretteur", "modele": ARMES + "dagger.gltf",
+			"effets": {"vitesse_attaque": 0.15, "critique": 0.08}},
 	# armes de l'Occultiste
-	"baguette": {"nom": "Baguette d'os", "type": "arme", "heros": "occultiste", "modele": ARMES + "wand.gltf"},
-	"baton": {"nom": "Bâton de corail", "type": "arme", "heros": "occultiste", "modele": ARMES + "staff.gltf"},
-	"grimoire": {"nom": "Grimoire noyé", "type": "arme", "heros": "occultiste", "modele": ARMES + "spellbook_open.gltf"},
+	"baguette": {"nom": "Baguette d'os", "type": "arme", "heros": "occultiste", "modele": ARMES + "wand.gltf",
+			"effets": {"vitesse_attaque": 0.20}},
+	"baton": {"nom": "Bâton de corail", "type": "arme", "heros": "occultiste", "modele": ARMES + "staff.gltf",
+			"echelle_main": 0.6, "effets": {"degats": 0.30, "vitesse_attaque": -0.15}},
+	"grimoire": {"nom": "Grimoire noyé", "type": "arme", "heros": "occultiste", "modele": ARMES + "spellbook_open.gltf",
+			"echelle_main": 0.6, "effets": {"recharge_sorts": 0.20}},
 	# reliques
-	"cle": {"nom": "Clé du geôlier", "type": "relique", "heros": "", "modele": DECOR + "key.glb", "echelle": 1.1},
-	"fiole": {"nom": "Fiole d'eau noire", "type": "relique", "heros": "", "modele": DECOR + "bottle_A_green.glb"},
-	"chandelle": {"nom": "Chandelle de veille", "type": "relique", "heros": "", "modele": DECOR + "candle_lit.glb"},
-	"doublon": {"nom": "Doublon terni", "type": "relique", "heros": "", "modele": DECOR + "coin.glb", "echelle": 1.5},
-	"trousseau": {"nom": "Trousseau du pendu", "type": "relique", "heros": "", "modele": DECOR + "keyring_hanging.glb", "echelle": 1.2},
-	"flasque": {"nom": "Flasque de rhum", "type": "relique", "heros": "", "modele": DECOR + "bottle_C_brown.glb"},
+	"cle": {"nom": "Clé du geôlier", "type": "relique", "heros": "", "modele": DECOR + "key.glb", "echelle": 1.1,
+			"effets": {"geolier": 0.25}},
+	"fiole": {"nom": "Fiole d'eau noire", "type": "relique", "heros": "", "modele": DECOR + "bottle_A_green.glb",
+			"effets": {"orbes": 0.40}},
+	"chandelle": {"nom": "Chandelle de veille", "type": "relique", "heros": "", "modele": DECOR + "candle_lit.glb",
+			"effets": {"pv": 15.0}},
+	"doublon": {"nom": "Doublon terni", "type": "relique", "heros": "", "modele": DECOR + "coin.glb", "echelle": 1.5,
+			"effets": {"doublons": 0.30}},
+	"trousseau": {"nom": "Trousseau du pendu", "type": "relique", "heros": "", "modele": DECOR + "keyring_hanging.glb", "echelle": 1.2,
+			"effets": {"recharge_esquive": 0.25}},
+	"flasque": {"nom": "Flasque de rhum", "type": "relique", "heros": "", "modele": DECOR + "bottle_C_brown.glb",
+			"effets": {"flasque": 0.10}},
 }
 
 ## Objets uniques : légendaires (changent la façon de jouer) et maudits (puissants, avec une contrepartie).
-## Leur effet arrive à l'étape 2 ; « effet » le décrit déjà (affiché dans l'inventaire).
+## « effet » : la phrase de l'inventaire ; « effets » : ce qu'il fait (les armes uniques ont en plus
+## l'effet de base d'une arme Épique de leur genre).
 const UNIQUES := {
 	"lame_du_noye": {"nom": "Lame du Noyé", "type": "arme", "heros": "bretteur", "rarete": Rarete.LEGENDAIRE,
 			"modele": ARMES + "sword_1handed.gltf", "teinte": Color(0.3, 1.0, 0.6),
-			"effet": "La roulade laisse une traînée d'eau maudite qui blesse les squelettes"},
+			"effet": "La roulade laisse une traînée d'eau maudite qui blesse les squelettes",
+			"effets": {"degats": 0.15, "lame_du_noye": 1.0}},
 	"grimoire_du_pendu": {"nom": "Grimoire du Pendu", "type": "arme", "heros": "occultiste", "rarete": Rarete.LEGENDAIRE,
-			"modele": ARMES + "spellbook_closed.gltf", "teinte": Color(1.0, 0.75, 0.3),
-			"effet": "Un squelette tué par tes sorts se relève à tes côtés quelques secondes"},
+			"modele": ARMES + "spellbook_closed.gltf", "echelle_main": 0.7, "teinte": Color(1.0, 0.75, 0.3),
+			"effet": "Un squelette tué par vos sorts se relève à vos côtés quelques secondes",
+			"effets": {"recharge_sorts": 0.30, "grimoire_du_pendu": 1.0}},
 	"sablier_maree": {"nom": "Sablier de la Marée", "type": "relique", "heros": "", "rarete": Rarete.LEGENDAIRE,
 			"modele": DECOR + "bottle_B_green.glb", "teinte": Color(1.0, 0.75, 0.3),
-			"effet": "Une esquive au dernier moment fige les squelettes autour de toi"},
+			"effet": "Une esquive au dernier moment fige les squelettes autour de vous",
+			"effets": {"sablier_maree": 1.0}},
 	"talisman_pendu": {"nom": "Talisman du Pendu", "type": "relique", "heros": "", "rarete": Rarete.MAUDIT,
 			"modele": DECOR + "keyring_hanging.glb", "echelle": 1.2, "teinte": Color(0.4, 1.0, 0.5),
-			"effet": "Dégâts +40 %, mais les orbes de vie ne te soignent plus"},
+			"effet": "Dégâts +40 %, mais les orbes de vie ne vous soignent plus",
+			"effets": {"degats": 0.40, "orbes_nulles": 1.0}},
 	"coeur_kraken": {"nom": "Cœur de Kraken", "type": "relique", "heros": "", "rarete": Rarete.MAUDIT,
 			"modele": DECOR + "bottle_A_labeled_green.glb", "teinte": Color(0.4, 1.0, 0.5),
-			"effet": "PV max +50 %, mais tu te déplaces 20 % moins vite"},
+			"effet": "PV max +50 %, mais vous vous déplacez 20 % moins vite",
+			"effets": {"pv_pourcent": 0.50, "vitesse": -0.20}},
 }
 
 
@@ -106,7 +126,18 @@ static func tirer_objet(rng: RandomNumberGenerator, heros: StringName, maledicti
 		var choix := BASES.keys().filter(func(k): return BASES[k]["type"] == ("arme" if arme else "relique") \
 				and BASES[k]["heros"] in ["", String(heros)])
 		cle = choix[rng.randi() % choix.size()]
-	return {"id": nouvel_id(rng), "base": cle, "rarete": rarete, "effets": []}
+	return {"id": nouvel_id(rng), "base": cle, "rarete": rarete, "effets": tirer_effets_plus(rng, rarete)}
+
+
+## Effets en plus d'un objet Rare (1) ou Épique (2), tirés au hasard, deux différents : {nom: valeur}.
+static func tirer_effets_plus(rng: RandomNumberGenerator, rarete: int) -> Dictionary:
+	var n := 1 if rarete == Rarete.RARE else (2 if rarete == Rarete.EPIQUE else 0)
+	var possibles: Array = EQ.equip_effets_plus.keys()
+	var effets := {}
+	while effets.size() < n and not possibles.is_empty():
+		var cle: String = possibles.pop_at(rng.randi() % possibles.size())
+		effets[cle] = EQ.equip_effets_plus[cle]
+	return effets
 
 
 ## Identifiant unique d'un objet (pour la sauvegarde et l'anti-doublon).

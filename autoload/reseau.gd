@@ -12,7 +12,7 @@ signal combat_lance
 
 const PORT_JEU := 34778
 const PORT_ANNONCE := 34779
-const VERSION_RESEAU := 8        ## à augmenter quand le protocole change (refuse un autre APK) ; 7 : Bosco, malédiction, chaloupe ; 8 : butin
+const VERSION_RESEAU := 9        ## à augmenter quand le protocole change (refuse un autre APK) ; 7 : Bosco, malédiction, chaloupe ; 8 : butin ; 9 : équipement
 const DELAI_ANNONCE := 0.5
 
 enum Role { AUCUN, HOTE, INVITE }
@@ -20,6 +20,9 @@ enum Role { AUCUN, HOTE, INVITE }
 var role := Role.AUCUN
 var id_partenaire := 0
 var heros_partenaire: StringName = &""
+## Les objets que porte le héros du partenaire (jalon 4) : échangés à la connexion, pour que les deux
+## téléphones équipent les deux héros pareil (PV, vitesse, arme en main…).
+var equipement_partenaire: Array = []
 ## Arène en cours (SynchroArene) : les messages de l'invité passent par ce nœud-ci, qui existe des
 ## deux côtés dès le démarrage, puis lui sont transmis (l'arène de l'hôte peut s'ouvrir après).
 var synchro: Node
@@ -133,24 +136,41 @@ func _on_pair_connecte(id: int) -> void:
 	_arreter_annonce()
 
 
-## Appelé par l'invité juste après la connexion : version du jeu et accord sur les héros.
+## Appelé par l'invité juste après la connexion : version du jeu et accord sur les héros. L'invité
+## envoie l'équipement de ses deux héros (l'hôte lui attribue celui qu'il ne joue pas).
 @rpc("any_peer", "reliable")
-func _bonjour(version: int) -> void:
+func _bonjour(version: int, equipements: Dictionary) -> void:
 	if role != Role.HOTE or multiplayer.get_remote_sender_id() != id_partenaire:
 		return
 	if version != VERSION_RESEAU:
 		_refuser.rpc_id(id_partenaire, "Versions différentes : installez le même APK sur les deux téléphones.")
 		return
-	heros_partenaire = _autre_heros(StringName(_infos_hote["heros"]))
-	_bienvenue.rpc_id(id_partenaire, _infos_hote["heros"], String(heros_partenaire))
+	var heros_hote := StringName(_infos_hote["heros"])
+	heros_partenaire = _autre_heros(heros_hote)
+	equipement_partenaire = equipement_valide(equipements.get(String(heros_partenaire), []), heros_partenaire)
+	_bienvenue.rpc_id(id_partenaire, _infos_hote["heros"], String(heros_partenaire), Sauvegarde.equipes(heros_hote))
 	partenaire_connecte.emit({"heros": heros_partenaire})
 
 
 @rpc("authority", "reliable")
-func _bienvenue(heros_hote: String, heros_invite: String) -> void:
+func _bienvenue(heros_hote: String, heros_invite: String, equipement_hote: Array) -> void:
 	heros_partenaire = StringName(heros_hote)
 	Partie.heros_local = StringName(heros_invite)
+	equipement_partenaire = equipement_valide(equipement_hote, heros_partenaire)
 	partenaire_connecte.emit({"heros": heros_partenaire})
+
+
+## Équipement reçu de l'autre téléphone : seulement des objets connus, qui vont à ce héros (3 au plus).
+static func equipement_valide(liste: Variant, heros: StringName) -> Array:
+	var r := []
+	if not (liste is Array):
+		return r
+	for o in liste:
+		if r.size() >= 3 or not (o is Dictionary) or not o.has("id"):
+			continue
+		if Equipement.convient(o, heros, "arme") or Equipement.convient(o, heros, "relique_1"):
+			r.append(Sauvegarde.normaliser(o))
+	return r
 
 
 @rpc("authority", "reliable")
@@ -231,7 +251,7 @@ func rejoindre(adresse: String) -> Error:
 func _on_connecte_a_l_hote() -> void:
 	id_partenaire = 1
 	_delai_court(1)
-	_bonjour.rpc_id(1, VERSION_RESEAU)
+	_bonjour.rpc_id(1, VERSION_RESEAU, {"bretteur": Sauvegarde.equipes(&"bretteur"), "occultiste": Sauvegarde.equipes(&"occultiste")})
 
 
 func _on_connexion_ratee() -> void:
@@ -248,6 +268,7 @@ func _on_pair_deconnecte(id: int) -> void:
 	if role == Role.HOTE and id == id_partenaire:
 		id_partenaire = 0
 		heros_partenaire = &""
+		equipement_partenaire = []
 		partenaire_parti.emit("Ton partenaire a quitté la partie.")
 
 
@@ -293,6 +314,7 @@ func quitter() -> void:
 	role = Role.AUCUN
 	id_partenaire = 0
 	heros_partenaire = &""
+	equipement_partenaire = []
 
 
 # ---------------------------------------------------------------- adresse et code

@@ -89,9 +89,31 @@ func _melanger(liste: Array[StringName]) -> void:
 func vivants() -> int:
 	var n := 0
 	for e in get_children():
-		if e is Ennemi and e.etat != Ennemi.Etat.MORT and not e.is_queued_for_deletion():
+		if e is Ennemi and e.etat != Ennemi.Etat.MORT and not e.is_queued_for_deletion() and not e.allie:
 			n += 1
 	return n
+
+
+## Grimoire du Pendu : squelettes relevés du côté des héros, encore debout.
+func allies() -> int:
+	var n := 0
+	for e in get_children():
+		if e is Ennemi and e.allie and e.etat != Ennemi.Etat.MORT and not e.is_queued_for_deletion():
+			n += 1
+	return n
+
+
+## Grimoire du Pendu : un squelette vaincu ressort de terre à `pos`, du côté de `maitre`, pour quelques
+## secondes (ni compté dans la salle, ni lâcheur de butin).
+func relever_allie(pos: Vector3, maitre: Node3D) -> SqueletteAllie:
+	var e := Ennemi.creer_type(&"allie") as SqueletteAllie
+	_compteur += 1
+	e.name = "%s_%d" % [Ennemi.PREFIXES[&"allie"], _compteur]
+	e.maitre = maitre
+	e.position = pos
+	add_child(e)
+	e.rotation.y = _rng.randf_range(-PI, PI)
+	return e
 
 
 ## Fait sortir `n` ennemis, par groupes de 2 à 4 serrés autour d'un même point (dans la limite de

@@ -39,7 +39,10 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   - `autoload/partie.gd` : état de la partie partagé entre écrans (héros choisi, mode solo / hôte / invité,
     destination arène / expédition, réglages du mode test).
   - `autoload/reseau.gd` (Reseau) : session de coop (ENet, port 34778 ; annonces UDP 34779 ; code = dernier
-    nombre de l'adresse de l'hôte). Les messages de l'invité pendant le combat passent par lui.
+    nombre de l'adresse de l'hôte). Les messages de l'invité pendant le combat passent par lui. L'équipement
+    des héros s'échange à la connexion (`_bonjour` / `_bienvenue` → `equipement_partenaire`).
+  - `autoload/sauvegarde.gd` (Sauvegarde, jalon 4) : JSON versionné, écriture sûre, copie de secours,
+    anti-doublon par identifiant d'expédition ; doublons, objets des coffres, équipement (`equipes(heros)`).
   - `data/equilibrage.tres` (+ `core/resources/equilibrage.gd`) : **toutes** les valeurs de réglage du combat.
   - `core/components/` : `Sante` (PV, invulnérabilité), `Recharge` (temps de recharge).
   - `game/combat/` : `Combat` (couches de collision, zones de coup, `porter_coup` qui tire aussi les coups
@@ -77,6 +80,11 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   - Dans `expedition.gd` : `_on_ennemi_vaincu_butin` (hôte : tirage pour chaque joueur), `_lacher`,
     `_ramasser_butin`, `sacs` (nom du héros → objets et doublons ; perdus en cas de défaite).
   - Modèles : `assets/models/armes/` (armes KayKit Adventurers, 4 textures partagées) et `assets/models/decor/`.
+  - `equipement.gd` (`Equipement`) : ce que font les objets (`effets`, `bonus`), textes et comparaison ▲▼.
+    Le héros les lit par `Heros.b("degats")` (après `Heros.equiper(objets)`) ; `Combat.porter_coup` applique
+    dégâts, critiques et vol de vie. Objets uniques : `FlaqueNoyee` (game/combat), `SqueletteAllie`
+    (game/enemies, relevé par `Arene._relever_pour_le_pendu`), Sablier dans `Heros.recevoir_coup`.
+  - `ui/screens/equipement.tscn` : écran Équipement (ouvert depuis l'écran titre).
   - `game/reseau/synchro_arene.gd` (nœud « Synchro » de l'arène) : l'hôte simule tout et envoie 30
     instantanés/s + les événements ; l'invité prédit son héros et affiche le reste en « marionnettes »
     (`marionnette = true` sur Heros et Ennemi : affichés d'après l'hôte, sans règles).
@@ -84,7 +92,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   - `assets/ui/icones/*.svg` : icônes des boutons de compétence (dessinées à la main en SVG ; importées à
     `svg/scale=2.0` pour rester nettes sur téléphone) ; chaque archétype les donne par `icones_boutons()`.
   - `assets/models/enemies/` : squelette et lame KayKit ; `assets/materials/` : matières partagées.
-- `tests/unit/` : tests GUT (`test_*.gd`) ; `addons/gut/` : GUT 9.7.1 (exclu de l'APK).
+- `tests/unit/` : tests GUT (`test_*.gd`) ; `addons/gut/` : GUT 9.7.1 (exclu de l'APK) ; `tests/pre_run.gd` :
+  avant les tests, la sauvegarde passe dans `user://sauvegarde_tests.json` (jamais celle du jeu).
   `test_scripts.gd` charge tous les scripts du jeu (remplace `--check-only`, voir pièges).
 - `android/cle_de_test.keystore` : clé de signature **de test** (mot de passe « android »), commune à
   tous les APK pour que les mises à jour s'installent. Jamais pour le Play Store.
@@ -116,7 +125,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   flaque, salles piège, explosion : `tools/capture_ennemis.gd` ; Bosco (portrait, annonces, charge, sonné,
   rage), choix de la malédiction, chaloupe sous les vagues, écran de fin : `tools/capture_bosco.gd` ;
   butin (vitrine du catalogue, au sol, ramassage, trésor du Bosco, fins) : `tools/capture_butin.gd`,
-  `SEULEMENT_VITRINE=1` pour la vitrine seule)
+  `SEULEMENT_VITRINE=1` pour la vitrine seule ; armes en main, écran Équipement, objets uniques en jeu :
+  `tools/capture_equipement.gd -- <dossier> [armes|ecran|uniques]`)
 - Où pointe l'arme d'un squelette dans chaque pose : `godot --headless --path . -s "$PWD/tools/sonde_arme.gd"`
   (sans argument : l'arbalétrier ; sinon `-- <modèle.glb> <arme.gltf> <axe x|y|z> [animations…]`)
 - Essai de la coop (hôte + invité sur cette machine, vérifications automatiques, aussi dans le CI) :
@@ -253,6 +263,14 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   l'hôte, **invisible** (l'hôte décide du ramassage) ; l'invité reçoit le sien par `envoyer_lieu("butin")`.
   Un objet ne se ramasse qu'une fois retombé (`ObjetAuSol.pose`) : dans un test, le mettre à `true` plutôt
   que d'attendre en temps réel. Les noms des joueurs (`HerosHote` / `HerosInvite`) servent de clés aux sacs.
+- Équipement : `Heros.equiper()` avant `add_child` (ou après : PV max et arme suivent). Un nouvel effet passe
+  par `Equipement` (texte, ordre) et se lit par `b()` ; une règle qui en dépend tourne chez l'hôte seulement.
+- Squelette relevé (Grimoire du Pendu) : dans le générateur (l'invité le recrée par son nom « Allie_ »), mais
+  ni dans le groupe « ennemis », ni compté par `vivants()`, sans collision (`_couche_vivant`) ; il retombe
+  sans émettre `ennemi_vaincu` (pas de butin). Toute boucle sur les enfants du générateur doit penser à `allie`.
+- Sauvegarde : ne pas lire un JSON avec `JSON.parse_string` (un fichier abîmé affiche une erreur que GUT
+  compte comme un échec) ; utiliser `JSON.new().parse()` (voir `Sauvegarde._lire`). L'essai coop donne à
+  chaque côté sa propre sauvegarde (`sauvegarde_coop_hote/invite.json`).
 - Tirages du butin : un test de rareté ou de chance répète le tirage (des centaines de fois, graine fixée),
   sinon un sabotage (minimum oublié…) passe par chance.
 - Au changement de salle, os, flaques et carreaux de la salle d'avant sont retirés (`_construire_salle`) :

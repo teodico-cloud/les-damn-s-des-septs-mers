@@ -37,6 +37,11 @@ var progres_reanimation := 0.0
 var _zone_reanimation: Node3D
 var _vitesse_anim := 1.0     ## vitesse demandée (pas celle figée un instant par l'arrêt sur image)
 var _liste_anims := PackedStringArray()
+## Équipement (jalon 4) : les objets portés et leurs effets additionnés (voir Equipement, b()).
+var objets_equipes: Array = []
+var bonus := {}
+var _arme_equipee: Node3D
+var _sablier_pret := false   ## Sablier de la Marée : une seule fois par esquive
 
 var _t := 0.0               ## temps passé dans l'état courant
 var _direction := Vector3.BACK   ## direction de l'action en cours
@@ -67,9 +72,10 @@ func _ready() -> void:
 		anim.get_animation(boucle).loop_mode = Animation.LOOP_LINEAR
 
 	sante = Sante.new()
-	sante.pv_max = pv_max()
+	sante.pv_max = pv_max_total()
 	add_child(sante)
 	sante.mort.connect(_on_mort)
+	_mettre_arme()
 
 	point_reapparition = global_position
 	_jouer("Idle")
@@ -78,6 +84,105 @@ func _ready() -> void:
 
 func avant() -> Vector3:
 	return global_transform.basis.z
+
+
+# ---------------------------------------------------------------- équipement (jalon 4)
+## Équipe le héros : les objets portés (arme, reliques). Avant add_child, ou plus tard (ses PV max et
+## l'arme dans sa main suivent). En coop, chaque téléphone équipe les deux héros pareil (Reseau).
+func equiper(objets: Array) -> void:
+	objets_equipes = objets.duplicate(true)
+	bonus = Equipement.bonus(objets_equipes)
+	recharge_esquive.duree = recharge_esquive.base * (1.0 - reduction_recharge(b("recharge_esquive")))
+	recharge_competence_1.duree = recharge_competence_1.base * (1.0 - reduction_recharge(_reduction_competences()))
+	recharge_competence_2.duree = recharge_competence_2.base * (1.0 - reduction_recharge(_reduction_competences()))
+	if sante:
+		var part := sante.pv / sante.pv_max if sante.pv_max > 0.0 else 1.0
+		sante.pv_max = pv_max_total()
+		sante.definir_pv(sante.pv_max * part)
+		_mettre_arme()
+
+
+## Valeur d'un effet de l'équipement (0 si aucun objet ne le donne) : b("degats") = 0,1 pour +10 %.
+func b(effet: String) -> float:
+	return float(bonus.get(effet, 0.0))
+
+
+## Ce qui raccourcit en plus les recharges des deux compétences (Occultiste : Marque et Chaînes).
+func _reduction_competences() -> float:
+	return 0.0
+
+
+## Part de recharge en moins (toutes, plus `en_plus`), jamais plus de la moitié.
+func reduction_recharge(en_plus := 0.0) -> float:
+	return clampf(b("recharges") + en_plus, 0.0, EQ.equip_max_recharges)
+
+
+func mult_vitesse() -> float:
+	return maxf(0.3, 1.0 + b("vitesse"))
+
+
+## Vitesse des attaques (coups du combo, tirs) : 1,15 = 15 % plus rapides.
+func mult_attaque() -> float:
+	return clampf(1.0 + b("vitesse_attaque"), 0.5, 1.0 + EQ.equip_max_vitesse_attaque)
+
+
+## Dégâts de ce héros sur `cible` (appelé par Combat.porter_coup) : bonus de dégâts, et Clé du
+## geôlier sur un squelette étourdi ou enchaîné.
+func mult_degats(cible: Node) -> float:
+	var m := 1.0 + b("degats")
+	if b("geolier") > 0.0 and cible is Ennemi and (cible.etat == Ennemi.Etat.ETOURDI or cible.etat == Ennemi.Etat.ENCHAINE):
+		m += b("geolier")
+	return m
+
+
+func pv_max_total() -> float:
+	return pv_max() * (1.0 + b("pv_pourcent")) + b("pv")
+
+
+## L'arme portée, s'il en a une (sinon il garde son arme de départ).
+func arme_portee() -> Dictionary:
+	for o in objets_equipes:
+		if o is Dictionary and Equipement.convient(o, archetype, "arme"):
+			return o
+	return {}
+
+
+## L'arme portée apparaît dans sa main, à la place de l'arme de départ (même attache, même sens).
+func _mettre_arme() -> void:
+	if visuel == null:
+		return
+	var attache := visuel.find_child("handslot_r", true, false) as Node3D
+	if attache == null:
+		return
+	var origine: Node3D = null
+	for c in attache.get_children():
+		if c is MeshInstance3D and c != _arme_equipee:
+			origine = c
+			break
+	if _arme_equipee:
+		_arme_equipee.queue_free()
+		_arme_equipee = null
+	var arme := arme_portee()
+	if origine:
+		origine.visible = arme.is_empty()
+	if arme.is_empty():
+		return
+	var def := Butin.definition(arme)
+	_arme_equipee = load(def["modele"]).instantiate()
+	_arme_equipee.name = "ArmePortee"
+	if origine:
+		_arme_equipee.transform = origine.transform
+	_arme_equipee.scale *= float(def.get("echelle_main", 1.0))
+	attache.add_child(_arme_equipee)
+	if def.has("teinte"):   # objet unique : il luit de sa couleur dans la main aussi
+		var lueur := StandardMaterial3D.new()
+		lueur.albedo_color = Color(def["teinte"], 0.0)
+		lueur.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		lueur.emission_enabled = true
+		lueur.emission = def["teinte"]
+		lueur.emission_energy_multiplier = 0.6
+		for m in _arme_equipee.find_children("*", "MeshInstance3D", true, false):
+			m.material_overlay = lueur
 
 
 # ---------------------------------------------------------------- à fournir par chaque archétype
@@ -161,6 +266,8 @@ func _physics_process(delta: float) -> void:
 func _changer(nouvel: Etat) -> void:
 	etat = nouvel
 	_t = 0.0
+	if nouvel == Etat.ESQUIVE:
+		_sablier_pret = true
 	etat_change.emit(etat)
 
 
@@ -197,8 +304,8 @@ func _etat_libre(delta: float) -> void:
 	var dir := commandes.deplacement
 	if dir.length() > 1.0:
 		dir = dir.normalized()
-	velocity.x = dir.x * EQ.heros_vitesse
-	velocity.z = dir.z * EQ.heros_vitesse
+	velocity.x = dir.x * EQ.heros_vitesse * mult_vitesse()
+	velocity.z = dir.z * EQ.heros_vitesse * mult_vitesse()
 	if dir.length() > 0.1:
 		_tourner_vers(dir, delta)
 		_jouer("Running_A", clampf(dir.length() * 1.2, 0.6, 1.2))
@@ -279,10 +386,13 @@ func recevoir_coup(degats: float, source: Node3D, _lourd: bool, _critique := fal
 		return 0.0
 	if _intercepter_coup(source):
 		return 0.0
+	if etat == Etat.ESQUIVE and sante.est_invulnerable():
+		_esquive_au_dernier_moment(source)
 	var reel := sante.subir(degats * Malediction.mult_degats_recus(source), source)
 	if reel <= 0.0:
 		return 0.0
 	EventBus.coup_porte.emit(global_position + Vector3.UP * 2.2, reel, true, true, self, source, false)
+	_renvoyer_epines(source, reel)
 	if sante.est_mort:
 		return reel
 	sante.rendre_invulnerable(EQ.heros_invulnerable_apres_coup)
@@ -292,6 +402,27 @@ func recevoir_coup(degats: float, source: Node3D, _lourd: bool, _critique := fal
 	_jouer("Hit_A", 1.3, 0.04, true)
 	_changer(Etat.TOUCHE)
 	return reel
+
+
+## Épines : une part d'un coup reçu au corps-à-corps est rendue au squelette qui l'a porté.
+func _renvoyer_epines(source: Node3D, reel: float) -> void:
+	if b("epines") <= 0.0 or not (source is Ennemi) or not is_instance_valid(source) or not source.est_vivant():
+		return
+	if source.global_position.distance_to(global_position) <= EQ.equip_portee_epines:
+		source.recevoir_coup(reel * b("epines"), self, false)
+
+
+## Sablier de la Marée : un coup esquivé (roulade, téléportation) fige les squelettes autour, une fois
+## par esquive.
+func _esquive_au_dernier_moment(source: Node3D) -> void:
+	if b("sablier_maree") <= 0.0 or not _sablier_pret or not (source is Ennemi) or marionnette:
+		return
+	_sablier_pret = false
+	for e in get_tree().get_nodes_in_group("ennemis"):
+		if e is Ennemi and e.est_ciblable() and e.global_position.distance_to(global_position) <= EQ.sablier_rayon:
+			e.etourdir(EQ.sablier_duree)
+	EffetsMagie.cercle(get_parent(), global_position, EQ.sablier_rayon, 0.9, EffetsMagie.BLEU_MAREE)
+	EventBus.effet_visuel.emit(self, "sablier", global_position)
 
 
 ## Dégâts qui durent (flaque maudite) : des PV perdus sans être sonné ni rendu intouchable (ce

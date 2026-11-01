@@ -38,17 +38,28 @@ static func cibles_dans_sphere(monde: World3D, centre: Vector3, rayon: float, ma
 ## Applique un coup : renvoie les dégâts réellement infligés. Chez l'invité d'une partie à deux, rien :
 ## c'est l'hôte qui décide de tous les coups (l'invité ne fait que les afficher).
 ## Les coups des héros sur les ennemis ont une chance d'être critiques (dégâts doublés) ;
-## `critique_force` : toujours critique (riposte d'une parade parfaite).
+## `critique_force` : toujours critique (riposte d'une parade parfaite). L'équipement du héros compte :
+## dégâts, coups critiques, vol de vie (jalon 4).
 static func porter_coup(attaquant: Node3D, cible: Node3D, degats: float, lourd: bool, critique_force := false) -> float:
 	if Reseau.est_invite():
 		return 0.0
 	var critique := false
-	if attaquant is Heros and not (cible is Heros):
-		var chance := chance_critique if chance_critique >= 0.0 else EQ.critique_chance
+	var heros := attaquant as Heros
+	if heros and not (cible is Heros):
+		degats *= heros.mult_degats(cible)
+		var chance := chance_de_critique(heros)
 		if critique_force or (chance > 0.0 and randf() < chance):
 			critique = true
 			degats *= EQ.critique_multiplicateur
-	return cible.recevoir_coup(degats, attaquant, lourd, critique)
+	var reel: float = cible.recevoir_coup(degats, attaquant, lourd, critique)
+	if heros and reel > 0.0 and not (cible is Heros) and heros.b("vol_de_vie") > 0.0 and heros.est_vivant():
+		heros.sante.soigner(reel * heros.b("vol_de_vie"))
+	return reel
+
+
+## Chance de coup critique d'un héros : celle de l'équilibrage (ou imposée par un test) + son équipement.
+static func chance_de_critique(heros: Heros) -> float:
+	return (chance_critique if chance_critique >= 0.0 else EQ.critique_chance) + heros.b("critique")
 
 
 ## Vrai si `source` est devant `qui` (dans un cône de ± angle_deg autour de son regard).

@@ -489,6 +489,11 @@ func _effet_recu(nom_lanceur: String, type: String, position: Vector3) -> void:
 		if heros == heros_local and heros.has_method("parade_parfaite_recue"):
 			heros.parade_parfaite_recue()
 		return
+	if type == "sablier":
+		# Sablier de la Marée : décidé par l'hôte (coup esquivé), même pour notre héros (les squelettes
+		# figés, eux, viennent des instantanés)
+		EffetsMagie.cercle(arene, position, Heros.EQ.sablier_rayon, 0.9, EffetsMagie.BLEU_MAREE)
+		return
 	if nom_lanceur == String(heros_local.name):
 		return   # notre propre sort : déjà affiché chez nous
 	if type == "relever" or type == "flaque_annonce" or type.begins_with("bosco_"):
@@ -502,6 +507,8 @@ func _effet_recu(nom_lanceur: String, type: String, position: Vector3) -> void:
 		return
 	if type == "cercle_chaines":
 		EffetsMagie.cercle(arene, position, Heros.EQ.occ_chaines_rayon, 0.8)
+	elif type == "eau_noyee":   # Lame du Noyé : l'image de l'eau maudite (l'hôte compte les dégâts)
+		FlaqueNoyee.creer(arene, position, null)
 	elif type.begins_with("trainee_"):
 		# « trainee_<coup>_<angle> » : la direction vient de l'hôte (le héros affiché ici a 0,1 s de
 		# retard : une direction recalculée depuis lui serait faussée)

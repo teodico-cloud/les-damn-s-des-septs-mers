@@ -18,7 +18,8 @@ Dernière mise à jour : 1er novembre 2026.
 - **Jalon 3, étape 2 (arbalétrier, prêtre noyé, salles piège) : faite**, APK 0.3.13.
 - **Jalon 3, étape 3 (Bosco Maudit, malédiction, chaloupe sous les vagues, écran de fin) : faite** ;
   relecture de fin de jalon puis APK 0.3.14.
-- **Jalon 4, étape 1 (butin au sol, façon Diablo) : faite** (branche `jalon-4`), APK intermédiaire.
+- **Jalon 4, étape 1 (butin au sol, façon Diablo) : faite**, APK 0.3.15.
+- **Jalon 4, étape 2 (sauvegarde, équipement, effets en combat, arme en main, objets uniques) : faite**, APK 0.4.x.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -161,6 +162,38 @@ Matelots squelettes qui reviennent sans fin.
   essai coop de l'expédition étendu (butin de l'invité invisible chez l'hôte, vu et ramassé chez l'invité,
   celui de l'hôte jamais vu chez l'invité, écran de fin de l'invité).
 
+## Équipement et sauvegarde (jalon 4, étape 2 — choix de Téo du 01/11)
+- **Sauvegarde** (`autoload/sauvegarde.gd`) : `user://sauvegarde.json`, version 1 ; écriture sûre (fichier
+  temporaire relu, copie de secours `.bak` de l'ancien, puis remplacement) ; lecture : le fichier, sinon la
+  copie, sinon un profil neuf. Contenu : doublons, objets des coffres, équipement des deux héros, expéditions
+  encaissées (anti-doublon), historique des 20 dernières. Enregistrée au départ et à la fin d'une
+  expédition, à chaque changement d'équipement, quand l'appli passe en arrière-plan ou se ferme.
+- **Fin d'expédition** : victoire = le sac rejoint les coffres (une seule fois par expédition) ; défaite = rien.
+- **Écran Équipement** (écran titre, à côté de « Voir les héros ») : le héros debout à gauche avec l'arme qu'il
+  porte, onglets Bretteur / Occultiste, 3 emplacements, objets des coffres qui vont à l'emplacement choisi
+  (les plus rares d'abord), fiche avec la comparaison ▲▼ (annexe retenue), Équiper / Retirer. Un objet n'est
+  porté qu'à un endroit à la fois (le reporter ailleurs l'y retire). Doublons et objets affichés sur l'écran titre.
+- **Effets en combat** (`game/butin/equipement.gd`, partout, arène comprise) : dégâts, vitesse d'attaque (coups
+  du combo, cadence et geste de tir), critiques, PV max, vitesse, recharges, vol de vie, épines (≤ 3,2 m),
+  doublons ramassés, soin des orbes, Clé du geôlier, Flasque (à chaque salle nettoyée). Plafonds : recharges
+  au plus −50 %, vitesse d'attaque entre −50 % et +50 %.
+- **Arme en main** : l'arme portée remplace l'arme de départ dans la main (même attache) ; bâton et grimoires
+  réduits (×0,6 / ×0,7) ; les armes uniques luisent.
+- **Objets uniques** : Lame du Noyé (flaques d'eau maudite le long de la roulade, 16 PV/s aux squelettes,
+  2,5 s ; un squelette n'est blessé qu'une fois par tic même sur plusieurs flaques) ; Grimoire du Pendu (un
+  squelette tué par l'Occultiste ressort de terre 0,5 s après, spectral et vert, et frappe les squelettes 6 s ;
+  2 au plus ; jamais le Bosco ; ni visé, ni compté, ni lâcheur de butin) ; Sablier de la Marée (un coup
+  esquivé pendant la roulade ou la téléportation fige les squelettes à 4 m pendant 1,5 s, une fois par
+  esquive, cercle bleu) ; Talisman du Pendu ; Cœur de Kraken.
+- **À deux** : chaque téléphone envoie l'équipement de ses héros à la connexion ; les deux équipent les deux
+  héros pareil (PV, vitesse, arme en main) ; l'hôte décide des dégâts et des effets. Réseau version 9.
+- **Mode test** : « Coffres de test » met un objet de chaque sorte dans les coffres (les cinq uniques compris).
+- Petits choix faits sans Téo, à lui signaler : les armes uniques ont aussi l'effet de base d'une arme Épique
+  (Lame du Noyé +15 % de dégâts, Grimoire du Pendu −30 % de recharge des sorts) ; le Talisman laisse les orbes
+  au partenaire ; le vol de vie soigne sans afficher de chiffre ; « Coffres de test » ajouté au mode test.
+- Tests : 226 en tout, dont 29 nouveaux (vérifiés par sabotage : 58 sabotages, tous vus) ; essais coop (arène et expédition) étendus :
+  chacun voit l'arme et les PV max du héros de l'autre.
+
 ## Combat « nerveux » (30/10, demande de Téo : « vraiment Diablo like »)
 Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pas les ennemis plus agressifs).
 - Héros plus vif : marche 6,2 m/s (5,2) ; combo 25 % plus rapide ; bouger le joystick 0,05 s après
@@ -235,6 +268,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 30/10/2026 | Combat « nerveux » : héros plus vif, hordes, coups qui claquent, coups critiques (choix de Téo, voir plus haut). Ennemis plus agressifs : non retenu. |
 | 30/10/2026 | Parade : elle coupe le coup en cours ; parade parfaite en bonus (0,25 s), zone dorée avant le coup + étincelles, « PARFAIT ! » et ralenti, Parade rendue. Onde de choc : non retenue. |
 | 31/10/2026 | Jalon 3, étape 3 (choix de Téo) : Bosco « brute à la hache » (tourbillon, charge qui le laisse sonné 2 s contre un mur, coup au sol ; rage à mi-vie + 3 matelots) ; coups mi-parables (seul le coup au sol se pare, les gros coups rouge sombre sont imparables) ; ~1 min 30 en solo ; malédiction 0–5 choisie au départ avec l'échelle proposée (+20 % de butin par niveau) ; chaloupe : tenir 45 s à bord, le compte s'arrête si personne n'y est ; annexe retenue : écran de fin enrichi. |
+| 01/11/2026 | Jalon 4, étape 2 (choix de Téo) : tout en un seul APK (uniques compris) ; écran Équipement ouvert depuis l'écran titre ; l'équipement compte partout, arène comprise. |
 | 01/11/2026 | Jalon 4, étape 2 (choix de Téo) : liste des objets validée telle quelle (armes, reliques, effets en plus des Rares et Épiques, 5 objets uniques ; voir « Butin au sol ») ; on change d'équipement **entre deux expéditions** seulement ; défaite = **tout le sac perdu** (« sécurisés dès le ramassage » de la conception = à soi dès qu'on le prend, personne ne peut le voler) ; annexe retenue : comparaison ▲▼ avec l'objet porté. Non retenues : « Équiper le meilleur », annonce d'un objet rare. |
 | 31/10/2026 | Jalon 4 (choix de Téo) : butin au sol façon Diablo (colonnes de lumière par rareté, ramassé en passant dessus, chacun le sien à deux, perdu en cas de défaite) ; les armes changent d'apparence en main dès ce jalon ; cale de base dès maintenant (8 objets, tri au-delà). Ordre : 1) butin au sol et ramassage, 2) inventaire, équipement, effets en combat et sauvegarde (liste des objets à valider avant), 3) tri de la cale, relecture, APK. |
 | 30/10/2026 | Jalon 3, étape 2 (choix de Téo) : la Parade renvoie les carreaux d'arbalète ; un coup interrompt l'incantation du prêtre noyé ; salles piège avec dalles à pics et tonneaux de poudre explosifs ; l'arène d'entraînement garde seulement les matelots. |
@@ -346,10 +380,11 @@ Aucun plantage ni blocage trouvé. Corrigé (chaque correction a un test qui éc
   un seul héros debout à bord suffit pour partir ; l'équipage qui s'effondre peut lâcher des orbes.
 
 ## Prochaines étapes
-1. Essai de Téo du butin au sol (seul et à deux).
-2. Liste détaillée des objets et de leurs effets, à faire valider par Téo.
-3. Jalon 4, étape 2 : inventaire, équipement (1 arme, 2 reliques), effets en combat, arme en main, sauvegarde.
-4. Jalon 4, étape 3 : tri de la cale (8 objets), relecture, APK.
+1. Essai de Téo de l'étape 2 (équipement, objets uniques grâce aux « Coffres de test », sauvegarde : fermer
+   l'appli, rien n'est perdu).
+2. Jalon 4, étape 3 : tri de la cale (8 objets), relecture de fin de jalon, APK. À y régler aussi : l'hôte qui
+   part en pleine expédition (conception : « extraction d'urgence » de l'invité, butin gardé dans la limite
+   de la cale ; aujourd'hui l'invité revient au menu sans rien).
 
 ## Points à trancher plus tard
 - Clé de signature définitive : passer à la vraie clé (secrète) **avant** que les sauvegardes comptent,

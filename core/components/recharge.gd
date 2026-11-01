@@ -4,11 +4,13 @@ extends RefCounted
 ## ce qui le rend testable et utilisable plus tard par l'hôte d'une partie en coop.
 
 var duree := 1.0
+var base := 1.0          ## durée d'origine (l'équipement peut la raccourcir : duree = base × …)
 var restant := 0.0
 
 
 func _init(d: float = 1.0) -> void:
 	duree = d
+	base = d
 
 
 func prete() -> bool:

@@ -4,6 +4,7 @@ extends RefCounted
 ## s'effacent seuls et n'ont aucun effet sur les règles. Les matières sont créées une seule fois.
 
 const VERT := Color(0.35, 1.0, 0.55)
+const BLEU_MAREE := Color(0.35, 0.8, 1.0)   ## Sablier de la Marée, eau du Noyé
 
 static var _mat_lueur: StandardMaterial3D
 static var _mat_fumee: StandardMaterial3D
@@ -156,15 +157,18 @@ static func eclaboussure(parent: Node, pos: Vector3) -> void:
 	_bouffee(parent, pos + Vector3.UP * 0.3, 18, 0.55, 1.1, Color(0.6, 0.85, 0.9, 0.85), Color(0.2, 0.4, 0.45, 0.0))
 
 
-## Cercle au sol qui s'élargit puis s'efface (zone des Chaînes spectrales).
-static func cercle(parent: Node, pos: Vector3, rayon: float, duree: float) -> void:
+## Cercle au sol qui s'élargit puis s'efface (zone des Chaînes spectrales ; d'une autre couleur : Sablier).
+static func cercle(parent: Node, pos: Vector3, rayon: float, duree: float, couleur := VERT) -> void:
 	if parent == null or not parent.is_inside_tree():
 		return
-	if _mat_cercle == null:
-		_mat_cercle = StandardMaterial3D.new()
-		_mat_cercle.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		_mat_cercle.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		_mat_cercle.albedo_color = Color(VERT, 0.35)
+	var cle_mat := "mat_cercle_%s" % couleur.to_html()
+	if not _ressources.has(cle_mat):
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.albedo_color = Color(couleur, 0.35)
+		_ressources[cle_mat] = mat
+	_mat_cercle = _ressources[cle_mat]
 	var cle := "anneau_%s" % rayon
 	if not _ressources.has(cle):
 		var anneau := TorusMesh.new()

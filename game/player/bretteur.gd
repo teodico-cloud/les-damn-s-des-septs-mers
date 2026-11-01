@@ -12,6 +12,7 @@ var _duree_action := 0.0
 var _cible_riposte: Node3D
 var _riposte_parfaite := false
 var _deja_touches: Array[Node3D] = []
+var _prochaine_eau := 0.0   ## Lame du Noyé : temps de roulade avant la flaque suivante
 
 
 func _init() -> void:
@@ -61,13 +62,13 @@ func _commencer_coup(index: int) -> void:
 	_faire_face(_direction)
 	_impact_fait = false
 	var nom: String = EQ.combo_animations[index]
-	_duree_action = anim.get_animation(nom).length / EQ.combo_vitesse_animation
-	_jouer(nom, EQ.combo_vitesse_animation, 0.08, true)
+	_duree_action = anim.get_animation(nom).length / _vitesse_combo()
+	_jouer(nom, _vitesse_combo(), 0.08, true)
 	_changer(Etat.ATTAQUE)
 
 
 func _etat_attaque(_delta: float) -> void:
-	var impact: float = EQ.combo_instant_impact[_combo] / EQ.combo_vitesse_animation
+	var impact: float = EQ.combo_instant_impact[_combo] / _vitesse_combo()
 	# petit pas en avant jusqu'à l'impact, puis immobile
 	var pas := EQ.combo_pas_en_avant / maxf(impact, 0.05) if _t < impact else 0.0
 	velocity.x = _direction.x * pas
@@ -107,6 +108,11 @@ func _frapper_combo() -> void:
 		Combat.porter_coup(self, cible, EQ.combo_degats[_combo], lourd)
 
 
+## Vitesse des coups du combo : l'arme portée la change (hache plus lente, coutelas plus vif).
+func _vitesse_combo() -> float:
+	return EQ.combo_vitesse_animation * mult_attaque()
+
+
 # ---------------------------------------------------------------- esquive (roulade)
 func _commencer_esquive() -> bool:
 	var joy := commandes.deplacement
@@ -117,6 +123,7 @@ func _commencer_esquive() -> bool:
 	var duree_anim := anim.get_animation("Dodge_Forward").length
 	_jouer("Dodge_Forward", duree_anim / EQ.esquive_duree, 0.05, true)
 	_changer(Etat.ESQUIVE)
+	_prochaine_eau = 0.0
 	return true
 
 
@@ -124,10 +131,22 @@ func _etat_esquive() -> void:
 	var v := EQ.esquive_distance / EQ.esquive_duree
 	velocity.x = _direction.x * v
 	velocity.z = _direction.z * v
+	if b("lame_du_noye") > 0.0 and _t >= _prochaine_eau:
+		_prochaine_eau += EQ.noyee_intervalle
+		_laisser_eau()
 	if _t >= EQ.esquive_duree:
 		_collisions_normales()
 		_immobile()
 		_changer(Etat.LIBRE)
+
+
+## Lame du Noyé : la roulade laisse une traînée d'eau maudite qui blesse les squelettes. Chez l'invité,
+## sa propre roulade la montre tout de suite (l'image seulement : l'hôte compte les dégâts).
+func _laisser_eau() -> void:
+	var decide := not Reseau.est_invite()
+	FlaqueNoyee.creer(get_parent(), global_position, self if decide else null)
+	if decide:
+		EventBus.effet_visuel.emit(self, "eau_noyee", global_position)
 
 
 # ---------------------------------------------------------------- parade-riposte

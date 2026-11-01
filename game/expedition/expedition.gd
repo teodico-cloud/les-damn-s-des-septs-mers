@@ -34,6 +34,7 @@ var _bosco_fin_ms := -1
 var sacs := {}                    ## butin non sécurisé : nom du héros -> {"objets": [...], "doublons": n} (hôte : les deux)
 var butin_au_sol: Node3D           ## objets et doublons tombés dans la salle (à deux : ceux de l'autre sont invisibles)
 var _rng_butin := RandomNumberGenerator.new()
+var id_expedition := ""           ## propre à ce téléphone : l'expédition n'est encaissée qu'une fois (Sauvegarde)
 var chaloupe_restant := -1.0      ## secondes avant le départ (-1 : personne n'est encore monté) ; invité : d'après l'hôte
 var a_bord := false               ## au moins un héros debout dans la chaloupe
 var vagues_lancees := 0
@@ -71,6 +72,8 @@ func _configurer_generateur(_coop: bool, _hote: bool) -> void:
 
 
 func _pret() -> void:
+	id_expedition = "%08x%08x" % [randi(), int(Time.get_unix_time_from_system()) & 0xffffffff]
+	Sauvegarde.enregistrer()            # (sauvegarde au départ, prévue dans la conception)
 	hud.mode_expedition = true
 	heros.reapparition_auto = false     # tomber, c'est perdre (ou attendre d'être relevé en coop)
 	heros.rotation.y = -PI * 0.75       # tourné vers la salle
@@ -147,7 +150,7 @@ func _construire_salle(n: int, t: StringName, m: String, portes: Array) -> void:
 		for o in butin_au_sol.get_children():
 			o.queue_free()   # le butin laissé derrière soi est perdu
 	for c in get_children():
-		if c is RigidBody3D or c is FlaqueMaudite or c is Carreau:
+		if c is RigidBody3D or c is FlaqueMaudite or c is Carreau or c is FlaqueNoyee:
 			c.queue_free()   # os, flaques et carreaux de la salle d'avant (une flaque y blessait encore)
 	salle = Salle.creer(m, portes)
 	add_child(salle)
@@ -217,6 +220,9 @@ func _message(texte: String, duree: float) -> void:
 
 
 func _on_salle_videe() -> void:
+	for h in heros_actifs():   # Flasque de rhum : des PV rendus à chaque salle nettoyée
+		if h.b("flasque") > 0.0 and h.est_vivant():
+			EventBus.soin.emit(h, h.sante.soigner(h.sante.pv_max * h.b("flasque")))
 	if type_salle in [PlanExpedition.COMBAT, PlanExpedition.BOSCO, PlanExpedition.PIEGE]:
 		_ouvrir_portes()
 		var coop := is_instance_valid(heros_partenaire)
@@ -502,6 +508,9 @@ func _afficher_fin(p_reussite: bool, lignes: Array, p_sacs: Dictionary = {}) -> 
 	var resume := "%d objet%s et %d doublons" % [nb, "s" if nb > 1 else "", sac["doublons"]]
 	var lignes_fin := lignes.duplicate()
 	lignes_fin.insert(1, ("Butin rapporté : " if p_reussite else "Butin perdu : ") + resume)
+	# dans les coffres (une seule fois : anti-doublon) ; défaite : rien, mais l'expédition est notée
+	Sauvegarde.encaisser(id_expedition, sac["objets"] if p_reussite else [], sac["doublons"] if p_reussite else 0,
+			{"reussite": p_reussite, "heros": String(Partie.heros_local), "malediction": Malediction.niveau()})
 	hud.afficher_salle("")
 	hud.afficher_resultats(p_reussite, lignes_fin, sac["objets"] if p_reussite else [])
 
@@ -579,9 +588,10 @@ func _ramasser_butin() -> void:
 		var h := _heros_nomme(o.proprietaire)
 		if h == null or not h.est_vivant() or not o.a_portee(h.global_position):
 			continue
-		_mettre_au_sac(o.proprietaire, o.objet, o.doublons)
+		var doublons := roundi(o.doublons * (1.0 + h.b("doublons")))   # (Doublon terni…)
+		_mettre_au_sac(o.proprietaire, o.objet, doublons)
 		if synchro and h != heros:
-			synchro.envoyer_lieu("ramasse", [o.id, o.objet, o.doublons])
+			synchro.envoyer_lieu("ramasse", [o.id, o.objet, doublons])
 		o.queue_free()
 
 

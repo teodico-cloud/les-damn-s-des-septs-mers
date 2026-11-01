@@ -74,6 +74,22 @@ func _derouler(args: PackedStringArray) -> void:
 	if reseau.latence_simulee > 0.0 or reseau.perte_simulee > 0.0:
 		print("MESURE %s reseau_simule latence=%.0fms gigue=%.0fms perte=%.0f%%" % [role, reseau.latence_simulee * 1000.0, reseau.gigue_simulee * 1000.0, reseau.perte_simulee * 100.0])
 	destination = StringName(OS.get_environment("DESTINATION")) if OS.has_environment("DESTINATION") else &"arene"
+	# jalon 4 : chaque téléphone a sa sauvegarde et porte son équipement (arme et chandelle, sur ses deux
+	# héros) ; l'autre doit le voir (PV max, arme en main). Rien qui change la vitesse : les distances
+	# mesurées par l'essai restent les mêmes.
+	var sauvegarde = root.get_node("Sauvegarde")
+	sauvegarde.chemin = "user://sauvegarde_coop_%s.json" % role
+	sauvegarde.reinitialiser()
+	sauvegarde.encaisser("coop", [
+		{"id": role + "_sabre", "base": "sabre", "rarete": 0, "effets": {}},
+		{"id": role + "_grimoire", "base": "grimoire", "rarete": 0, "effets": {}},
+		{"id": role + "_chandelle_b", "base": "chandelle", "rarete": 0, "effets": {}},
+		{"id": role + "_chandelle_o", "base": "chandelle", "rarete": 0, "effets": {}},
+	], 0)
+	sauvegarde.equiper(&"bretteur", "arme", role + "_sabre")
+	sauvegarde.equiper(&"bretteur", "relique_1", role + "_chandelle_b")
+	sauvegarde.equiper(&"occultiste", "arme", role + "_grimoire")
+	sauvegarde.equiper(&"occultiste", "relique_1", role + "_chandelle_o")
 	if role == "hote":
 		partie.heros_local = StringName(OS.get_environment("HEROS_HOTE")) if OS.has_environment("HEROS_HOTE") else &"bretteur"
 		partie.mode = 1   # HOTE
@@ -124,6 +140,7 @@ func _derouler(args: PackedStringArray) -> void:
 			await process_frame
 		if arene.synchro._instantanes.is_empty():
 			return _echec("aucun instantané reçu de l'hôte")
+	_verifier_equipement()
 	root.get_node("EventBus").coup_porte.connect(func(_p, _d, _l, _h, _c, _s, _k): coups_recus += 1)
 	t0 = Time.get_ticks_msec() / 1000.0
 	if destination == &"expedition":
@@ -138,6 +155,21 @@ func _derouler(args: PackedStringArray) -> void:
 	reseau.quitter()
 	await _attendre(0.3)
 	quit(1 if echecs > 0 else 0)
+
+
+## Jalon 4 : les deux téléphones équipent les deux héros pareil (équipement échangé à la connexion).
+func _verifier_equipement() -> void:
+	var autre := "invite" if role == "hote" else "hote"
+	var h = arene.heros
+	var p = arene.heros_partenaire
+	var base_h: float = 100.0 if h.archetype == &"bretteur" else 80.0
+	var base_p: float = 100.0 if p.archetype == &"bretteur" else 80.0
+	_verifier(h.arme_portee().get("id", "").begins_with(role + "_"), "notre héros porte notre arme (%s)" % h.arme_portee().get("id", "aucune"))
+	_verifier(is_equal_approx(h.sante.pv_max, base_h + 15.0), "nos PV max avec la chandelle (%.0f)" % h.sante.pv_max)
+	_verifier(p.arme_portee().get("id", "").begins_with(autre + "_"), "le héros du partenaire porte SON arme (%s)" % p.arme_portee().get("id", "aucune"))
+	_verifier(is_equal_approx(p.sante.pv_max, base_p + 15.0), "ses PV max avec sa chandelle (%.0f)" % p.sante.pv_max)
+	var main = p.visuel.find_child("handslot_r", true, false)
+	_verifier(main != null and main.get_node_or_null("ArmePortee") != null, "son arme dans sa main, chez nous")
 
 
 func _hote() -> void:

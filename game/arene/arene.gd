@@ -42,12 +42,14 @@ func _ready() -> void:
 	var coop := Reseau.est_en_coop()
 	var hote := Reseau.est_hote()
 	heros = Heros.creer(Partie.heros_local)
+	heros.equiper(Sauvegarde.equipes(Partie.heros_local))   # (l'équipement compte partout, choix de Téo)
 	heros.name = "HerosInvite" if coop and not hote else "HerosHote"
 	heros.position = _depart_heros(heros.name, coop)
 	add_child(heros)
 	heros.rotation.y = PI * 0.25
 	if coop:
 		heros_partenaire = Heros.creer(Reseau.heros_partenaire)
+		heros_partenaire.equiper(Reseau.equipement_partenaire)   # reçu à la connexion : même héros des deux côtés
 		heros_partenaire.name = "HerosHote" if heros.name == "HerosInvite" else "HerosInvite"
 		heros_partenaire.position = _depart_heros(heros_partenaire.name, coop)
 		heros_partenaire.marionnette = not hote   # chez l'invité, le héros de l'hôte est affiché, pas simulé
@@ -140,6 +142,7 @@ func invite_pret() -> void:
 
 # ---------------------------------------------------------------- orbes de vie (choix de Téo)
 func _on_ennemi_vaincu(e: Node) -> void:
+	_relever_pour_le_pendu(e)
 	var chance := chance_orbe_effective()
 	if not (e is Node3D) or randf() >= chance:
 		return
@@ -160,6 +163,22 @@ func poser_orbe(nom: String, pos: Vector3) -> void:
 	orbes.add_child(o)
 
 
+## Grimoire du Pendu : un squelette tué par l'Occultiste qui le porte ressort de terre à ses côtés
+## (au plus `pendu_max` à la fois ; jamais le Bosco).
+func _relever_pour_le_pendu(e: Node) -> void:
+	if not (e is Ennemi) or e.allie or e is Bosco:
+		return
+	var maitre = e.tueur
+	if not (maitre is Heros) or not is_instance_valid(maitre) or maitre.b("grimoire_du_pendu") <= 0.0:
+		return
+	if generateur.allies() >= EQ.pendu_max:
+		return
+	var pos: Vector3 = e.global_position
+	get_tree().create_timer(EQ.pendu_delai, false).timeout.connect(func():
+		if is_instance_valid(generateur) and generateur.is_inside_tree() and generateur.allies() < EQ.pendu_max:
+			generateur.relever_allie(pos, maitre if is_instance_valid(maitre) else null))
+
+
 ## L'hôte (ou le joueur seul) : un héros blessé qui passe sur une orbe la ramasse.
 func _ramasser_orbes() -> void:
 	for o in orbes.get_children():
@@ -168,10 +187,12 @@ func _ramasser_orbes() -> void:
 		for h in [heros, heros_partenaire]:
 			if h == null or not is_instance_valid(h) or not h.est_vivant() or h.sante.pv >= h.sante.pv_max:
 				continue
+			if h.b("orbes_nulles") > 0.0:
+				continue   # Talisman du Pendu : les orbes ne le soignent plus (il les laisse au partenaire)
 			var d: Vector3 = h.global_position - o.global_position
 			d.y = 0.0
 			if d.length() <= EQ.orbe_rayon:
-				var soin: float = h.sante.soigner(h.sante.pv_max * EQ.orbe_soin)
+				var soin: float = h.sante.soigner(h.sante.pv_max * EQ.orbe_soin * (1.0 + h.b("orbes")))   # (Fiole d'eau noire)
 				o.prendre()
 				orbes_ramassees += 1
 				EventBus.soin.emit(h, soin)

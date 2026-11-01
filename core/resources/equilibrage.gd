@@ -266,6 +266,29 @@ extends Resource
 ## Malédiction : chaque niveau multiplie ces poids par (1 + valeur × niveau) — raretés meilleures
 @export var butin_malediction_raretes: PackedFloat32Array = [0.0, 0.15, 0.3, 0.5, 0.5]
 
+@export_group("Équipement (jalon 4, étape 2 : effets validés par Téo le 01/11)")
+## Rareté d'un objet de base : son effet de base est multiplié par (Commun, Rare, Épique) ; jamais un défaut
+## (la lenteur de la hache reste la même)
+@export var equip_mult_raretes: PackedFloat32Array = [1.0, 1.25, 1.5]
+## Effets en plus des objets Rares (1) et Épiques (2), tirés au hasard (deux différents)
+@export var equip_effets_plus := {
+	"degats": 0.08, "pv": 10.0, "critique": 0.06, "vitesse": 0.06, "recharges": 0.08,
+	"vol_de_vie": 0.03, "doublons": 0.15, "epines": 0.2,
+}
+@export var equip_max_recharges := 0.5         ## les recharges ne raccourcissent jamais de plus de moitié
+@export var equip_max_vitesse_attaque := 0.5
+@export var equip_portee_epines := 3.2         ## mètres : seuls les coups au corps-à-corps sont renvoyés
+@export var noyee_intervalle := 0.08           ## Lame du Noyé : une flaque d'eau maudite tous les … pendant la roulade
+@export var noyee_rayon := 0.75
+@export var noyee_duree := 2.5
+@export var noyee_degats_seconde := 16.0       ## aux squelettes qui y restent
+@export var pendu_duree := 6.0                 ## Grimoire du Pendu : le squelette relevé reste à vos côtés …
+@export var pendu_max := 2                     ## … au plus 2 à la fois
+@export var pendu_degats := 14.0
+@export var pendu_delai := 0.5                 ## secondes entre l'éclatement et son retour
+@export var sablier_rayon := 4.0               ## Sablier de la Marée : squelettes figés autour de vous…
+@export var sablier_duree := 1.5               ## … pendant 1,5 s (le Bosco : moitié moins)
+
 @export_group("Orbes de vie")
 @export var orbe_chance := 0.3                ## chance qu'un squelette vaincu lâche une orbe (choix de Téo)
 @export var orbe_soin := 0.2                  ## part des PV max rendue

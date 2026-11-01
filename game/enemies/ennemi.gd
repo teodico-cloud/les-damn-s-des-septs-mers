@@ -14,7 +14,8 @@ const COULEUR_ZONE := Color(1.0, 0.25, 0.1, 0.22)   ## zone de l'annonce au sol,
 
 enum Etat { APPARITION, POURSUITE, PREPARATION, FRAPPE, RECUPERATION, TOUCHE, ETOURDI, MORT, ENCHAINE, INCANTATION }
 ## Types d'ennemis (le nom de chaque ennemi commence par son préfixe : l'invité recrée le bon type).
-const PREFIXES := {&"matelot": "Squelette", &"arbaletrier": "Arbaletrier", &"pretre": "Pretre", &"bosco": "Bosco"}
+const PREFIXES := {&"matelot": "Squelette", &"arbaletrier": "Arbaletrier", &"pretre": "Pretre", &"bosco": "Bosco",
+		&"allie": "Allie"}
 
 static var _mat_yeux_rouges: StandardMaterial3D
 static var _mat_chaine: StandardMaterial3D
@@ -46,6 +47,8 @@ var _vitesse_anim := 1.0            ## vitesse demandée (pas celle figée un in
 var _liste_anims := PackedStringArray()
 var _nom_tueur := ""
 var releve := false                 ## relevé par un prêtre noyé : il ne le sera pas une seconde fois
+var allie := false                  ## Grimoire du Pendu : relevé du côté des héros (SqueletteAllie)
+var tueur: Node3D                   ## qui l'a vaincu (Grimoire du Pendu : relevé s'il s'agit de l'Occultiste)
 
 
 ## Crée un ennemi prêt à être ajouté à la scène. `rapide` saute l'animation de sortie de terre (tests).
@@ -62,6 +65,7 @@ static func creer_type(type: StringName, rapide := false) -> Ennemi:
 		&"arbaletrier": e = Arbaletrier.new()
 		&"pretre": e = PretreNoye.new()
 		&"bosco": e = Bosco.new()
+		&"allie": e = SqueletteAllie.new()
 		_: e = Ennemi.new()
 	e._apparition_rapide = rapide
 	return e
@@ -118,6 +122,20 @@ func portee_riposte() -> float:
 ## Après la construction du modèle (lueur, matière…).
 func _preparer_modele() -> void:
 	pass
+
+
+## Couche de collision une fois sorti de terre (un allié n'en a pas : ni coups des héros, ni obstacle).
+func _couche_vivant() -> int:
+	return Combat.COUCHE_ENNEMIS
+
+
+## Ce que touche son coup : les héros (un allié : les squelettes).
+func _masque_cibles() -> int:
+	return Combat.COUCHE_HEROS
+
+
+func _degats_frappe() -> float:
+	return EQ.squelette_degats
 
 
 ## Annonce de l'attaque visible ou non (matelot : la zone au sol).
@@ -269,7 +287,7 @@ func _physics_process(delta: float) -> void:
 	match etat:
 		Etat.APPARITION:
 			if _t >= _duree_etat:
-				collision_layer = Combat.COUCHE_ENNEMIS
+				collision_layer = _couche_vivant()
 				_changer(Etat.POURSUITE)
 		Etat.POURSUITE: _poursuivre(delta)
 		Etat.PREPARATION: _preparer()
@@ -368,8 +386,8 @@ func _frapper() -> void:
 	if not _impact_fait:
 		_impact_fait = true
 		var centre := global_position + global_transform.basis.z * EQ.squelette_zone_avant + Vector3.UP
-		for cible in Combat.cibles_dans_sphere(get_world_3d(), centre, EQ.squelette_zone_rayon, Combat.COUCHE_HEROS, [self]):
-			Combat.porter_coup(self, cible, EQ.squelette_degats, false)
+		for cible in Combat.cibles_dans_sphere(get_world_3d(), centre, EQ.squelette_zone_rayon, _masque_cibles(), [self]):
+			Combat.porter_coup(self, cible, _degats_frappe(), false)
 	if _t >= EQ.squelette_duree_frappe:
 		_montrer_annonce(false)
 		_recharge_attaque = EQ.squelette_recharge_attaque
@@ -531,6 +549,7 @@ func etourdir(duree: float) -> void:
 
 func _on_mort(source: Node) -> void:
 	_nom_tueur = String(source.name) if source else ""
+	tueur = source as Node3D
 	_effacer_marque()
 	collision_layer = 0
 	collision_mask = Combat.COUCHE_MONDE
@@ -590,7 +609,7 @@ func appliquer_instantane(etat_recu: int, anim_recue: Variant, vitesse: float, p
 				remove_from_group("ennemis")
 				_effacer_marque()
 				_eclater(null)
-		collision_layer = 0 if nouvel == Etat.APPARITION or nouvel == Etat.MORT else Combat.COUCHE_ENNEMIS
+		collision_layer = 0 if nouvel == Etat.APPARITION or nouvel == Etat.MORT else _couche_vivant()
 		if nom_anim != "" and anim.has_animation(nom_anim) and (reentre or anim.current_animation != nom_anim):
 			_jouer_cale(nom_anim, vitesse, t_etat)
 	elif nom_anim != "" and anim.current_animation != nom_anim and anim.has_animation(nom_anim):

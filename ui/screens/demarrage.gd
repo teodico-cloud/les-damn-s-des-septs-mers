@@ -1,10 +1,12 @@
 extends Control
 ## Écran titre : nom du jeu, expédition et combat d'entraînement (via le choix du héros), jeu à deux,
-## vitrine, version ; « Mode test » (APK de test) : santé infinie, salle de départ de l'expédition.
+## équipement et vitrine, doublons, version ; « Mode test » (APK de test) : santé infinie, salle de départ
+## de l'expédition, coffres de test (des objets pour essayer l'équipement tout de suite).
 
 const SCENE_VITRINE := "res://game/vitrine/vitrine.tscn"
 const SCENE_CHOIX := "res://ui/screens/choix_heros.tscn"
 const SCENE_COOP := "res://ui/screens/coop.tscn"
+const SCENE_EQUIPEMENT := "res://ui/screens/equipement.tscn"
 const COULEUR_OS := Color("e2d6ba")
 const COULEUR_OR := Color("ac8036")
 
@@ -12,6 +14,8 @@ var bouton_vitrine: Button
 var bouton_expedition: Button
 var bouton_combat: Button
 var bouton_coop: Button
+var bouton_equipement: Button
+var label_doublons: Label
 var bouton_test: Button
 var panneau_test: VBoxContainer
 var bouton_sante: Button
@@ -60,7 +64,7 @@ func _construire() -> void:
 	colonne.add_child(titre)
 
 	var sous_titre := Label.new()
-	sous_titre.text = "Prototype — jalon 3"
+	sous_titre.text = "Prototype — jalon 4"
 	sous_titre.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sous_titre.add_theme_font_size_override("font_size", 30)
 	sous_titre.add_theme_color_override("font_color", Color("6cffa0"))
@@ -88,13 +92,31 @@ func _construire() -> void:
 	centre_coop.add_child(bouton_coop)
 	colonne.add_child(centre_coop)
 
+	# équipement (jalon 4) et vitrine, côte à côte
+	bouton_equipement = _bouton("Équipement")
+	bouton_equipement.custom_minimum_size = Vector2(245, 80)
+	bouton_equipement.add_theme_font_size_override("font_size", 30)
+	bouton_equipement.pressed.connect(_ouvrir_equipement)
 	bouton_vitrine = _bouton("Voir les héros")
-	bouton_vitrine.custom_minimum_size = Vector2(500, 80)
-	bouton_vitrine.add_theme_font_size_override("font_size", 32)
+	bouton_vitrine.custom_minimum_size = Vector2(245, 80)
+	bouton_vitrine.add_theme_font_size_override("font_size", 30)
 	bouton_vitrine.pressed.connect(_ouvrir_vitrine)
+	var rangee := HBoxContainer.new()
+	rangee.add_theme_constant_override("separation", 10)
+	rangee.add_child(bouton_equipement)
+	rangee.add_child(bouton_vitrine)
 	var centre := CenterContainer.new()
-	centre.add_child(bouton_vitrine)
+	centre.add_child(rangee)
 	colonne.add_child(centre)
+
+	label_doublons = Label.new()
+	label_doublons.add_theme_font_size_override("font_size", 28)
+	label_doublons.add_theme_color_override("font_color", Color("e0b04a"))
+	label_doublons.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	label_doublons.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	label_doublons.position += Vector2(-24, 16)
+	add_child(label_doublons)
+	_textes_doublons()
 
 	var version := Label.new()
 	version.text = "version %s" % ProjectSettings.get_setting("application/config/version", "?")
@@ -127,7 +149,9 @@ func _mode_test() -> void:
 	add_child(panneau_test)
 	bouton_sante = _bouton("")
 	bouton_depart = _bouton("")
-	for b in [bouton_sante, bouton_depart]:
+	var bouton_coffres := _bouton("Coffres de test")
+	bouton_coffres.pressed.connect(remplir_coffres_de_test)
+	for b in [bouton_sante, bouton_depart, bouton_coffres]:
 		b.custom_minimum_size = Vector2(340, 64)   # (étroits : à côté des boutons du milieu, pas dessus)
 		b.add_theme_font_size_override("font_size", 24)
 		panneau_test.add_child(b)
@@ -144,6 +168,27 @@ func _mode_test() -> void:
 	label_test.position = Vector2(24, 16)
 	add_child(label_test)
 	_textes_test()
+
+
+func _textes_doublons() -> void:
+	var n: int = Sauvegarde.doublons()
+	var objets: int = Sauvegarde.objets().size()
+	label_doublons.text = "%d doublons · %d objet%s" % [n, objets, "s" if objets > 1 else ""]
+
+
+## Mode test : un objet de chaque sorte dans les coffres (les cinq uniques compris), pour essayer
+## l'équipement et ses effets sans attendre la chance. Les identifiants « test_… » ne s'ajoutent qu'une fois.
+func remplir_coffres_de_test() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var nouveaux := []
+	for cle in Butin.BASES:
+		nouveaux.append({"id": "test_" + cle, "base": cle, "rarete": Butin.Rarete.EPIQUE,
+				"effets": Butin.tirer_effets_plus(rng, Butin.Rarete.EPIQUE)})
+	for cle in Butin.UNIQUES:
+		nouveaux.append({"id": "test_" + cle, "base": cle, "rarete": Butin.UNIQUES[cle]["rarete"], "effets": {}})
+	Sauvegarde.encaisser("coffres_de_test_%d" % Time.get_ticks_usec(), nouveaux, 0, {"test": true})
+	_textes_doublons()
 
 
 func _textes_test() -> void:
@@ -186,6 +231,10 @@ func _ouvrir_arene() -> void:
 func _ouvrir_coop() -> void:
 	Partie.mode = Partie.Mode.SOLO
 	get_tree().change_scene_to_file(SCENE_COOP)
+
+
+func _ouvrir_equipement() -> void:
+	get_tree().change_scene_to_file(SCENE_EQUIPEMENT)
 
 
 func _ouvrir_vitrine() -> void:
