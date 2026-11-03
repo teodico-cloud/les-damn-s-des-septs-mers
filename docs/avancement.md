@@ -19,7 +19,7 @@ Dernière mise à jour : 1er novembre 2026.
 - **Jalon 3, étape 3 (Bosco Maudit, malédiction, chaloupe sous les vagues, écran de fin) : faite** ;
   relecture de fin de jalon puis APK 0.3.14.
 - **Jalon 4, étape 1 (butin au sol, façon Diablo) : faite**, APK 0.3.15.
-- **Jalon 4, étape 2 (sauvegarde, équipement, effets en combat, arme en main, objets uniques) : faite**, APK 0.4.x.
+- **Jalon 4, étape 2 (sauvegarde, équipement, effets en combat, arme en main, objets uniques) : faite**, APK 0.4.17.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
