@@ -44,6 +44,7 @@ func _objet(base: String, rarete: int, effets := {}) -> Dictionary:
 
 
 func _go() -> void:
+	await process_frame   # (les services globaux, dont Sauvegarde, se chargent après _initialize)
 	var args := OS.get_cmdline_user_args()
 	dossier = args[0] if args.size() > 0 else "build/apercus"
 	var quoi: String = args[1] if args.size() > 1 else "tout"
@@ -57,6 +58,8 @@ func _go() -> void:
 		await _ecran()
 	if quoi in ["tout", "uniques"]:
 		await _uniques()
+	if quoi in ["tout", "cale"]:
+		await _cale()
 	quit()
 
 
@@ -247,3 +250,57 @@ func _armes() -> void:
 		await _capture("armes_en_main_%s.png" % archetype)
 		studio.queue_free()
 		await _images(2)
+
+
+## Jalon 4, étape 3 : le sac qui dépasse la cale (en orange, en route), le tri de la cale, l'écran de fin
+## avec la revente, et l'extraction d'urgence de l'invité.
+func _cale() -> void:
+	sauvegarde.reinitialiser()
+	partie.heros_local = &"bretteur"
+	partie.destination = &"expedition"
+	partie.debug_depart = &""
+	partie.debug_sante_infinie = true
+	var e = load("res://game/expedition/expedition.tscn").instantiate()
+	root.add_child(e)
+	await _images(5)
+	e.hud.menu_demande.disconnect(e.retour_menu)
+	e.heros.sante.rendre_invulnerable(1000.0)
+	var sac := [_objet("cle", 0), _objet("sabre", 1, {"vol_de_vie": 0.03}), _objet("fiole", 0), _objet("lame_du_noye", 3),
+		_objet("hache", 2, {"critique": 0.06, "pv": 10.0}), _objet("chandelle", 0), _objet("trousseau", 1, {"epines": 0.2}),
+		_objet("coutelas", 0), _objet("flasque", 2, {"degats": 0.08, "recharges": 0.08}), _objet("doublon", 1, {"pv": 10.0}),
+		_objet("coeur_kraken", 4)]
+	for o in sac:
+		e._mettre_au_sac(String(e.heros.name), o, 0)
+	e._mettre_au_sac(String(e.heros.name), {}, 46)
+	await _images(200)   # (les lignes du fil du butin s'effacent)
+	e.camera.current = true
+	await _capture("cale_en_route.png")
+	e._terminer(true)
+	await _images(20)
+	await _capture("cale_tri.png")
+	e.hud.basculer_tri("sabre_1")
+	e.hud.basculer_tri("coutelas_0")
+	await _images(4)
+	await _capture("cale_tri_echange.png")
+	e.hud.valider_tri()
+	await _images(60)
+	await _capture("cale_fin.png")
+	print("coffres : %d objets, %d doublons %s" % [sauvegarde.objets().size(), sauvegarde.doublons(), sauvegarde.objets().map(func(o): return o["id"])])
+	e.queue_free()
+	await _images(3)
+
+	sauvegarde.reinitialiser()
+	e = load("res://game/expedition/expedition.tscn").instantiate()
+	root.add_child(e)
+	await _images(5)
+	e.hud.menu_demande.disconnect(e.retour_menu)
+	e.heros.name = "HerosInvite"   # (ce téléphone joue l'invité)
+	for o in sac.slice(0, 4):
+		e._mettre_au_sac("HerosInvite", o, 0)
+	e._mettre_au_sac("HerosInvite", {}, 23)
+	await _images(30)
+	e._on_partenaire_parti("Ton partenaire a quitté la partie.")
+	await _images(60)
+	await _capture("extraction_urgence.png")
+	e.queue_free()
+	await _images(3)

@@ -35,6 +35,10 @@ var sacs := {}                    ## butin non sécurisé : nom du héros -> {"o
 var butin_au_sol: Node3D           ## objets et doublons tombés dans la salle (à deux : ceux de l'autre sont invisibles)
 var _rng_butin := RandomNumberGenerator.new()
 var id_expedition := ""           ## propre à ce téléphone : l'expédition n'est encaissée qu'une fois (Sauvegarde)
+var tri_en_cours := false         ## tri de la cale à l'écran (fin d'une expédition réussie, sac trop plein)
+var _cale_chargee := false
+var _lignes_fin: Array = []
+var _titre_fin := ""
 var chaloupe_restant := -1.0      ## secondes avant le départ (-1 : personne n'est encore monté) ; invité : d'après l'hôte
 var a_bord := false               ## au moins un héros debout dans la chaloupe
 var vagues_lancees := 0
@@ -495,7 +499,11 @@ func _ligne_bosco() -> String:
 
 
 
-func _afficher_fin(p_reussite: bool, lignes: Array, p_sacs: Dictionary = {}) -> void:
+## Fin de l'expédition (chez chacun) : réussie, le sac va dans la cale (tri d'abord s'il dépasse ses
+## places, choix de Téo), puis dans les coffres ; perdue, tout le sac est perdu.
+func _afficher_fin(p_reussite: bool, lignes: Array, p_sacs: Dictionary = {}, titre := "") -> void:
+	if finie:
+		return
 	finie = true
 	reussite = p_reussite
 	generateur.reserve = 0
@@ -503,16 +511,66 @@ func _afficher_fin(p_reussite: bool, lignes: Array, p_sacs: Dictionary = {}) -> 
 		e.set_physics_process(false)   # tout s'arrête derrière l'écran de fin
 	if not p_sacs.is_empty():
 		sacs = p_sacs   # (invité : le sac final, décidé par l'hôte)
-	var sac: Dictionary = sacs.get(String(heros.name), {"objets": [], "doublons": 0})
-	var nb: int = sac["objets"].size()
-	var resume := "%d objet%s et %d doublons" % [nb, "s" if nb > 1 else "", sac["doublons"]]
-	var lignes_fin := lignes.duplicate()
-	lignes_fin.insert(1, ("Butin rapporté : " if p_reussite else "Butin perdu : ") + resume)
-	# dans les coffres (une seule fois : anti-doublon) ; défaite : rien, mais l'expédition est notée
-	Sauvegarde.encaisser(id_expedition, sac["objets"] if p_reussite else [], sac["doublons"] if p_reussite else 0,
-			{"reussite": p_reussite, "heros": String(Partie.heros_local), "malediction": Malediction.niveau()})
+	_lignes_fin = lignes.duplicate()
+	_titre_fin = titre
 	hud.afficher_salle("")
-	hud.afficher_resultats(p_reussite, lignes_fin, sac["objets"] if p_reussite else [])
+	var sac := _mon_sac()
+	if p_reussite and sac["objets"].size() > EQ.cale_places:
+		tri_en_cours = true
+		hud.tri_valide.connect(_charger_la_cale, CONNECT_ONE_SHOT)
+		hud.afficher_tri(sac["objets"], EQ.cale_places)
+		return
+	_charger_la_cale(sac["objets"] if p_reussite else [])
+
+
+func _mon_sac() -> Dictionary:
+	return sacs.get(String(heros.name), {"objets": [], "doublons": 0})
+
+
+## La cale est chargée (`gardes` : les objets rapportés) : les autres objets du sac sont revendus, tout
+## va dans les coffres (une seule fois : anti-doublon), puis l'écran de fin. Défaite : rien n'est rapporté,
+## mais l'expédition est notée.
+func _charger_la_cale(gardes: Array) -> void:
+	if _cale_chargee:
+		return
+	_cale_chargee = true
+	tri_en_cours = false
+	var sac := _mon_sac()
+	var ids := gardes.map(func(o): return o["id"])
+	var revendus: Array = sac["objets"].filter(func(o): return not o["id"] in ids) if reussite else []
+	var revente := 0
+	for o in revendus:
+		revente += Butin.prix_revente(o)
+	var doublons: int = sac["doublons"] + revente if reussite else 0
+	var lignes_fin := _lignes_fin.duplicate()
+	if reussite:
+		lignes_fin.insert(1, "Butin rapporté : %s et %d doublons" % [_objets(gardes.size()), doublons])
+		if not revendus.is_empty():
+			lignes_fin.insert(2, "Revendus faute de place : %s, +%d doublons" % [_objets(revendus.size()), revente])
+	else:
+		lignes_fin.insert(1, "Butin perdu : %s et %d doublons" % [_objets(sac["objets"].size()), sac["doublons"]])
+	Sauvegarde.encaisser(id_expedition, gardes, doublons, {"reussite": reussite, "heros": String(Partie.heros_local),
+			"malediction": Malediction.niveau(), "revendus": revendus.size()})
+	hud.afficher_resultats(reussite, lignes_fin, gardes, _titre_fin)
+
+
+static func _objets(n: int) -> String:
+	return "%d objet%s" % [n, "s" if n > 1 else ""]
+
+
+## L'appli qui se ferme (ou passe en arrière-plan) pendant le tri de la cale : la sélection en cours est
+## gardée (on ne perd pas une expédition réussie). (Le bouton retour d'Android passe par retour_menu ;
+## `_notification` d'Arene est aussi appelé, tout seul : Godot l'appelle pour chaque classe.)
+func _notification(what: int) -> void:
+	if tri_en_cours and (what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST):
+		hud.valider_tri()
+
+
+## Retour au menu pendant le tri de la cale : la sélection en cours est gardée.
+func retour_menu() -> void:
+	if tri_en_cours:
+		hud.valider_tri()
+	super.retour_menu()
 
 
 # ---------------------------------------------------------------- butin (jalon 4, choix de Téo : au sol, façon Diablo)
@@ -614,7 +672,7 @@ func _mettre_au_sac(proprietaire: String, objet: Dictionary, doublons: int) -> v
 			hud.afficher_ramasse("+%d doublons" % doublons, Color("e0b04a"))
 		else:
 			hud.afficher_ramasse(Butin.nom_complet(objet), Butin.couleur(objet))
-		hud.afficher_sac(sac["objets"].size(), sac["doublons"])
+		hud.afficher_sac(sac["objets"].size(), sac["doublons"], EQ.cale_places)
 
 
 # ---------------------------------------------------------------- coop
@@ -676,4 +734,22 @@ func _continuer_seul() -> void:
 func _on_partenaire_parti(raison: String) -> void:
 	if finie:
 		return   # l'écran de fin est déjà là : le partenaire est simplement retourné au menu
-	super._on_partenaire_parti(raison)
+	if heros.name == "HerosHote":
+		super._on_partenaire_parti(raison)   # l'hôte continue seul
+		return
+	_extraction_urgence(raison)
+
+
+## Invité : l'hôte est parti en pleine expédition (Wi-Fi coupé, appli fermée). Choix de Téo, comme prévu
+## dans la conception : extraction d'urgence, l'invité garde son sac (dans la limite de la cale).
+## (Son téléphone ne peut pas savoir si c'est l'hôte qui est parti ou son propre Wi-Fi qui a coupé.)
+func _extraction_urgence(raison: String) -> void:
+	if synchro:
+		synchro.queue_free()
+		synchro = null
+	if is_instance_valid(heros_partenaire):
+		heros_partenaire.queue_free()
+	hud.heros_partenaire = null
+	hud.alerte("")
+	effets.en_coop = false
+	_afficher_fin(true, [raison], {}, "Extraction d'urgence !")

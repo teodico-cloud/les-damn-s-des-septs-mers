@@ -204,7 +204,7 @@ func test_ramasser_en_passant_dessus() -> void:
 	assert_eq(sac["objets"], [objet])
 	assert_eq(sac["doublons"], 12)
 	assert_true(e.hud.label_sac.visible)
-	assert_eq(e.hud.label_sac.text, "Sac : 1 objet · 12 doublons")
+	assert_eq(e.hud.label_sac.text, "Sac : 1 objet / cale 8 · 12 doublons")
 	var lignes := e.hud.fil_butin.get_children().map(func(l): return l.text)
 	assert_has(lignes, "Hache d'abordage (Épique)", "Le fil du butin")
 	assert_has(lignes, "+12 doublons")
@@ -284,7 +284,7 @@ func test_l_invite_recoit_et_ramasse_son_butin() -> void:
 	e.evenement_lieu("ramasse", ["abc123", objet, 0])
 	assert_true(o.is_queued_for_deletion(), "Ramassé : il disparaît")
 	assert_eq(e.sacs[String(e.heros.name)]["objets"], [objet])
-	assert_eq(e.hud.label_sac.text, "Sac : 1 objet · 0 doublons")
+	assert_eq(e.hud.label_sac.text, "Sac : 1 objet / cale 8 · 0 doublons")
 
 
 # ---------------------------------------------------------------- fin d'expédition
@@ -339,11 +339,13 @@ func test_les_noms_ne_se_chevauchent_pas() -> void:
 
 
 func test_ecran_de_fin_les_plus_rares_d_abord() -> void:
+	# (la cale n'en rapporte que 8 aujourd'hui ; plus grande au jalon 5, l'écran de fin s'arrête à 10 noms)
 	var e := await _expedition()
+	var objets := []
 	for i in 12:
-		e._mettre_au_sac(String(e.heros.name), _objet_de("cle", 0), 0)
-	e._mettre_au_sac(String(e.heros.name), _objet_de("coeur_kraken", 4), 0)
-	e._terminer(true)
+		objets.append(_objet_de("cle", 0))
+	objets.append(_objet_de("coeur_kraken", 4))
+	e.hud.afficher_resultats(true, ["x"], objets)
 	await wait_physics_frames(2)
 	var flot := e.hud.panneau_fin.find_children("*", "HFlowContainer", true, false)[0]
 	var textes: Array = flot.get_children().map(func(l): return l.text)

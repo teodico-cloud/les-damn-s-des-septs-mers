@@ -10,6 +10,7 @@ extends SceneTree
 
 var role := ""
 var destination: StringName = &"arene"
+var scenario_fin := "chaloupe"   ## expédition : « chaloupe » (fin normale) ou « hote_parti » (l'hôte part en pleine expédition)
 var reseau: Node
 var partie: Node
 var arene: Node
@@ -74,6 +75,7 @@ func _derouler(args: PackedStringArray) -> void:
 	if reseau.latence_simulee > 0.0 or reseau.perte_simulee > 0.0:
 		print("MESURE %s reseau_simule latence=%.0fms gigue=%.0fms perte=%.0f%%" % [role, reseau.latence_simulee * 1000.0, reseau.gigue_simulee * 1000.0, reseau.perte_simulee * 100.0])
 	destination = StringName(OS.get_environment("DESTINATION")) if OS.has_environment("DESTINATION") else &"arene"
+	scenario_fin = OS.get_environment("FIN") if OS.has_environment("FIN") else "chaloupe"
 	# jalon 4 : chaque téléphone a sa sauvegarde et porte son équipement (arme et chandelle, sur ses deux
 	# héros) ; l'autre doit le voir (PV max, arme en main). Rien qui change la vitesse : les distances
 	# mesurées par l'essai restent les mêmes.
@@ -423,6 +425,10 @@ func _hote_expedition() -> void:
 	arene.heros_partenaire.global_position = arene.salle.zone_chaloupe + Vector3(0.6, 0, 0.3)
 	await _attendre(3.0)
 	print("MESURE hote chaloupe=%.1f vagues=%d" % [arene.chaloupe_restant, arene.vagues_lancees])
+	if scenario_fin == "hote_parti":   # jalon 4, étape 3 : l'hôte part sans prévenir (l'invité : extraction d'urgence)
+		reseau.quitter()
+		await _attendre(1.0)
+		return
 	arene._terminer(true)
 	await _attendre(2.0)
 
@@ -509,7 +515,14 @@ func _invite_expedition() -> void:
 	_verifier(vu_message, "message de l'hôte au centre de l'écran chez nous aussi")
 	print("MESURE invite temps_salle=%.2f" % arene.temps_salle)
 	_verifier(arene.temps_salle > 2.0, "horloge des pièges calée sur l'hôte (%.2f s)" % arene.temps_salle)
-	_verifier(arene.finie and arene.reussite and arene.hud.panneau_fin != null, "écran de fin reçu de l'hôte")
+	if scenario_fin == "hote_parti":
+		_verifier(arene.finie and arene.reussite and arene.hud.panneau_fin != null, "l'hôte parti : extraction d'urgence")
+		if arene.hud.panneau_fin:
+			var titres: Array = arene.hud.panneau_fin.find_children("*", "Label", true, false).map(func(l): return l.text)
+			_verifier("Extraction d'urgence !" in titres, "titre « Extraction d'urgence ! »")
+		_verifier(not root.get_node("Sauvegarde").objet("coop01").is_empty(), "notre butin sauvé dans les coffres")
+	else:
+		_verifier(arene.finie and arene.reussite and arene.hud.panneau_fin != null, "écran de fin reçu de l'hôte")
 	_verifier(vu_butin, "notre butin, tiré par l'hôte, apparaît chez nous")
 	_verifier(not vu_butin_hote, "le butin de l'hôte n'apparaît pas chez nous (chacun le sien)")
 	var sac: Dictionary = arene.sacs.get(String(h.name), {"objets": []})

@@ -266,6 +266,11 @@ extends Resource
 ## Malédiction : chaque niveau multiplie ces poids par (1 + valeur × niveau) — raretés meilleures
 @export var butin_malediction_raretes: PackedFloat32Array = [0.0, 0.15, 0.3, 0.5, 0.5]
 
+@export_group("Cale (jalon 4, étape 3 : choix de Téo du 03/11)")
+@export var cale_places := 8                    ## objets rapportés au plus à la fin d'une expédition (les doublons : sans limite)
+## Objets non gardés au tri de la cale : revendus, en doublons selon leur rareté (Commun … Maudit)
+@export var cale_prix_raretes: PackedInt32Array = [2, 5, 10, 15, 20]
+
 @export_group("Équipement (jalon 4, étape 2 : effets validés par Téo le 01/11)")
 ## Rareté d'un objet de base : son effet de base est multiplié par (Commun, Rare, Épique) ; jamais un défaut
 ## (la lenteur de la hache reste la même)

@@ -145,6 +145,21 @@ static func nouvel_id(rng: RandomNumberGenerator) -> String:
 	return "%08x%08x" % [rng.randi(), int(Time.get_unix_time_from_system() * 1000.0) & 0xffffffff]
 
 
+## Doublons que rapporte un objet revendu faute de place dans la cale (selon sa rareté).
+static func prix_revente(objet: Dictionary) -> int:
+	return EQ.cale_prix_raretes[clampi(int(objet.get("rarete", 0)), 0, EQ.cale_prix_raretes.size() - 1)]
+
+
+## Les objets du plus rare au moins rare ; à rareté égale, dans l'ordre où ils ont été ramassés.
+static func par_rarete(objets: Array) -> Array:
+	var indices := range(objets.size())
+	indices.sort_custom(func(i, j):
+		var ri := int(objets[i].get("rarete", 0))
+		var rj := int(objets[j].get("rarete", 0))
+		return ri > rj if ri != rj else i < j)
+	return indices.map(func(i): return objets[i])
+
+
 ## Chance qu'un squelette vaincu lâche un objet (pour chaque joueur), malédiction comprise.
 static func chance_objet(type_ennemi: StringName) -> float:
 	var base := EQ.butin_objet_matelot

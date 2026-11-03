@@ -7,6 +7,7 @@ extends CanvasLayer
 ## perd pas une expédition d'un doigt maladroit), écran de fin avec le bilan.
 
 signal menu_demande
+signal tri_valide(gardes: Array)   ## tri de la cale fini : les objets gardés
 
 const COULEUR_OS := Color("e2d6ba")
 
@@ -42,6 +43,12 @@ var _boss_dessine := Vector2(-1, -1)   ## (PV, rage) déjà dessinés : on ne re
 var label_malediction: Label   ## expédition : niveau de malédiction, sous les PV
 var label_sac: Label           ## expédition : objets et doublons dans le sac (non sécurisés)
 var fil_butin: VBoxContainer   ## ce qu'on vient de ramasser (s'efface tout seul)
+var panneau_tri: Control       ## tri de la cale (fin d'expédition, sac trop plein)
+var _tri_objets: Array = []    ## du plus rare au moins rare
+var _tri_gardes := {}          ## id -> vrai si gardé (coché)
+var _tri_places := 8
+var _tri_boutons := {}         ## id -> Button
+var _label_tri: Label
 var _premier_appui_menu := -100.0   ## expédition : heure du 1er appui sur Menu (on attend le 2e)
 
 
@@ -227,6 +234,8 @@ func _actions_clavier() -> void:
 
 # ---------------------------------------------------------------- toucher (plusieurs doigts)
 func _input(event: InputEvent) -> void:
+	if panneau_tri:
+		return   # tri de la cale : ni joystick ni boutons du combat (les cases se touchent normalement)
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			# le Menu est géré ici aussi : Godot ne transforme en clic que le 1er doigt posé, et le
@@ -310,10 +319,12 @@ func afficher_ramasse(texte: String, couleur: Color) -> void:
 	t.tween_callback(l.queue_free)
 
 
-## Le sac de l'expédition (non sécurisé : perdu en cas de défaite).
-func afficher_sac(objets: int, doublons: int) -> void:
+## Le sac de l'expédition (non sécurisé : perdu en cas de défaite), et la place dans la cale (annexe
+## retenue par Téo) : en orange quand il faudra trier à la fin.
+func afficher_sac(objets: int, doublons: int, places := 8) -> void:
 	label_sac.visible = true
-	label_sac.text = "Sac : %d objet%s · %d doublons" % [objets, "s" if objets > 1 else "", doublons]
+	label_sac.text = "Sac : %d objet%s / cale %d · %d doublons" % [objets, "s" if objets > 1 else "", places, doublons]
+	label_sac.add_theme_color_override("font_color", Color(1.0, 0.55, 0.15) if objets > places else Color("e0b04a"))
 
 
 ## Nom de la salle en cours (expédition).
@@ -329,8 +340,8 @@ func fondu(vers_noir: bool, duree: float) -> void:
 
 
 ## Écran de fin d'expédition : titre, lignes du bilan, butin rapporté (à la couleur de sa rareté),
-## bouton de retour au menu.
-func afficher_resultats(reussite: bool, lignes: Array, objets: Array = []) -> void:
+## bouton de retour au menu. `titre` : à la place de « Expédition réussie ! » (extraction d'urgence).
+func afficher_resultats(reussite: bool, lignes: Array, objets: Array = [], titre_force := "") -> void:
 	if panneau_fin:
 		return
 	relacher_tout()
@@ -351,7 +362,7 @@ func afficher_resultats(reussite: bool, lignes: Array, objets: Array = []) -> vo
 	colonne.add_theme_constant_override("separation", 14 if objets.is_empty() else 8)
 	fond.add_child(colonne)
 	var titre := Label.new()
-	titre.text = "Expédition réussie !" if reussite else "Expédition perdue…"
+	titre.text = titre_force if titre_force != "" else ("Expédition réussie !" if reussite else "Expédition perdue…")
 	titre.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	titre.add_theme_font_size_override("font_size", 64)
 	titre.add_theme_color_override("font_color", Color("6cffa0") if reussite else Color(1.0, 0.45, 0.4))
@@ -411,6 +422,152 @@ func afficher_resultats(reussite: bool, lignes: Array, objets: Array = []) -> vo
 	var t := fond.create_tween()
 	t.set_ignore_time_scale(true)
 	t.tween_property(fond, "color:a", 0.82, 0.6)
+
+
+# ---------------------------------------------------------------- tri de la cale (jalon 4, choix de Téo)
+## Le sac dépasse la cale : on choisit les objets à garder (les plus rares sont cochés d'avance) ; les
+## autres sont revendus en doublons. « Charger la cale » envoie `tri_valide`.
+func afficher_tri(objets: Array, places: int) -> void:
+	if panneau_tri or panneau_fin:
+		return
+	relacher_tout()
+	label_mort.visible = false
+	label_message.visible = false
+	label_sac.visible = false
+	fil_butin.visible = false
+	_tri_objets = Butin.par_rarete(objets)
+	_tri_places = places
+	_tri_gardes.clear()
+	_tri_boutons.clear()
+	for i in _tri_objets.size():
+		_tri_gardes[_tri_objets[i]["id"]] = i < places
+	var fond := ColorRect.new()
+	fond.color = Color(0.02, 0.03, 0.04, 0.88)
+	fond.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fond.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(fond)
+	panneau_tri = fond
+	var colonne := VBoxContainer.new()
+	colonne.set_anchors_preset(Control.PRESET_FULL_RECT)
+	colonne.offset_left = 40
+	colonne.offset_right = -40
+	colonne.offset_top = 22
+	colonne.offset_bottom = -18
+	colonne.add_theme_constant_override("separation", 10)
+	fond.add_child(colonne)
+	var titre := _ligne_tri("Charger la cale", 52, Color("e0b04a"))
+	titre.add_theme_constant_override("outline_size", 10)
+	colonne.add_child(titre)
+	colonne.add_child(_ligne_tri("La cale ne prend que %d objets : touchez-les pour choisir. Les autres sont revendus." % places,
+			26, COULEUR_OS))
+	var defile := ScrollContainer.new()
+	defile.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	defile.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	colonne.add_child(defile)
+	var grille := GridContainer.new()
+	grille.columns = 3
+	grille.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grille.add_theme_constant_override("h_separation", 12)
+	grille.add_theme_constant_override("v_separation", 10)
+	defile.add_child(grille)
+	for o in _tri_objets:
+		var b := Button.new()
+		b.custom_minimum_size = Vector2(0, 86)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.clip_text = true
+		b.add_theme_font_size_override("font_size", 22)
+		for etat in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
+			b.add_theme_color_override(etat, Butin.couleur(o))
+		b.pressed.connect(basculer_tri.bind(String(o["id"])))
+		grille.add_child(b)
+		_tri_boutons[String(o["id"])] = b
+	_label_tri = _ligne_tri("", 26, COULEUR_OS)
+	colonne.add_child(_label_tri)
+	var valider := Button.new()
+	valider.text = "Charger la cale"
+	valider.custom_minimum_size = Vector2(420, 84)
+	valider.add_theme_font_size_override("font_size", 32)
+	valider.add_theme_color_override("font_color", Color("6cffa0"))
+	for etat in ["normal", "hover", "pressed", "focus"]:
+		valider.add_theme_stylebox_override(etat, _style_tri(etat == "pressed", false))
+	valider.pressed.connect(valider_tri)
+	var centre := CenterContainer.new()
+	centre.add_child(valider)
+	colonne.add_child(centre)
+	_rafraichir_tri()
+
+
+## Touché : gardé ↔ revendu (pas plus d'objets gardés que de places).
+func basculer_tri(id: String) -> void:
+	if not _tri_gardes.has(id):
+		return
+	if not _tri_gardes[id] and gardes_tri().size() >= _tri_places:
+		_rafraichir_tri("La cale est pleine : décochez d'abord un objet.")
+		return
+	_tri_gardes[id] = not _tri_gardes[id]
+	_rafraichir_tri()
+
+
+func gardes_tri() -> Array:
+	return _tri_objets.filter(func(o): return _tri_gardes.get(String(o["id"]), false))
+
+
+## « Charger la cale » (ou l'appli qui se ferme pendant le tri : la sélection en cours est gardée).
+func valider_tri() -> void:
+	if panneau_tri == null:
+		return
+	var gardes := gardes_tri()
+	panneau_tri.queue_free()
+	panneau_tri = null
+	tri_valide.emit(gardes)
+
+
+func _rafraichir_tri(alerte_tri := "") -> void:
+	var revente := 0
+	for o in _tri_objets:
+		var id := String(o["id"])
+		var garde: bool = _tri_gardes[id]
+		var b: Button = _tri_boutons[id]
+		b.text = ("✓  " if garde else "") + Butin.nom(o) + "\n" + \
+				(Butin.NOMS_RARETES[clampi(int(o.get("rarete", 0)), 0, 4)] if garde else "revendu : +%d doublons" % Butin.prix_revente(o))
+		for etat in ["normal", "hover", "pressed", "focus"]:
+			b.add_theme_stylebox_override(etat, _style_tri(etat == "pressed", garde))
+		b.modulate.a = 1.0 if garde else 0.6
+		if not garde:
+			revente += Butin.prix_revente(o)
+	var n := gardes_tri().size()
+	if alerte_tri != "":
+		_label_tri.text = alerte_tri
+		_label_tri.add_theme_color_override("font_color", Color(1.0, 0.45, 0.4))
+	else:
+		_label_tri.text = "Dans la cale : %d / %d · revendus : %d objet%s, +%d doublons" % [n, _tri_places,
+				_tri_objets.size() - n, "s" if _tri_objets.size() - n > 1 else "", revente]
+		_label_tri.add_theme_color_override("font_color", COULEUR_OS)
+
+
+func _ligne_tri(texte: String, taille: int, couleur: Color) -> Label:
+	var l := Label.new()
+	l.text = texte
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", taille)
+	l.add_theme_color_override("font_color", couleur)
+	l.add_theme_color_override("font_outline_color", Color.BLACK)
+	l.add_theme_constant_override("outline_size", 6)
+	return l
+
+
+func _style_tri(enfonce: bool, garde: bool) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color(0.3, 0.21, 0.12, 0.95) if garde else Color(0.1, 0.08, 0.07, 0.9)
+	if enfonce:
+		s.bg_color = s.bg_color.darkened(0.3)
+	s.border_color = Color("e0b04a") if garde else Color("5a4a3a")
+	s.set_border_width_all(4 if garde else 2)
+	s.set_corner_radius_all(12)
+	s.content_margin_left = 12
+	s.content_margin_right = 12
+	return s
 
 
 ## Si l'appli passe en arrière-plan (appel, notification…), Android n'envoie pas toujours la levée
