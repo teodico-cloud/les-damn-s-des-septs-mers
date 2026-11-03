@@ -36,7 +36,6 @@ var butin_au_sol: Node3D           ## objets et doublons tombés dans la salle (
 var _rng_butin := RandomNumberGenerator.new()
 var id_expedition := ""           ## propre à ce téléphone : l'expédition n'est encaissée qu'une fois (Sauvegarde)
 var tri_en_cours := false         ## tri de la cale à l'écran (fin d'une expédition réussie, sac trop plein)
-var _cale_chargee := false
 var _lignes_fin: Array = []
 var _titre_fin := ""
 var chaloupe_restant := -1.0      ## secondes avant le départ (-1 : personne n'est encore monté) ; invité : d'après l'hôte
@@ -531,9 +530,6 @@ func _mon_sac() -> Dictionary:
 ## va dans les coffres (une seule fois : anti-doublon), puis l'écran de fin. Défaite : rien n'est rapporté,
 ## mais l'expédition est notée.
 func _charger_la_cale(gardes: Array) -> void:
-	if _cale_chargee:
-		return
-	_cale_chargee = true
 	tri_en_cours = false
 	var sac := _mon_sac()
 	var ids := gardes.map(func(o): return o["id"])

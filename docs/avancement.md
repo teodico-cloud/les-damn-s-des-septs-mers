@@ -198,6 +198,20 @@ Matelots squelettes qui reviennent sans fin.
 - Tests : 227 en tout, dont 30 nouveaux (vérifiés par sabotage : 59 sabotages, tous vus) ; essais coop (arène et expédition) étendus :
   chacun voit l'arme et les PV max du héros de l'autre.
 
+## Cale et extraction d'urgence (jalon 4, étape 3 — choix de Téo du 03/11)
+- **Tri de la cale** : à la fin d'une expédition réussie, si le sac dépasse 8 objets (`cale_places`), écran
+  « Charger la cale » avant l'écran de fin : les plus rares cochés d'avance (à rareté égale, les premiers
+  ramassés) ; toucher un objet le garde ou le revend ; pas plus de 8 gardés (on peut en garder moins).
+  Les doublons ne prennent pas de place. À deux, chacun trie son sac sur son téléphone.
+- **Revente** des objets non gardés : 2 / 5 / 10 / 15 / 20 doublons (Commun → Maudit, `cale_prix_raretes`).
+  Écran de fin : « Butin rapporté : 8 objets et N doublons » et « Revendus faute de place : … ».
+- Appli fermée ou mise en arrière-plan pendant le tri, ou Menu / retour : la sélection en cours est gardée.
+- **Cale visible en route** (annexe retenue) : « Sac : 9 objets / cale 8 · 27 doublons », en orange au-delà.
+- **Extraction d'urgence** : l'hôte part en pleine expédition → l'invité garde son sac (tri de la cale si
+  besoin), écran « Extraction d'urgence ! ». Son téléphone ne peut pas savoir si c'est l'hôte qui est parti
+  ou son propre Wi-Fi qui a coupé : dans les deux cas, il garde son butin. L'hôte, lui, continue seul.
+- Essai coop « hôte parti » (`FIN=hote_parti`) ajouté au CI.
+
 ## Combat « nerveux » (30/10, demande de Téo : « vraiment Diablo like »)
 Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pas les ennemis plus agressifs).
 - Héros plus vif : marche 6,2 m/s (5,2) ; combo 25 % plus rapide ; bouger le joystick 0,05 s après

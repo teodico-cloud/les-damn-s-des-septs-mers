@@ -321,7 +321,7 @@ func afficher_ramasse(texte: String, couleur: Color) -> void:
 
 ## Le sac de l'expédition (non sécurisé : perdu en cas de défaite), et la place dans la cale (annexe
 ## retenue par Téo) : en orange quand il faudra trier à la fin.
-func afficher_sac(objets: int, doublons: int, places := 8) -> void:
+func afficher_sac(objets: int, doublons: int, places: int) -> void:
 	label_sac.visible = true
 	label_sac.text = "Sac : %d objet%s / cale %d · %d doublons" % [objets, "s" if objets > 1 else "", places, doublons]
 	label_sac.add_theme_color_override("font_color", Color(1.0, 0.55, 0.15) if objets > places else Color("e0b04a"))

@@ -59,9 +59,16 @@ func _remplir(e: Expedition) -> Array:
 func test_prix_et_ordre_de_rarete() -> void:
 	assert_eq(Butin.prix_revente(_o("cle", 0, 1)), EQ.cale_prix_raretes[0])
 	assert_eq(Butin.prix_revente(_o("coeur_kraken", 4, 1)), EQ.cale_prix_raretes[4])
-	var tries := Butin.par_rarete([_o("cle", 0, 1), _o("sabre", 1, 2), _o("fiole", 0, 3), _o("hache", 1, 4)])
-	assert_eq(tries.map(func(o): return o["id"]), ["sabre_1_2", "hache_1_4", "cle_0_1", "fiole_0_3"],
-			"Les plus rares d'abord ; à rareté égale, dans l'ordre du ramassage")
+	# (un gros sac : au-delà d'une quinzaine, le tri de Godot ne garde plus l'ordre des égaux tout seul)
+	var sac := []
+	for i in 40:
+		sac.append(_o("cle", [0, 1, 2][i % 3], i))
+	var tries := Butin.par_rarete(sac)
+	for k in range(1, tries.size()):
+		var a: Dictionary = tries[k - 1]
+		var b: Dictionary = tries[k]
+		assert_true(a["rarete"] > b["rarete"] or (a["rarete"] == b["rarete"] and a["id"].split("_")[2].to_int() < b["id"].split("_")[2].to_int()),
+				"Les plus rares d'abord ; à rareté égale, dans l'ordre du ramassage (%s puis %s)" % [a["id"], b["id"]])
 
 
 func test_cale_visible_en_route() -> void:
