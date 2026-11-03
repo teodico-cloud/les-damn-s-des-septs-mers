@@ -28,6 +28,8 @@ func _exit_tree() -> void:
 
 func _on_coup_porte(position_coup: Vector3, degats: float, lourd: bool, cible_est_heros: bool, cible: Node3D, source: Node3D, critique := false) -> void:
 	_chiffre(position_coup, degats, lourd, cible_est_heros, critique)
+	if Combat.coup_discret:
+		return   # (eau de la Lame du Noyé, épines, squelette relevé : ni arrêt, ni secousse)
 	var me_concerne := not en_coop or cible == heros_local or source == heros_local
 	if cible_est_heros:
 		if camera and me_concerne and not (source is FlaqueMaudite):   # (la flaque ne secoue pas)

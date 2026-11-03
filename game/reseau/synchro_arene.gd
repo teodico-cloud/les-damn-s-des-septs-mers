@@ -228,7 +228,7 @@ static func _deballer(p: Variant) -> Array:
 func _on_coup_porte(pos: Vector3, degats: float, lourd: bool, cible_est_heros: bool, cible: Node3D, source: Node3D, critique: bool) -> void:
 	if not _invite_pret:
 		return
-	_coup.rpc_id(Reseau.id_partenaire, pos, degats, lourd, cible_est_heros, _nom(cible), _nom(source), critique)
+	_coup.rpc_id(Reseau.id_partenaire, pos, degats, lourd, cible_est_heros, _nom(cible), _nom(source), critique, Combat.coup_discret)
 	# (une flaque maudite fait perdre des PV sans sonner : pas de « touché » chez l'invité)
 	if cible == heros_partenaire and source and not (source is FlaqueMaudite):
 		_autorite.rpc_id(Reseau.id_partenaire, "touche", heros_partenaire.sante.pv, source.global_position)
@@ -449,14 +449,16 @@ func _afficher_monde() -> void:
 
 
 @rpc("authority", "reliable")
-func _coup(pos: Vector3, degats: float, lourd: bool, cible_est_heros: bool, nom_cible: String, nom_source: String, critique: bool) -> void:
-	_differer(_coup_recu.bind(pos, degats, lourd, cible_est_heros, nom_cible, nom_source, critique), true)
+func _coup(pos: Vector3, degats: float, lourd: bool, cible_est_heros: bool, nom_cible: String, nom_source: String, critique: bool, discret: bool) -> void:
+	_differer(_coup_recu.bind(pos, degats, lourd, cible_est_heros, nom_cible, nom_source, critique, discret), true)
 
 
-func _coup_recu(pos: Vector3, degats: float, lourd: bool, cible_est_heros: bool, nom_cible: String, nom_source: String, critique: bool) -> void:
+func _coup_recu(pos: Vector3, degats: float, lourd: bool, cible_est_heros: bool, nom_cible: String, nom_source: String, critique: bool, discret := false) -> void:
 	var cible := _trouver(nom_cible)
 	var source := _trouver(nom_source)
+	Combat.coup_discret = discret   # (comme chez l'hôte : ni arrêt ni secousse pour un coup discret)
 	EventBus.coup_porte.emit(pos, degats, lourd, cible_est_heros, cible, source, critique)
+	Combat.coup_discret = false
 	if cible is Ennemi:
 		cible.flash_coup()
 

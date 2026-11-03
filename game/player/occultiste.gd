@@ -81,6 +81,10 @@ func _vitesse_tir() -> float:
 	return EQ.occ_tir_vitesse_animation * mult_attaque()
 
 
+func _invulnerabilite_esquive() -> float:
+	return EQ.occ_tele_invulnerabilite
+
+
 ## Grimoire noyé, Grimoire du Pendu : Marque et Chaînes rechargées plus vite.
 func _reduction_competences() -> float:
 	return b("recharge_sorts")

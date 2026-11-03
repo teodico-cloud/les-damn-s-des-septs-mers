@@ -259,6 +259,16 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Riposte : elle atteint l'ennemi paré jusqu'à `Ennemi.portee_riposte()` (3 m, Bosco ~5,6 m). Un ennemi qui
   frappe de loin doit l'augmenter, sinon la parade réussit mais la riposte frappe dans le vide.
 - « Salle vidée » ne part qu'une fois par salle (`GenerateurEnnemis._videe`).
+- Coups « discrets » (dégâts qui durent, épines, coups d'un squelette relevé) : `Combat.porter_coup_discret`
+  (ou `Combat.coup_discret = true` autour de l'appel) ; EffetsCombat n'en fait ni arrêt sur image ni secousse,
+  et l'invité le sait par l'argument `discret` de `SynchroArene._coup`. Tout nouveau dégât répété doit l'être.
+- Retour d'Android (`NOTIFICATION_WM_GO_BACK_REQUEST`) : passe par `Arene._retour_demande()` (l'expédition le
+  remplace : deux appuis comme le Menu). `_notification` est appelé par Godot pour **chaque** classe de la
+  chaîne (Arene puis Expedition) : ne jamais y appeler `super`.
+- Tests d'une arène / expédition : `changer_de_scene = false` évite que `retour_menu()` change de scène sous GUT
+  (`revenu_au_menu` dit s'il a été demandé).
+- Appli en pause pendant une expédition à deux : l'hôte ne l'entend plus au bout de 3 à 5 s ; une coupure
+  constatée pendant ou juste après une pause est un abandon (`Expedition._coupure_pendant_une_pause`).
 - Squelettes qui sortent de terre : jamais l'un dans l'autre (`GenerateurEnnemis._ecarter`, 1 m au moins) ;
   deux corps qui se chevauchent se repoussent d'un coup quand leur collision s'active (saut de 0,5 m en une
   image, vu par l'essai coop « affichage fluide »). Une nouvelle façon de faire apparaître des squelettes en

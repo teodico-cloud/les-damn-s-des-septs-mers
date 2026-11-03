@@ -72,4 +72,4 @@ func _physics_process(delta: float) -> void:
 			var dernier: float = e.get_meta("eau_noyee", -10.0)
 			if d.length() <= EQ.noyee_rayon + 0.3 and lanceur.horloge - dernier >= TIC * 0.9:
 				e.set_meta("eau_noyee", lanceur.horloge)
-				Combat.porter_coup(lanceur, e, EQ.noyee_degats_seconde * TIC, false)
+				Combat.porter_coup_discret(lanceur, e, EQ.noyee_degats_seconde * TIC)

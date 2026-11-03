@@ -182,10 +182,10 @@ func test_fichier_abime_copie_de_secours() -> void:
 
 func test_conversion_d_une_sauvegarde_incomplete() -> void:
 	var d := Sauvegarde.convertir({"version": 1, "doublons": -5, "objets": [{"id": "a", "base": "inconnu"},
-			{"id": "b", "base": "fiole", "rarete": 1.0}, "pas un objet"], "equipement": {"bretteur": {"arme": "b"}}})
+			{"id": "b", "base": "fiole", "rarete": 1.0}, "pas un objet"], "equipement": {"bretteur": {"relique_1": "b"}}})
 	assert_eq(d["doublons"], 0)
 	assert_eq(d["objets"], [{"id": "b", "base": "fiole", "rarete": 1, "effets": {}}], "Objets inconnus écartés")
-	assert_eq(d["equipement"]["bretteur"]["arme"], "b")
+	assert_eq(d["equipement"]["bretteur"]["relique_1"], "b")
 	assert_eq(d["equipement"]["occultiste"], {"arme": "", "relique_1": "", "relique_2": ""}, "Les clés manquantes sont ajoutées")
 
 

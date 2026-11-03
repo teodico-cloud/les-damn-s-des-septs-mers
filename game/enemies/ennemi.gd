@@ -256,6 +256,8 @@ func est_ciblable() -> bool:
 
 
 func _changer(nouvel: Etat, duree := 0.0) -> void:
+	if etat == Etat.MORT and nouvel != Etat.MORT:
+		return   # vaincu pour de bon (ex. tué par des épines au milieu de son attaque, qui finit ensuite)
 	var ancien := etat
 	etat = nouvel
 	_t = 0.0
@@ -387,7 +389,10 @@ func _frapper() -> void:
 		_impact_fait = true
 		var centre := global_position + global_transform.basis.z * EQ.squelette_zone_avant + Vector3.UP
 		for cible in Combat.cibles_dans_sphere(get_world_3d(), centre, EQ.squelette_zone_rayon, _masque_cibles(), [self]):
-			Combat.porter_coup(self, cible, _degats_frappe(), false)
+			if allie:
+				Combat.porter_coup_discret(self, cible, _degats_frappe())   # (squelette relevé)
+			else:
+				Combat.porter_coup(self, cible, _degats_frappe(), false)
 	if _t >= EQ.squelette_duree_frappe:
 		_montrer_annonce(false)
 		_recharge_attaque = EQ.squelette_recharge_attaque

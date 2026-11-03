@@ -28,6 +28,8 @@ var orbes_ramassees := 0
 var _temps := 0.0
 ## Tests : chance qu'un squelette lâche une orbe (-1 : celle de l'équilibrage).
 static var chance_orbe := -1.0
+var changer_de_scene := true   ## faux dans les tests : le retour au menu est seulement noté
+var revenu_au_menu := false
 
 
 ## Chance qu'un squelette vaincu lâche une orbe (imposée par les tests, sinon réglage × malédiction 4).
@@ -174,8 +176,10 @@ func _relever_pour_le_pendu(e: Node) -> void:
 	if generateur.allies() >= EQ.pendu_max:
 		return
 	var pos: Vector3 = e.global_position
+	var generation: int = generateur._generation   # (la salle a pu changer entre-temps : il ne la suit pas)
 	get_tree().create_timer(EQ.pendu_delai, false).timeout.connect(func():
-		if is_instance_valid(generateur) and generateur.is_inside_tree() and generateur.allies() < EQ.pendu_max:
+		if is_instance_valid(generateur) and generateur.is_inside_tree() and generateur._generation == generation \
+				and generateur.allies() < EQ.pendu_max:
 			generateur.relever_allie(pos, maitre if is_instance_valid(maitre) else null))
 
 
@@ -218,11 +222,19 @@ func _physics_process(_delta: float) -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		retour_menu()
+		_retour_demande()
+
+
+## Bouton ou geste « retour » d'Android (l'expédition le remplace : deux appuis pour abandonner).
+func _retour_demande() -> void:
+	retour_menu()
 
 
 func retour_menu() -> void:
 	if not is_inside_tree():
+		return
+	revenu_au_menu = true
+	if not changer_de_scene:
 		return
 	Engine.time_scale = 1.0
 	Reseau.quitter()

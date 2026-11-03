@@ -578,11 +578,12 @@ func test_equipage_nombreux_dans_les_vagues() -> void:
 
 
 func test_instantane_du_quai_tient_dans_un_paquet_wifi() -> void:
-	# quai à deux, malédiction 2 : au plus plafond - 1 + une vague de 5 debout, plus 3 vaincus
+	# quai à deux, malédiction 2 : au plus plafond - 1 + une vague de 5 debout, plus 3 vaincus ; parmi les
+	# debout, 2 squelettes relevés par le Grimoire du Pendu (ils comptent pour le plafond : relecture j4)
 	var gen := _generateur()
 	var debout := EQ.chaloupe_max_debout - 1 + EQ.chaloupe_vague_coop + 1
 	for i in debout + 3:
-		var x := Ennemi.creer_type(&"arbaletrier" if i % 4 == 0 else &"matelot", true)
+		var x := Ennemi.creer_type(&"allie" if i in [5, 6] else (&"arbaletrier" if i % 4 == 0 else &"matelot"), true)
 		x.name = "%s_%d" % [Ennemi.PREFIXES[x.type_ennemi()], 100 + i]
 		x.position = Vector3(i - 7, 0, 2)
 		gen.add_child(x)

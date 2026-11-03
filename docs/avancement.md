@@ -20,6 +20,7 @@ Dernière mise à jour : 1er novembre 2026.
   relecture de fin de jalon puis APK 0.3.14.
 - **Jalon 4, étape 1 (butin au sol, façon Diablo) : faite**, APK 0.3.15.
 - **Jalon 4, étape 2 (sauvegarde, équipement, effets en combat, arme en main, objets uniques) : faite**, APK 0.4.17.
+- **Jalon 4, étape 3 (tri de la cale, revente, extraction d'urgence) : faite** ; relecture de fin de jalon corrigée.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -398,12 +399,32 @@ Aucun plantage ni blocage trouvé. Corrigé (chaque correction a un test qui éc
   cri à mi-vie (et appelle son équipage) ; « Os durcis » s'applique aussi au Bosco (combat plus long) ; à deux,
   un seul héros debout à bord suffit pour partir ; l'équipage qui s'effondre peut lâcher des orbes.
 
+## Relecture de fin du jalon 4 (agent relecteur) et corrections — 03/11
+- Geste ou bouton « retour » d'Android : il abandonnait l'expédition d'un seul geste (tout le sac perdu). Il fait
+  maintenant comme le bouton Menu (deux appuis) ; pendant le tri, il charge la cale ; après la fin, menu.
+- Extraction d'urgence : un invité **à terre** quand l'hôte part perd tout (comme un héros seul à terre) ; une
+  coupure due à **sa propre pause** (appli en arrière-plan plus de 3 s) est un abandon (conception : « fermer
+  l'appli en raid = abandon »).
+- Quai de la chaloupe : les squelettes relevés (Grimoire du Pendu) comptent pour le plafond des vagues (sinon
+  l'instantané dépassait un paquet Wi-Fi).
+- Eau de la Lame du Noyé, épines, coups des squelettes relevés : « coups discrets » (chiffre affiché, ni arrêt sur
+  image, ni secousse, ni figeage) ; sinon une traînée d'eau sous une horde figeait le jeu toutes les 0,5 s.
+  Réseau version 10.
+- Tri de la cale : une simple mise en arrière-plan (appel, notifications) ne valide plus le tri ; la sélection est
+  notée dans la sauvegarde et encaissée au lancement suivant si Android a fermé l'appli entre-temps.
+- La Flasque ne soigne plus sur le quai ; un squelette relevé ne ressort plus dans la salle suivante ; plus de
+  salle jouée derrière l'écran de fin (extraction pendant un fondu).
+- Doutes du relecteur, corrigés aussi : le Sablier marche pour l'Occultiste (sa téléportation dure 0,12 s mais
+  son invulnérabilité 0,3 s) ; un squelette vaincu ne revient jamais à la vie (épines qui tuent le Bosco en
+  pleine charge) ; copie de secours de la sauvegarde par renommage (rien n'est réécrit) ; équipement relu
+  vérifié (objet existant, à sa place, porté une seule fois).
+- Question à Téo : peut-on porter deux fois le même objet unique (deux Talismans : +80 % de dégâts) ?
+- Tests : 256 en tout ; 18 nouveaux pour la relecture (`test_relecture_j4.gd`), vérifiés par sabotage.
+
 ## Prochaines étapes
-1. Essai de Téo de l'étape 2 (équipement, objets uniques grâce aux « Coffres de test », sauvegarde : fermer
-   l'appli, rien n'est perdu).
-2. Jalon 4, étape 3 : tri de la cale (8 objets), relecture de fin de jalon, APK. À y régler aussi : l'hôte qui
-   part en pleine expédition (conception : « extraction d'urgence » de l'invité, butin gardé dans la limite
-   de la cale ; aujourd'hui l'invité revient au menu sans rien).
+1. Essai de Téo du jalon 4 complet (butin, équipement, objets uniques grâce aux « Coffres de test », tri de la
+   cale, sauvegarde : fermer l'appli, rien n'est perdu ; à deux : extraction d'urgence).
+2. Jalon 5 : repaire et bateau (le butin dépensé change la suite).
 
 ## Points à trancher plus tard
 - Clé de signature définitive : passer à la vraie clé (secrète) **avant** que les sauvegardes comptent,

@@ -38,6 +38,10 @@ var id_expedition := ""           ## propre à ce téléphone : l'expédition n'
 var tri_en_cours := false         ## tri de la cale à l'écran (fin d'une expédition réussie, sac trop plein)
 var _lignes_fin: Array = []
 var _titre_fin := ""
+var _en_pause := false            ## appli en arrière-plan en ce moment
+var _pause_debut_ms := 0          ## (temps réel)
+var _pause_fin_ms := -100000      ## fin de la dernière pause, et sa durée
+var _pause_duree_ms := 0
 var chaloupe_restant := -1.0      ## secondes avant le départ (-1 : personne n'est encore monté) ; invité : d'après l'hôte
 var a_bord := false               ## au moins un héros debout dans la chaloupe
 var vagues_lancees := 0
@@ -223,10 +227,10 @@ func _message(texte: String, duree: float) -> void:
 
 
 func _on_salle_videe() -> void:
-	for h in heros_actifs():   # Flasque de rhum : des PV rendus à chaque salle nettoyée
-		if h.b("flasque") > 0.0 and h.est_vivant():
-			EventBus.soin.emit(h, h.sante.soigner(h.sante.pv_max * h.b("flasque")))
 	if type_salle in [PlanExpedition.COMBAT, PlanExpedition.BOSCO, PlanExpedition.PIEGE]:
+		for h in heros_actifs():   # Flasque de rhum : des PV rendus à chaque salle nettoyée (pas le quai)
+			if h.b("flasque") > 0.0 and h.est_vivant():
+				EventBus.soin.emit(h, h.sante.soigner(h.sante.pv_max * h.b("flasque")))
 		_ouvrir_portes()
 		var coop := is_instance_valid(heros_partenaire)
 		hud.afficher_message("Salle nettoyée !\nChoisissez une porte… ensemble" if coop else "Salle nettoyée !\nChoisis ta porte", 2.5)
@@ -284,6 +288,8 @@ func _transition(n: int, t: StringName, m: String, ps: Array) -> void:
 
 
 func _changer_de_salle(n: int, t: StringName, m: String, ps: Array) -> void:
+	if finie:
+		return   # (extraction d'urgence pendant le fondu : la salle suivante ne se joue pas derrière l'écran de fin)
 	_construire_salle(n, t, m, ps)
 	var coop := Reseau.est_en_coop()
 	var a_placer := [heros] if Reseau.est_invite() else heros_actifs()
@@ -387,7 +393,7 @@ func _verifier_chaloupe(delta: float) -> void:
 	var ecoule := EQ.chaloupe_duree - chaloupe_restant
 	# une vague attend que le quai se vide un peu (instantané de la coop sous un paquet Wi-Fi, téléphone)
 	while vagues_lancees < EQ.chaloupe_vagues and ecoule >= vagues_lancees * EQ.chaloupe_duree / EQ.chaloupe_vagues \
-			and generateur.vivants() < EQ.chaloupe_max_debout:
+			and generateur.vivants() + generateur.allies() < EQ.chaloupe_max_debout:   # (relevés compris)
 		_lancer_vague(vagues_lancees)
 		vagues_lancees += 1
 	salle.houle = clampf(ecoule / EQ.chaloupe_duree, 0.0, 1.0)
@@ -532,12 +538,10 @@ func _mon_sac() -> Dictionary:
 func _charger_la_cale(gardes: Array) -> void:
 	tri_en_cours = false
 	var sac := _mon_sac()
-	var ids := gardes.map(func(o): return o["id"])
-	var revendus: Array = sac["objets"].filter(func(o): return not o["id"] in ids) if reussite else []
-	var revente := 0
-	for o in revendus:
-		revente += Butin.prix_revente(o)
-	var doublons: int = sac["doublons"] + revente if reussite else 0
+	var bilan := _bilan_cale(gardes)
+	var revendus: Array = bilan["revendus"]
+	var revente: int = bilan["revente"]
+	var doublons: int = bilan["doublons"]
 	var lignes_fin := _lignes_fin.duplicate()
 	if reussite:
 		lignes_fin.insert(1, "Butin rapporté : %s et %d doublons" % [_objets(gardes.size()), doublons])
@@ -545,21 +549,58 @@ func _charger_la_cale(gardes: Array) -> void:
 			lignes_fin.insert(2, "Revendus faute de place : %s, +%d doublons" % [_objets(revendus.size()), revente])
 	else:
 		lignes_fin.insert(1, "Butin perdu : %s et %d doublons" % [_objets(sac["objets"].size()), sac["doublons"]])
-	Sauvegarde.encaisser(id_expedition, gardes, doublons, {"reussite": reussite, "heros": String(Partie.heros_local),
-			"malediction": Malediction.niveau(), "revendus": revendus.size()})
+	Sauvegarde.encaisser(id_expedition, gardes, doublons, _resume_fin(revendus.size()))
 	hud.afficher_resultats(reussite, lignes_fin, gardes, _titre_fin)
+
+
+## Ce que rapporte la cale chargée de `gardes` : les autres objets du sac revendus, leurs doublons.
+func _bilan_cale(gardes: Array) -> Dictionary:
+	var sac := _mon_sac()
+	var ids := gardes.map(func(o): return o["id"])
+	var revendus: Array = sac["objets"].filter(func(o): return not o["id"] in ids) if reussite else []
+	var revente := 0
+	for o in revendus:
+		revente += Butin.prix_revente(o)
+	return {"revendus": revendus, "revente": revente, "doublons": sac["doublons"] + revente if reussite else 0}
+
+
+func _resume_fin(nb_revendus: int) -> Dictionary:
+	return {"reussite": reussite, "heros": String(Partie.heros_local), "malediction": Malediction.niveau(),
+			"revendus": nb_revendus}
 
 
 static func _objets(n: int) -> String:
 	return "%d objet%s" % [n, "s" if n > 1 else ""]
 
 
-## L'appli qui se ferme (ou passe en arrière-plan) pendant le tri de la cale : la sélection en cours est
-## gardée (on ne perd pas une expédition réussie). (Le bouton retour d'Android passe par retour_menu ;
-## `_notification` d'Arene est aussi appelé, tout seul : Godot l'appelle pour chaque classe.)
+## Pendant le tri de la cale : l'appli qui se ferme valide la sélection en cours ; l'appli qui passe en
+## arrière-plan (appel, notifications) ne valide rien, mais la sélection est notée dans la sauvegarde :
+## si Android ferme l'appli pour de bon, elle sera encaissée au lancement suivant ; sinon, au retour, le
+## tri est toujours là. Les pauses sont aussi notées (extraction d'urgence : voir _extraction_urgence).
+## (`_notification` d'Arene est aussi appelé, tout seul : Godot l'appelle pour chaque classe.)
 func _notification(what: int) -> void:
-	if tri_en_cours and (what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST):
+	if what == NOTIFICATION_APPLICATION_PAUSED:
+		_en_pause = true
+		_pause_debut_ms = Time.get_ticks_msec()
+		if tri_en_cours:
+			var gardes := hud.gardes_tri()
+			var bilan := _bilan_cale(gardes)
+			Sauvegarde.noter_tri_en_attente(id_expedition, gardes, bilan["doublons"], _resume_fin(bilan["revendus"].size()))
+	elif what == NOTIFICATION_APPLICATION_RESUMED and _en_pause:
+		_en_pause = false
+		_pause_fin_ms = Time.get_ticks_msec()
+		_pause_duree_ms = _pause_fin_ms - _pause_debut_ms
+	elif what == NOTIFICATION_WM_CLOSE_REQUEST and tri_en_cours:
 		hud.valider_tri()
+
+
+## Bouton ou geste « retour » d'Android (relecture : il abandonnait l'expédition d'un seul geste) : comme le
+## bouton Menu (deux appuis pour abandonner ; après l'écran de fin, un seul) ; pendant le tri, il charge la cale.
+func _retour_demande() -> void:
+	if tri_en_cours:
+		hud.valider_tri()
+	else:
+		hud._demander_menu()
 
 
 ## Retour au menu pendant le tri de la cale : la sélection en cours est gardée.
@@ -739,6 +780,10 @@ func _on_partenaire_parti(raison: String) -> void:
 ## Invité : l'hôte est parti en pleine expédition (Wi-Fi coupé, appli fermée). Choix de Téo, comme prévu
 ## dans la conception : extraction d'urgence, l'invité garde son sac (dans la limite de la cale).
 ## (Son téléphone ne peut pas savoir si c'est l'hôte qui est parti ou son propre Wi-Fi qui a coupé.)
+##
+## Sauf (relecture) : à terre, il perd tout, comme un héros seul à terre ; et si la coupure vient de sa
+## propre pause (appli en arrière-plan plus de 3 s : l'hôte ne l'entendait plus), c'est un abandon
+## (conception : « fermer l'appli en raid = abandon »).
 func _extraction_urgence(raison: String) -> void:
 	if synchro:
 		synchro.queue_free()
@@ -748,4 +793,17 @@ func _extraction_urgence(raison: String) -> void:
 	hud.heros_partenaire = null
 	hud.alerte("")
 	effets.en_coop = false
-	_afficher_fin(true, [raison], {}, "Extraction d'urgence !")
+	if _coupure_pendant_une_pause():
+		_afficher_fin(false, ["La connexion a été perdue pendant que le jeu était en pause.",
+				"Quitter le jeu en pleine expédition, c'est l'abandonner."])
+	elif not heros.est_vivant():
+		_afficher_fin(false, [raison, "Tu étais à terre : l'expédition est perdue."])
+	else:
+		_afficher_fin(true, [raison], {}, "Extraction d'urgence !")
+
+
+## La coupure arrive pendant une pause de l'appli, ou juste après une pause de plus de 3 s.
+func _coupure_pendant_une_pause() -> bool:
+	if _en_pause:
+		return true
+	return _pause_duree_ms >= 3000 and Time.get_ticks_msec() - _pause_fin_ms < 10000

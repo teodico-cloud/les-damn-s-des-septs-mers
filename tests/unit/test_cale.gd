@@ -144,12 +144,12 @@ func test_l_appli_se_ferme_pendant_le_tri() -> void:
 	_remplir(e)
 	e._terminer(true)
 	e.hud.basculer_tri("lame_du_noye_3_4")   # (décoché juste avant de fermer)
-	e.notification(Node.NOTIFICATION_APPLICATION_PAUSED)
+	e.notification(Node.NOTIFICATION_WM_CLOSE_REQUEST)   # (l'appli se ferme ; la mise en pause : test_relecture_j4)
 	assert_false(e.tri_en_cours)
 	var ids := Sauvegarde.objets().map(func(o): return o["id"])
 	assert_eq(ids.size(), EQ.cale_places - 1, "La sélection en cours est gardée")
 	assert_false("lame_du_noye_3_4" in ids)
-	e.notification(Node.NOTIFICATION_APPLICATION_PAUSED)
+	e.notification(Node.NOTIFICATION_WM_CLOSE_REQUEST)
 	assert_eq(Sauvegarde.objets().size(), EQ.cale_places - 1, "Une seule fois")
 
 

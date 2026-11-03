@@ -42,6 +42,7 @@ var objets_equipes: Array = []
 var bonus := {}
 var _arme_equipee: Node3D
 var _sablier_pret := false   ## Sablier de la Marée : une seule fois par esquive
+var _debut_esquive := -10.0  ## heure (horloge du héros) de la dernière esquive
 
 var _t := 0.0               ## temps passé dans l'état courant
 var _direction := Vector3.BACK   ## direction de l'action en cours
@@ -268,6 +269,7 @@ func _changer(nouvel: Etat) -> void:
 	_t = 0.0
 	if nouvel == Etat.ESQUIVE:
 		_sablier_pret = true
+		_debut_esquive = horloge
 	etat_change.emit(etat)
 
 
@@ -386,8 +388,8 @@ func recevoir_coup(degats: float, source: Node3D, _lourd: bool, _critique := fal
 		return 0.0
 	if _intercepter_coup(source):
 		return 0.0
-	if etat == Etat.ESQUIVE and sante.est_invulnerable():
-		_esquive_au_dernier_moment(source)
+	if sante.est_invulnerable() and (etat == Etat.ESQUIVE or horloge - _debut_esquive <= _invulnerabilite_esquive()):
+		_esquive_au_dernier_moment(source)   # (la téléportation ne dure que 0,12 s, son invulnérabilité 0,3 s)
 	var reel := sante.subir(degats * Malediction.mult_degats_recus(source), source)
 	if reel <= 0.0:
 		return 0.0
@@ -404,12 +406,19 @@ func recevoir_coup(degats: float, source: Node3D, _lourd: bool, _critique := fal
 	return reel
 
 
+## Durée d'invulnérabilité que donne l'esquive (roulade, téléportation) : le Sablier joue jusqu'au bout.
+func _invulnerabilite_esquive() -> float:
+	return EQ.esquive_invulnerabilite
+
+
 ## Épines : une part d'un coup reçu au corps-à-corps est rendue au squelette qui l'a porté.
 func _renvoyer_epines(source: Node3D, reel: float) -> void:
 	if b("epines") <= 0.0 or not (source is Ennemi) or not is_instance_valid(source) or not source.est_vivant():
 		return
 	if source.global_position.distance_to(global_position) <= EQ.equip_portee_epines:
+		Combat.coup_discret = true
 		source.recevoir_coup(reel * b("epines"), self, false)
+		Combat.coup_discret = false
 
 
 ## Sablier de la Marée : un coup esquivé (roulade, téléportation) fige les squelettes autour, une fois

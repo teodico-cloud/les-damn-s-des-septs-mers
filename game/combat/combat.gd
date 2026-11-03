@@ -11,6 +11,10 @@ const COUCHE_ENNEMIS := 4
 static var _sphere := SphereShape3D.new()
 ## Tests : chance de coup critique imposée (0 = jamais, 1 = toujours) ; -1 = celle de l'équilibrage.
 static var chance_critique := -1.0
+## Vrai pendant un coup « discret » (eau de la Lame du Noyé, épines, squelette relevé) : son chiffre
+## s'affiche, mais ni arrêt sur image, ni figeage, ni secousse (EffetsCombat). Sinon une traînée d'eau
+## sous une horde figerait le jeu toutes les demi-secondes.
+static var coup_discret := false
 
 
 ## Renvoie les combattants (nœuds ayant recevoir_coup) dont la collision touche la sphère.
@@ -54,6 +58,14 @@ static func porter_coup(attaquant: Node3D, cible: Node3D, degats: float, lourd: 
 	var reel: float = cible.recevoir_coup(degats, attaquant, lourd, critique)
 	if heros and reel > 0.0 and not (cible is Heros) and heros.b("vol_de_vie") > 0.0 and heros.est_vivant():
 		heros.sante.soigner(reel * heros.b("vol_de_vie"))
+	return reel
+
+
+## Un coup discret (voir coup_discret) : mêmes règles que porter_coup, ni critique forcé ni lourd.
+static func porter_coup_discret(attaquant: Node3D, cible: Node3D, degats: float) -> float:
+	coup_discret = true
+	var reel := porter_coup(attaquant, cible, degats, false)
+	coup_discret = false
 	return reel
 
 

@@ -49,12 +49,30 @@ static func _vide() -> Dictionary:
 func charger() -> void:
 	restauree = false
 	var d = _lire(chemin)
+	if d == null and not FileAccess.file_exists(chemin):
+		d = _lire(chemin + ".tmp")   # (coupure entre les deux renommages : le nouveau fichier, déjà vérifié)
 	if d == null:
 		d = _lire(chemin + ".bak")
 		restauree = d != null and FileAccess.file_exists(chemin)
 	donnees = convertir(d) if d is Dictionary else profil_neuf()
 	if restauree:
 		enregistrer()   # le fichier abîmé est remplacé par la copie de secours
+	_finir_tri_en_attente()
+
+
+## Tri de la cale noté pendant une pause, et l'appli fermée par Android avant la fin du tri : la
+## sélection d'alors est encaissée maintenant (une seule fois, comme toute expédition).
+func _finir_tri_en_attente() -> void:
+	var t = donnees.get("tri_en_attente")
+	if t is Dictionary:
+		encaisser(t["id"], t["objets"], t["doublons"], t["resume"])
+
+
+## Pendant le tri de la cale, l'appli passe en arrière-plan : la sélection du moment est notée.
+func noter_tri_en_attente(id_expedition: String, gardes: Array, p_doublons: int, resume: Dictionary) -> void:
+	donnees["tri_en_attente"] = {"id": id_expedition, "objets": gardes.map(func(o): return normaliser(o)),
+			"doublons": p_doublons, "resume": resume.duplicate()}
+	enregistrer()
 
 
 ## Repart d'un profil neuf (tests, ou plus tard « effacer la partie »).
@@ -96,6 +114,26 @@ static func convertir(d: Dictionary) -> Dictionary:
 	for h in d.get("historique", []):
 		if h is Dictionary:
 			r["historique"].append(h)
+	# un objet porté doit exister, aller à sa place, et n'être porté qu'une fois (fichier abîmé ou modifié)
+	var portes := {}
+	for h in ["bretteur", "occultiste"]:
+		for e in Equipement.EMPLACEMENTS:
+			var id: String = r["equipement"][h][e]
+			if id == "":
+				continue
+			var o := {}
+			for x in r["objets"]:
+				if x["id"] == id:
+					o = x
+			if o.is_empty() or portes.has(id) or not Equipement.convient(o, StringName(h), e):
+				r["equipement"][h][e] = ""
+			else:
+				portes[id] = true
+	var t = d.get("tri_en_attente")
+	if t is Dictionary and t.get("objets") is Array and t.has("id"):
+		r["tri_en_attente"] = {"id": String(t["id"]), "doublons": maxi(int(t.get("doublons", 0)), 0),
+				"objets": t["objets"].filter(func(o): return o is Dictionary and o.has("id")).map(func(o): return normaliser(o)),
+				"resume": t.get("resume", {}) if t.get("resume") is Dictionary else {}}
 	r["version"] = VERSION
 	return r
 
@@ -126,7 +164,9 @@ func enregistrer() -> bool:
 		push_warning("Sauvegarde : relecture ratée, ancien fichier gardé")
 		return false
 	if FileAccess.file_exists(chemin) and _lire(chemin) != null:
-		DirAccess.copy_absolute(chemin, chemin + ".bak")   # copie de secours (seulement d'un fichier sain)
+		# l'ancien fichier devient la copie de secours (renommé, pas recopié : rien n'est réécrit, et une
+		# coupure de courant ne peut abîmer les deux à la fois ; un fichier abîmé ne la remplace jamais)
+		DirAccess.rename_absolute(chemin, chemin + ".bak")
 	if DirAccess.rename_absolute(temporaire, chemin) != OK:
 		DirAccess.remove_absolute(chemin)
 		if DirAccess.rename_absolute(temporaire, chemin) != OK:
@@ -156,7 +196,13 @@ func objet(id: String) -> Dictionary:
 ## Fin d'une expédition : son butin rejoint les coffres, une seule fois par expédition (anti-doublon).
 ## Renvoie faux si cette expédition était déjà encaissée.
 func encaisser(id_expedition: String, nouveaux: Array, p_doublons: int, resume := {}) -> bool:
+	var attente_finie := false
+	if donnees.get("tri_en_attente", {}).get("id", "") == id_expedition:
+		donnees.erase("tri_en_attente")   # (le tri noté pendant une pause est fini)
+		attente_finie = true
 	if id_expedition in donnees["expeditions"]:
+		if attente_finie:
+			enregistrer()
 		return false
 	donnees["expeditions"].append(id_expedition)
 	while donnees["expeditions"].size() > MAX_EXPEDITIONS:
