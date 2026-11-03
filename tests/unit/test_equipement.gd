@@ -547,3 +547,25 @@ func test_l_invite_voit_l_eau_et_le_sablier() -> void:
 	assert_eq(monde.get_children().filter(func(c): return c is FlaqueNoyee).size(), 1, "La nôtre est déjà montrée par notre roulade")
 	s._effet_recu("HerosInvite", "sablier", Vector3(0, 0, 0))
 	assert_eq(monde.get_child_count(), avant + 2, "Le cercle du Sablier, même pour notre héros (décidé par l'hôte)")
+
+
+## (Trouvé par l'essai coop du CI : deux squelettes sortis de terre l'un dans l'autre, contre un mur, se
+## repoussaient d'un coup en sortant, 0,5 m en une image. Ils sortent maintenant écartés.)
+func test_les_squelettes_sortent_ecartes() -> void:
+	var gen := GenerateurEnnemis.new()
+	gen.demarrage_auto = false
+	gen.nombre = 0
+	gen.demi_cote = 2.2   # petite salle : les groupes s'y serrent contre les murs
+	monde.add_child(gen)
+	var plus_proche := INF
+	for essai in 15:
+		for e in gen.get_children():
+			gen.remove_child(e)
+			e.free()
+		gen._groupes(4)
+		var liste := gen.get_children()
+		for i in liste.size():
+			for j in range(i + 1, liste.size()):
+				var d := Vector2(liste[i].position.x - liste[j].position.x, liste[i].position.z - liste[j].position.z).length()
+				plus_proche = minf(plus_proche, d)
+	assert_gte(plus_proche, GenerateurEnnemis.ECART_MIN - 0.001, "Jamais l'un dans l'autre (au plus près : %.2f m)" % plus_proche)

@@ -259,6 +259,10 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Riposte : elle atteint l'ennemi paré jusqu'à `Ennemi.portee_riposte()` (3 m, Bosco ~5,6 m). Un ennemi qui
   frappe de loin doit l'augmenter, sinon la parade réussit mais la riposte frappe dans le vide.
 - « Salle vidée » ne part qu'une fois par salle (`GenerateurEnnemis._videe`).
+- Squelettes qui sortent de terre : jamais l'un dans l'autre (`GenerateurEnnemis._ecarter`, 1 m au moins) ;
+  deux corps qui se chevauchent se repoussent d'un coup quand leur collision s'active (saut de 0,5 m en une
+  image, vu par l'essai coop « affichage fluide »). Une nouvelle façon de faire apparaître des squelettes en
+  groupe doit passer par `_ecarter`.
 - Butin : tiré à chaque `EventBus.ennemi_vaincu` (hôte ou seul). À deux, celui de l'invité existe aussi chez
   l'hôte, **invisible** (l'hôte décide du ramassage) ; l'invité reçoit le sien par `envoyer_lieu("butin")`.
   Un objet ne se ramasse qu'une fois retombé (`ObjetAuSol.pose`) : dans un test, le mettre à `true` plutôt

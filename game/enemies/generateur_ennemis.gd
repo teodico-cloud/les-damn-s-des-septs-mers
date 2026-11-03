@@ -27,6 +27,7 @@ var _videe := false            ## « salle vidée » déjà annoncé pour cette 
 var a_venir: Array[StringName] = []   ## types des prochains ennemis (vide : des matelots)
 var tombes: Array[Dictionary] = []    ## {pos, type, etat : 0 libre, 1 réservée par un prêtre, 2 relevée}
 var _rng := RandomNumberGenerator.new()
+const ECART_MIN := 1.0   ## mètres entre deux squelettes qui sortent de terre (ils font 0,9 m de large)
 
 
 func _ready() -> void:
@@ -130,8 +131,34 @@ func _groupes(n: int) -> void:
 			var p := centre + Vector3(cos(a), 0, sin(a)) * (EQ.arene_rayon_groupe if taille > 1 else 0.0)
 			p.x = clampf(p.x, -demi_cote, demi_cote)
 			p.z = clampf(p.z, -demi_cote, demi_cote)
-			_faire_apparaitre(p)
+			_faire_apparaitre(_ecarter(p))
 		n -= taille
+
+
+## Une place à côté de `p` où le squelette ne chevauche personne. Deux squelettes sortis de terre l'un
+## dans l'autre (groupe serré contre un mur, ou sur un squelette encore debout) se repoussaient d'un coup
+## en sortant (vu : 0,5 m en une image, chez l'hôte comme chez l'invité).
+func _ecarter(p: Vector3) -> Vector3:
+	if _place_libre(p):
+		return p
+	for r: float in [0.5, 0.9, 1.3]:
+		var depart := _rng.randf() * TAU
+		for k in 8:
+			var a := depart + TAU * k / 8.0
+			var q := p + Vector3(cos(a), 0, sin(a)) * r
+			q.x = clampf(q.x, -demi_cote, demi_cote)
+			q.z = clampf(q.z, -demi_cote, demi_cote)
+			if _place_libre(q):
+				return q
+	return p
+
+
+func _place_libre(p: Vector3) -> bool:
+	for e in get_children():
+		if e is Ennemi and e.etat != Ennemi.Etat.MORT and not e.is_queued_for_deletion() and not e.allie:
+			if Vector2(e.position.x - p.x, e.position.z - p.z).length() < ECART_MIN:
+				return false
+	return true
 
 
 func _faire_apparaitre(position_voulue := Vector3.INF, type: StringName = &"") -> Ennemi:

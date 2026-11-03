@@ -191,7 +191,11 @@ Matelots squelettes qui reviennent sans fin.
 - Petits choix faits sans Téo, à lui signaler : les armes uniques ont aussi l'effet de base d'une arme Épique
   (Lame du Noyé +15 % de dégâts, Grimoire du Pendu −30 % de recharge des sorts) ; le Talisman laisse les orbes
   au partenaire ; le vol de vie soigne sans afficher de chiffre ; « Coffres de test » ajouté au mode test.
-- Tests : 226 en tout, dont 29 nouveaux (vérifiés par sabotage : 58 sabotages, tous vus) ; essais coop (arène et expédition) étendus :
+- Défaut ancien trouvé par l'essai coop du CI (première fabrication de l'étape 2 refusée) : deux squelettes
+  sortis de terre l'un dans l'autre (groupe serré contre un mur, ou sur un squelette debout) se repoussaient
+  d'un coup en sortant (0,5 à 0,6 m en une image, chez l'hôte comme chez l'invité). Corrigé : ils sortent
+  écartés d'au moins 1 m (`GenerateurEnnemis._ecarter`) ; mesuré ensuite : 0,05 m par image au plus.
+- Tests : 227 en tout, dont 30 nouveaux (vérifiés par sabotage : 59 sabotages, tous vus) ; essais coop (arène et expédition) étendus :
   chacun voit l'arme et les PV max du héros de l'autre.
 
 ## Combat « nerveux » (30/10, demande de Téo : « vraiment Diablo like »)

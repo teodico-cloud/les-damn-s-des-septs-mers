@@ -284,6 +284,7 @@ func _invite() -> void:
 	var hors_salle := 0.0
 	var avant := {}
 	var plus_grand_saut := 0.0
+	var quoi_saute := ""
 	while Time.get_ticks_msec() - debut < 12500:
 		if Time.get_ticks_msec() - debut < 4000:
 			h.commandes.demander(&"attaque", h.horloge)
@@ -308,9 +309,12 @@ func _invite() -> void:
 				continue
 			var p: Vector3 = n.global_position
 			if avant.has(n.name) and n.get("etat") != 0:   # 0 : sortie de terre (apparition sur place)
-				plus_grand_saut = maxf(plus_grand_saut, (p - avant[n.name]).length())
+				var saut: float = (p - avant[n.name]).length()
+				if saut > plus_grand_saut:
+					plus_grand_saut = saut
+					quoi_saute = "%s (état %s) à %.1f s" % [n.name, n.get("etat"), (Time.get_ticks_msec() - debut) / 1000.0]
 			avant[n.name] = p
-	print("MESURE invite fluidite plus_grand_saut_par_image=%.3f m recalages=%d plus_grand_recalage=%.2f m" % [plus_grand_saut, arene.synchro.recalages, arene.synchro.plus_grand_recalage])
+	print("MESURE invite fluidite plus_grand_saut_par_image=%.3f m (%s) recalages=%d plus_grand_recalage=%.2f m" % [plus_grand_saut, quoi_saute, arene.synchro.recalages, arene.synchro.plus_grand_recalage])
 	# (un recul de coup lourd va jusqu'à ~0,1 m par image ; un vrai saut de recalage ferait des mètres)
 	_verifier(plus_grand_saut < 0.4, "affichage fluide du monde de l'hôte (saut max %.2f m par image)" % plus_grand_saut)
 	_verifier(fois_a_terre >= 1, "l'hôte a mis notre héros à terre (vu chez nous)")
