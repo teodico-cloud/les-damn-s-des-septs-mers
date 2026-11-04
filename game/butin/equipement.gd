@@ -55,6 +55,25 @@ static func bonus(objets: Array) -> Dictionary:
 	return r
 
 
+## Objet unique (légendaire ou maudit) : un héros n'en porte qu'un exemplaire (choix de Téo du 04/11 ;
+## l'autre héros peut porter l'autre exemplaire).
+static func est_unique(objet: Dictionary) -> bool:
+	return Butin.UNIQUES.has(String(objet.get("base", "")))
+
+
+## Les objets portés, sans un 2e exemplaire d'un même objet unique (le premier est gardé).
+static func sans_double_unique(objets: Array) -> Array:
+	var vus := {}
+	var r := []
+	for o in objets:
+		if o is Dictionary and est_unique(o):
+			if vus.has(o["base"]):
+				continue
+			vus[o["base"]] = true
+		r.append(o)
+	return r
+
+
 ## L'objet va-t-il à cet emplacement de ce héros ? (arme : celles du héros ; reliques : toutes)
 static func convient(objet: Dictionary, heros: StringName, emplacement: String) -> bool:
 	var def := Butin.definition(objet)

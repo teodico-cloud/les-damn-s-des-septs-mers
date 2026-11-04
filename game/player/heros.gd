@@ -91,7 +91,7 @@ func avant() -> Vector3:
 ## Équipe le héros : les objets portés (arme, reliques). Avant add_child, ou plus tard (ses PV max et
 ## l'arme dans sa main suivent). En coop, chaque téléphone équipe les deux héros pareil (Reseau).
 func equiper(objets: Array) -> void:
-	objets_equipes = objets.duplicate(true)
+	objets_equipes = Equipement.sans_double_unique(objets).duplicate(true)   # (un objet unique ne compte qu'une fois)
 	bonus = Equipement.bonus(objets_equipes)
 	recharge_esquive.duree = recharge_esquive.base * (1.0 - reduction_recharge(b("recharge_esquive")))
 	recharge_competence_1.duree = recharge_competence_1.base * (1.0 - reduction_recharge(_reduction_competences()))

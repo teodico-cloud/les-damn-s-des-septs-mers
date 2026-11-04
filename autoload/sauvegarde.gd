@@ -114,9 +114,11 @@ static func convertir(d: Dictionary) -> Dictionary:
 	for h in d.get("historique", []):
 		if h is Dictionary:
 			r["historique"].append(h)
-	# un objet porté doit exister, aller à sa place, et n'être porté qu'une fois (fichier abîmé ou modifié)
+	# un objet porté doit exister, aller à sa place, et n'être porté qu'une fois (fichier abîmé ou modifié) ;
+	# un même objet unique, une fois par héros (deux Talismans portés avec l'APK 0.4.18 : le 2e est retiré)
 	var portes := {}
 	for h in ["bretteur", "occultiste"]:
+		var uniques := {}
 		for e in Equipement.EMPLACEMENTS:
 			var id: String = r["equipement"][h][e]
 			if id == "":
@@ -125,10 +127,13 @@ static func convertir(d: Dictionary) -> Dictionary:
 			for x in r["objets"]:
 				if x["id"] == id:
 					o = x
-			if o.is_empty() or portes.has(id) or not Equipement.convient(o, StringName(h), e):
+			if o.is_empty() or portes.has(id) or not Equipement.convient(o, StringName(h), e) \
+					or (Equipement.est_unique(o) and uniques.has(o["base"])):
 				r["equipement"][h][e] = ""
 			else:
 				portes[id] = true
+				if Equipement.est_unique(o):
+					uniques[o["base"]] = true
 	var t = d.get("tri_en_attente")
 	if t is Dictionary and t.get("objets") is Array and t.has("id"):
 		r["tri_en_attente"] = {"id": String(t["id"]), "doublons": maxi(int(t.get("doublons", 0)), 0),
@@ -258,7 +263,8 @@ func ou_est_porte(id: String) -> Array:
 
 
 ## Équipe un objet des coffres. Un objet n'est porté qu'à un seul endroit à la fois : déjà porté
-## ailleurs (autre relique, autre héros), il y est retiré. Renvoie faux si l'objet ne va pas là.
+## ailleurs (autre relique, autre héros), il y est retiré. Un objet unique ne se porte qu'une fois par
+## héros : l'autre exemplaire que porte ce héros est retiré. Renvoie faux si l'objet ne va pas là.
 func equiper(heros: StringName, emplacement: String, id: String) -> bool:
 	var o := objet(id)
 	if o.is_empty() or not Equipement.convient(o, heros, emplacement):
@@ -266,10 +272,24 @@ func equiper(heros: StringName, emplacement: String, id: String) -> bool:
 	var ancien := ou_est_porte(id)
 	if not ancien.is_empty():
 		donnees["equipement"][String(ancien[0])][ancien[1]] = ""
+	var double := emplacement_du_meme_unique(heros, o, emplacement)
+	if double != "":
+		donnees["equipement"][String(heros)][double] = ""
 	donnees["equipement"][String(heros)][emplacement] = id
 	enregistrer()
 	changee.emit()
 	return true
+
+
+## L'autre emplacement où ce héros porte déjà un autre exemplaire du même objet unique ("" sinon).
+func emplacement_du_meme_unique(heros: StringName, o: Dictionary, sauf: String) -> String:
+	if not Equipement.est_unique(o):
+		return ""
+	for e in Equipement.EMPLACEMENTS:
+		var p := porte(heros, e)
+		if e != sauf and not p.is_empty() and p["id"] != o.get("id") and p["base"] == o.get("base"):
+			return e
+	return ""
 
 
 func retirer(heros: StringName, emplacement: String) -> void:

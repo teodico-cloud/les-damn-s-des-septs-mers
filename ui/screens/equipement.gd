@@ -134,6 +134,8 @@ func _ligne_objet(o: Dictionary) -> Button:
 			etiquette = "   (autre relique)"
 		else:
 			etiquette = "   (porté par %s)" % NOMS_HEROS[ou[0]].to_lower()
+	elif Sauvegarde.emplacement_du_meme_unique(heros_affiche, o, emplacement) != "":
+		etiquette = "   (en double)"
 	b.text = "  " + Butin.nom(o) + etiquette
 	b.add_theme_font_size_override("font_size", 24)
 	for etat in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
@@ -163,11 +165,17 @@ func _remplir_fiche() -> void:
 	var est_porte: bool = not porte.is_empty() and porte["id"] == selection["id"]
 	if not est_porte:
 		var portes := Sauvegarde.portes(heros_affiche)
+		var avant := Equipement.bonus(portes.values())   # (ce que donne l'équipement porté maintenant)
 		# (un objet déjà porté à l'autre emplacement de relique y serait retiré : la comparaison en tient compte)
 		var ou := Sauvegarde.ou_est_porte(selection["id"])
 		if not ou.is_empty() and ou[0] == heros_affiche:
 			portes[ou[1]] = {}
-		var comparaison := Equipement.comparer(Equipement.bonus(portes.values()), Equipement.avec(portes, emplacement, selection))
+		# (objet unique : l'exemplaire que porte déjà ce héros serait retiré)
+		var double := Sauvegarde.emplacement_du_meme_unique(heros_affiche, selection, emplacement)
+		if double != "":
+			portes[double] = {}
+			_texte(fiche, "Objet unique : un seul par héros. L'exemplaire porté sera retiré.", 20, Color(COULEUR_OS, 0.7))
+		var comparaison := Equipement.comparer(avant, Equipement.avec(portes, emplacement, selection))
 		if not comparaison.is_empty():
 			_texte(fiche, "Si vous l'équipez :" if porte.is_empty() else "À la place de « %s » :" % Butin.nom(porte), 20, Color(COULEUR_OS, 0.7))
 			for l in comparaison:

@@ -3,7 +3,7 @@ extends SceneTree
 ## plein coup), l'écran Équipement (fiche d'un objet et comparaison ▲▼), et les objets uniques en jeu
 ## (traînée d'eau de la Lame du Noyé, squelette relevé du Grimoire du Pendu, cercle du Sablier).
 ## Usage : xvfb-run -a godot --path . --rendering-method gl_compatibility --rendering-driver opengl3
-##         --resolution 1280x720 -s <chemin absolu>/tools/capture_equipement.gd -- <dossier> [armes|ecran|uniques]
+##         --resolution 1280x720 -s <chemin absolu>/tools/capture_equipement.gd -- <dossier> [armes|ecran|uniques|cale|double]
 ## Ne pas typer avec les classes du jeu (voir CLAUDE.md, pièges).
 
 var dossier := ""
@@ -60,6 +60,8 @@ func _go() -> void:
 		await _uniques()
 	if quoi in ["tout", "cale"]:
 		await _cale()
+	if quoi in ["tout", "double"]:
+		await _double()
 	quit()
 
 
@@ -177,6 +179,28 @@ func _ecran() -> void:
 	await _images(10)
 	await _capture("equipement_occultiste.png")
 	print("sauvegarde : ", sauvegarde.donnees["equipement"])
+	ecran.queue_free()
+	await _images(2)
+
+
+## Un objet unique ne se porte qu'une fois par héros (choix de Téo du 04/11) : deux Talismans du Pendu,
+## l'un porté ; on touche l'autre depuis l'autre relique.
+func _double() -> void:
+	sauvegarde.reinitialiser()
+	var t2 := _objet("talisman_pendu", 4)
+	t2["id"] = "talisman_pendu_4_bis"
+	sauvegarde.encaisser("capture_double", [_objet("talisman_pendu", 4), t2, _objet("chandelle", 0), _objet("sabre", 1)], 0)
+	sauvegarde.equiper(&"bretteur", "arme", "sabre_1")
+	sauvegarde.equiper(&"bretteur", "relique_2", "talisman_pendu_4")
+	partie.heros_local = &"bretteur"
+	var ecran = load("res://ui/screens/equipement.tscn").instantiate()
+	ecran.changer_de_scene = false
+	root.add_child(ecran)
+	await _images(20)
+	ecran.choisir_emplacement("relique_1")
+	ecran.choisir_objet(sauvegarde.objet("talisman_pendu_4_bis"))
+	await _images(6)
+	await _capture("equipement_unique_double.png")
 	ecran.queue_free()
 	await _images(2)
 

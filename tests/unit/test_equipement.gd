@@ -207,6 +207,68 @@ func test_equiper_un_seul_endroit_a_la_fois() -> void:
 	assert_eq(Sauvegarde.equipes(&"occultiste"), [])
 
 
+## Choix de Téo du 04/11 : un même objet unique, une seule fois par héros (deux Talismans = +80 %).
+func test_un_objet_unique_une_fois_par_heros() -> void:
+	var t1 := _o("talisman_pendu", 4)
+	var t2 := _o("talisman_pendu", 4)
+	var c1 := _o("chandelle")
+	var c2 := _o("chandelle")
+	Sauvegarde.encaisser("e", [t1, t2, c1, c2], 0)
+	assert_true(Sauvegarde.equiper(&"bretteur", "relique_1", t1["id"]))
+	assert_true(Sauvegarde.equiper(&"bretteur", "relique_2", t2["id"]))
+	assert_eq(Sauvegarde.porte(&"bretteur", "relique_1"), {}, "L'autre Talisman du Bretteur est retiré")
+	assert_eq(Sauvegarde.porte(&"bretteur", "relique_2"), t2)
+	assert_true(Sauvegarde.equiper(&"occultiste", "relique_1", t1["id"]))
+	assert_eq(Sauvegarde.porte(&"bretteur", "relique_2"), t2, "L'autre héros porte l'autre exemplaire")
+	assert_eq(Sauvegarde.porte(&"occultiste", "relique_1"), t1)
+	assert_true(Sauvegarde.equiper(&"occultiste", "relique_1", c1["id"]))
+	assert_true(Sauvegarde.equiper(&"occultiste", "relique_2", c2["id"]))
+	assert_eq(Sauvegarde.equipes(&"occultiste"), [c1, c2], "Deux reliques ordinaires pareilles : permis")
+
+
+func test_un_objet_unique_compte_une_fois_sur_le_heros() -> void:
+	var h := _heros(&"bretteur", [_o("talisman_pendu", 4), _o("talisman_pendu", 4)])
+	assert_almost_eq(h.b("degats"), 0.40, 0.001, "Un seul Talisman compte (équipement de l'autre téléphone)")
+	var c := _o("chandelle")
+	var h2 := _heros(&"occultiste", [c, _o("chandelle")], Vector3(3, 0, 0))
+	assert_almost_eq(h2.b("pv"), 2.0 * float(Equipement.effets(c)["pv"]), 0.001, "Deux chandelles comptent")
+
+
+func test_conversion_un_objet_unique_porte_deux_fois() -> void:
+	var t1 := _o("coeur_kraken", 4)
+	var t2 := _o("coeur_kraken", 4)
+	var d := Sauvegarde.convertir({"version": 1, "objets": [t1, t2],
+			"equipement": {"bretteur": {"relique_1": t1["id"], "relique_2": t2["id"]}, "occultiste": {}}})
+	assert_eq(d["equipement"]["bretteur"]["relique_1"], t1["id"], "Le premier est gardé")
+	assert_eq(d["equipement"]["bretteur"]["relique_2"], "", "Le 2e exemplaire est retiré (sauvegarde de l'APK 0.4.18)")
+	assert_eq(d["objets"].size(), 2, "Il reste dans les coffres")
+
+
+func test_ecran_objet_unique_deja_porte() -> void:
+	var t1 := _o("talisman_pendu", 4)
+	var t2 := _o("talisman_pendu", 4)
+	Sauvegarde.encaisser("e", [t1, t2], 0)
+	Sauvegarde.equiper(&"bretteur", "relique_2", t1["id"])
+	var ecran = load("res://ui/screens/equipement.tscn").instantiate()
+	ecran.changer_de_scene = false
+	add_child_autofree(ecran)
+	await wait_process_frames(3)
+	ecran.choisir_emplacement("relique_1")
+	var lignes: Array = ecran.liste.get_children().map(func(b): return b.text)
+	assert_true(lignes.any(func(t): return t.ends_with("(en double)")), str(lignes))
+	ecran.choisir_objet(t2)
+	var textes: Array = ecran.fiche.get_children().map(func(l): return l.text)
+	assert_has(textes, "Objet unique : un seul par héros. L'exemplaire porté sera retiré.")
+	assert_false(textes.any(func(t): return t.begins_with("▲")), "Rien de plus : l'autre exemplaire est retiré " + str(textes))
+	ecran.equiper_selection()
+	assert_eq(Sauvegarde.equipes(&"bretteur"), [t2])
+	# le même objet passé d'une relique à l'autre : rien ne change (avant : « ▲ +40 % » affiché à tort)
+	ecran.choisir_emplacement("relique_2")
+	ecran.choisir_objet(t2)
+	textes = ecran.fiche.get_children().map(func(l): return l.text)
+	assert_false(textes.any(func(t): return t.begins_with("▲") or t.begins_with("▼")), str(textes))
+
+
 # ---------------------------------------------------------------- effets sur le héros
 func test_pv_et_vitesse() -> void:
 	var h := _heros(&"bretteur", [_o("chandelle", 2), _o("coeur_kraken", 4)])

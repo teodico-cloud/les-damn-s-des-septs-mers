@@ -126,7 +126,7 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   rage), choix de la malédiction, chaloupe sous les vagues, écran de fin : `tools/capture_bosco.gd` ;
   butin (vitrine du catalogue, au sol, ramassage, trésor du Bosco, fins) : `tools/capture_butin.gd`,
   `SEULEMENT_VITRINE=1` pour la vitrine seule ; armes en main, écran Équipement, objets uniques en jeu :
-  `tools/capture_equipement.gd -- <dossier> [armes|ecran|uniques]`)
+  `tools/capture_equipement.gd -- <dossier> [armes|ecran|uniques|cale|double]`)
 - Où pointe l'arme d'un squelette dans chaque pose : `godot --headless --path . -s "$PWD/tools/sonde_arme.gd"`
   (sans argument : l'arbalétrier ; sinon `-- <modèle.glb> <arme.gltf> <axe x|y|z> [animations…]`)
 - Essai de la coop (hôte + invité sur cette machine, vérifications automatiques, aussi dans le CI) :

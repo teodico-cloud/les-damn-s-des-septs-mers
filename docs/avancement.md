@@ -1,6 +1,6 @@
 # Avancement
 
-Dernière mise à jour : 1er novembre 2026.
+Dernière mise à jour : 4 novembre 2026.
 
 ## Où on en est
 - **Phase A (conception) : terminée et validée.** Voir `docs/conception.md`.
@@ -213,6 +213,16 @@ Matelots squelettes qui reviennent sans fin.
   ou son propre Wi-Fi qui a coupé : dans les deux cas, il garde son butin. L'hôte, lui, continue seul.
 - Essai coop « hôte parti » (`FIN=hote_parti`) ajouté au CI.
 
+## Objets uniques : une fois par héros (04/11, choix de Téo)
+- Un même objet unique (Légendaire ou Maudit) ne se porte qu'une fois par héros ; l'autre héros peut porter l'autre
+  exemplaire. Équiper le 2e exemplaire retire le premier (comme un objet déplacé d'une relique à l'autre) ; écran
+  Équipement : « (en double) » dans la liste et « Objet unique : un seul par héros. L'exemplaire porté sera retiré. »
+  sur la fiche. Une sauvegarde de l'APK 0.4.18 avec deux exemplaires portés garde le premier ; le héros ne compte
+  qu'un exemplaire (même si l'autre téléphone en envoie deux). Deux reliques ordinaires pareilles restent permises.
+- Corrigé en passant : la comparaison ▲▼ d'un objet déplacé d'une relique à l'autre montrait un gain qui n'existait
+  pas (elle comparait avec l'équipement déjà sans l'objet).
+- Tests : 260 (4 nouveaux, 11 sabotages, tous vus) ; essai coop de l'expédition (Wi-Fi moyen) réussi.
+
 ## Combat « nerveux » (30/10, demande de Téo : « vraiment Diablo like »)
 Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pas les ennemis plus agressifs).
 - Héros plus vif : marche 6,2 m/s (5,2) ; combo 25 % plus rapide ; bouger le joystick 0,05 s après
@@ -287,6 +297,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 30/10/2026 | Combat « nerveux » : héros plus vif, hordes, coups qui claquent, coups critiques (choix de Téo, voir plus haut). Ennemis plus agressifs : non retenu. |
 | 30/10/2026 | Parade : elle coupe le coup en cours ; parade parfaite en bonus (0,25 s), zone dorée avant le coup + étincelles, « PARFAIT ! » et ralenti, Parade rendue. Onde de choc : non retenue. |
 | 31/10/2026 | Jalon 3, étape 3 (choix de Téo) : Bosco « brute à la hache » (tourbillon, charge qui le laisse sonné 2 s contre un mur, coup au sol ; rage à mi-vie + 3 matelots) ; coups mi-parables (seul le coup au sol se pare, les gros coups rouge sombre sont imparables) ; ~1 min 30 en solo ; malédiction 0–5 choisie au départ avec l'échelle proposée (+20 % de butin par niveau) ; chaloupe : tenir 45 s à bord, le compte s'arrête si personne n'y est ; annexe retenue : écran de fin enrichi. |
+| 04/11/2026 | Un objet unique ne se porte qu'une fois par héros (l'autre héros peut porter l'autre exemplaire). |
 | 03/11/2026 | Jalon 4, étape 3 (choix de Téo) : tri de la cale à la fin d'une expédition réussie (8 objets, les plus rares cochés d'avance, doublons sans limite, chacun trie le sien à deux) ; les objets non gardés sont **revendus en doublons** selon leur rareté ; hôte parti en pleine expédition = **extraction d'urgence** de l'invité (il garde son sac, tri de la cale) ; annexe retenue : cale visible en route (« Sac : 9 objets / cale 8 » en orange). Non retenue : vendre depuis les coffres. |
 | 01/11/2026 | Jalon 4, étape 2 (choix de Téo) : tout en un seul APK (uniques compris) ; écran Équipement ouvert depuis l'écran titre ; l'équipement compte partout, arène comprise. |
 | 01/11/2026 | Jalon 4, étape 2 (choix de Téo) : liste des objets validée telle quelle (armes, reliques, effets en plus des Rares et Épiques, 5 objets uniques ; voir « Butin au sol ») ; on change d'équipement **entre deux expéditions** seulement ; défaite = **tout le sac perdu** (« sécurisés dès le ramassage » de la conception = à soi dès qu'on le prend, personne ne peut le voler) ; annexe retenue : comparaison ▲▼ avec l'objet porté. Non retenues : « Équiper le meilleur », annonce d'un objet rare. |
@@ -418,7 +429,8 @@ Aucun plantage ni blocage trouvé. Corrigé (chaque correction a un test qui éc
   son invulnérabilité 0,3 s) ; un squelette vaincu ne revient jamais à la vie (épines qui tuent le Bosco en
   pleine charge) ; copie de secours de la sauvegarde par renommage (rien n'est réécrit) ; équipement relu
   vérifié (objet existant, à sa place, porté une seule fois).
-- Question à Téo : peut-on porter deux fois le même objet unique (deux Talismans : +80 % de dégâts) ?
+- Question à Téo : peut-on porter deux fois le même objet unique (deux Talismans : +80 % de dégâts) ? Tranché le
+  04/11 : **une fois par héros** (voir ci-dessous).
 - Tests : 256 en tout ; 18 nouveaux pour la relecture (`test_relecture_j4.gd`), vérifiés par sabotage.
 
 ## Prochaines étapes
