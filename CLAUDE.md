@@ -29,8 +29,9 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 
 ## Arborescence actuelle
 - `project.godot`, `export_presets.cfg` (Android arm64, paquet `fr.teodico.damnes`), `icon.svg`.
-- `ui/screens/` : écrans (écran titre `demarrage.tscn` = scène principale, avec « Mode test » : santé infinie,
-  salle de départ ; `choix_heros.tscn` avant l'arène ou l'expédition ; `coop.tscn` « Jouer à deux » :
+- `ui/screens/` : écrans (écran titre `demarrage.tscn` = scène principale : « Le repaire », combat d'entraînement,
+  « Jouer à deux », vitrine ; « Mode test » : santé infinie, salle de départ, coffres et ressources de test ;
+  `choix_heros.tscn` avant l'arène (et pour l'hôte à deux) ; `coop.tscn` « Jouer à deux » :
   héberger / rejoindre, parties trouvées sur le Wi-Fi, code de secours, lancer l'expédition ou l'arène ;
   `choix_malediction.gd` : le choix du niveau de malédiction, sur l'écran du héros en solo et pour l'hôte).
 - `game/vitrine/` : vitrine des héros (jalon 0) : héros, salle, actions au toucher, compteur d'images.
@@ -41,8 +42,10 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   - `autoload/reseau.gd` (Reseau) : session de coop (ENet, port 34778 ; annonces UDP 34779 ; code = dernier
     nombre de l'adresse de l'hôte). Les messages de l'invité pendant le combat passent par lui. L'équipement
     des héros s'échange à la connexion (`_bonjour` / `_bienvenue` → `equipement_partenaire`).
-  - `autoload/sauvegarde.gd` (Sauvegarde, jalon 4) : JSON versionné, écriture sûre, copie de secours,
-    anti-doublon par identifiant d'expédition ; doublons, objets des coffres, équipement (`equipes(heros)`).
+  - `autoload/sauvegarde.gd` (Sauvegarde, jalon 4 ; version 2 au jalon 5) : JSON versionné, écriture sûre, copie de
+    secours, anti-doublon par identifiant d'expédition ; doublons, objets des coffres, équipement (`equipes(heros)`),
+    matériaux plafonnés par l'entrepôt (`ressource`, `plafond`, `ranger` : le surplus est revendu), niveaux du bateau
+    (`niveau_bateau`) et du repaire (`niveau_repaire`). Une conversion par version, testée (`convertir`).
   - `data/equilibrage.tres` (+ `core/resources/equilibrage.gd`) : **toutes** les valeurs de réglage du combat.
   - `core/components/` : `Sante` (PV, invulnérabilité), `Recharge` (temps de recharge).
   - `game/combat/` : `Combat` (couches de collision, zones de coup, `porter_coup` qui tire aussi les coups
@@ -84,7 +87,9 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
     Le héros les lit par `Heros.b("degats")` (après `Heros.equiper(objets)`) ; `Combat.porter_coup` applique
     dégâts, critiques et vol de vie. Objets uniques : `FlaqueNoyee` (game/combat), `SqueletteAllie`
     (game/enemies, relevé par `Arene._relever_pour_le_pendu`), Sablier dans `Heros.recevoir_coup`.
-  - `ui/screens/equipement.tscn` : écran Équipement (ouvert depuis l'écran titre).
+  - `ui/screens/equipement.tscn` : écran Équipement (ouvert depuis l'entrepôt du repaire ; son retour y ramène).
+  - Matériaux (jalon 5) : `Butin.MATIERES` (bois, fer, essence), `MATIERE_ENNEMI` (qui lâche quoi) ; au sol, un tas
+    `ObjetAuSol` (`matiere`, `quantite`) ; dans le sac, les clés "bois", "fer", "essence" (`Expedition._sac_vide`).
   - `game/reseau/synchro_arene.gd` (nœud « Synchro » de l'arène) : l'hôte simule tout et envoie 30
     instantanés/s + les événements ; l'invité prédit son héros et affiche le reste en « marionnettes »
     (`marionnette = true` sur Heros et Ennemi : affichés d'après l'hôte, sans règles).
@@ -92,6 +97,10 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   - `assets/ui/icones/*.svg` : icônes des boutons de compétence (dessinées à la main en SVG ; importées à
     `svg/scale=2.0` pour rester nettes sur téléphone) ; chaque archétype les donne par `icones_boutons()`.
   - `assets/models/enemies/` : squelette et lame KayKit ; `assets/materials/` : matières partagées.
+- Repaire (jalon 5) : `game/repaire/repaire.gd` (`Repaire` : grotte, quai, lieux `LIEUX`, héros au joystick, ouvre les
+  lieux ; arrivée selon `Partie.lieu_repaire`) ; `navire.gd` (`Navire`, fait par code) ; `ui/repaire/` : `HudRepaire`
+  (joystick, ressources, raccourcis, « Ouvrir »), `PanneauRepaire` (cadre d'un lieu) et ses lieux (`PanneauCartes`,
+  `PanneauEntrepot`), `StyleRepaire` (couleurs, boutons). L'expédition revient au repaire (`_scene_retour`).
 - `tests/unit/` : tests GUT (`test_*.gd`) ; `addons/gut/` : GUT 9.7.1 (exclu de l'APK) ; `tests/pre_run.gd` :
   avant les tests, la sauvegarde passe dans `user://sauvegarde_tests.json` (jamais celle du jeu).
   `test_scripts.gd` charge tous les scripts du jeu (remplace `--check-only`, voir pièges).
@@ -126,7 +135,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   rage), choix de la malédiction, chaloupe sous les vagues, écran de fin : `tools/capture_bosco.gd` ;
   butin (vitrine du catalogue, au sol, ramassage, trésor du Bosco, fins) : `tools/capture_butin.gd`,
   `SEULEMENT_VITRINE=1` pour la vitrine seule ; armes en main, écran Équipement, objets uniques en jeu :
-  `tools/capture_equipement.gd -- <dossier> [armes|ecran|uniques|cale|double]`)
+  `tools/capture_equipement.gd -- <dossier> [armes|ecran|uniques|cale|double]` ; repaire (vues de jeu, de dessus,
+  panneaux) et matériaux (au sol, sac, fin, gros plan) : `tools/capture_repaire.gd -- <dossier> [vues|dessus|panneaux|matieres]`)
 - Où pointe l'arme d'un squelette dans chaque pose : `godot --headless --path . -s "$PWD/tools/sonde_arme.gd"`
   (sans argument : l'arbalétrier ; sinon `-- <modèle.glb> <arme.gltf> <axe x|y|z> [animations…]`)
 - Essai de la coop (hôte + invité sur cette machine, vérifications automatiques, aussi dans le CI) :
@@ -342,3 +352,12 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   change toutes les parties qui l'utilisent ; baisser le contraste de la peau évite les reflets blancs.
 - Rendus d'aperçu : sans carte graphique, ils utilisent le rendu Compatibility ; sur téléphone
   (rendu Mobile) l'image est un peu plus fine.
+- Control déjà dans l'arbre (dans son `_ready`) : `set_anchors_preset(FULL_RECT)` garde sa taille actuelle (nulle) ;
+  utiliser `set_anchors_and_offsets_preset` (vu : panneau du repaire réduit à son titre). Avant `add_child`, les deux
+  marchent.
+- Nouveaux décors KayKit : copier le `.gltf.glb`, importer, puis mettre `embedded_image_handling=0` et la matière
+  partagée dans le `.import`, réimporter et **supprimer** les `*_dungeon_texture.png` extraits au premier import.
+- Repaire : un lieu qui n'est pas encore construit (chantier, forge) affiche un message ; tout nouveau lieu s'ajoute à
+  `Repaire.LIEUX` / `ORDRE_LIEUX` (enseigne, raccourci et bouton « Ouvrir » suivent) et à `Repaire.ouvrir`.
+- Sac d'expédition : toujours partir de `Expedition._sac_vide()` (objets, doublons et les trois matériaux) ; les messages
+  réseau « butin » et « ramasse » portent la matière (`VERSION_RESEAU` 11).

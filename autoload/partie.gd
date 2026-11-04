@@ -8,6 +8,7 @@ var heros_local: StringName = &"bretteur"
 var mode := Mode.SOLO
 var destination: StringName = &"arene"    ## &"arene" ou &"expedition"
 var malediction := 0                       ## niveau de malédiction de l'expédition, 0 à 5 (voir Malediction)
+var lieu_repaire: StringName = &""         ## où le héros réapparaît dans le repaire (&"quai" après une expédition…)
 # mode test (APK de test, écran titre) : pour essayer un point précis sans refaire toute l'expédition
 var debug_sante_infinie := false
 var debug_depart: StringName = &""          ## &"" (salle 1), &"tresor", &"bosco" ou &"chaloupe"

@@ -141,7 +141,12 @@ func _groupes(n: int) -> void:
 func _ecarter(p: Vector3) -> Vector3:
 	if _place_libre(p):
 		return p
-	for r: float in [0.5, 0.9, 1.3]:
+	# (dans une petite salle, un groupe serré contre un mur peut ne pas trouver de place tout près : on
+	# cherche plus loin, et faute de mieux on prend le point le plus éloigné des autres — vu une fois
+	# par le test : 0,71 m)
+	var meilleur := p
+	var meilleure_distance := _distance_au_plus_proche(p)
+	for r: float in [0.5, 0.9, 1.3, 1.8, 2.4]:
 		var depart := _rng.randf() * TAU
 		for k in 8:
 			var a := depart + TAU * k / 8.0
@@ -150,7 +155,19 @@ func _ecarter(p: Vector3) -> Vector3:
 			q.z = clampf(q.z, -demi_cote, demi_cote)
 			if _place_libre(q):
 				return q
-	return p
+			var d := _distance_au_plus_proche(q)
+			if d > meilleure_distance:
+				meilleur = q
+				meilleure_distance = d
+	return meilleur
+
+
+func _distance_au_plus_proche(p: Vector3) -> float:
+	var d := INF
+	for e in get_children():
+		if e is Ennemi and e.etat != Ennemi.Etat.MORT and not e.is_queued_for_deletion() and not e.allie:
+			d = minf(d, Vector2(e.position.x - p.x, e.position.z - p.z).length())
+	return d
 
 
 func _place_libre(p: Vector3) -> bool:

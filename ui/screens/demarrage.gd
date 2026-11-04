@@ -1,20 +1,20 @@
 extends Control
-## Écran titre : nom du jeu, expédition et combat d'entraînement (via le choix du héros), jeu à deux,
-## équipement et vitrine, doublons, version ; « Mode test » (APK de test) : santé infinie, salle de départ
-## de l'expédition, coffres de test (des objets pour essayer l'équipement tout de suite).
+## Écran titre : nom du jeu, le repaire (jalon 5 : salle des cartes, entrepôt, équipement…), combat
+## d'entraînement (via le choix du héros), jeu à deux, vitrine, doublons, version ; « Mode test » (APK de
+## test) : santé infinie, salle de départ de l'expédition, coffres de test (des objets pour essayer
+## l'équipement tout de suite), ressources de test (doublons et matériaux pour essayer les achats).
 
 const SCENE_VITRINE := "res://game/vitrine/vitrine.tscn"
 const SCENE_CHOIX := "res://ui/screens/choix_heros.tscn"
 const SCENE_COOP := "res://ui/screens/coop.tscn"
-const SCENE_EQUIPEMENT := "res://ui/screens/equipement.tscn"
+const SCENE_REPAIRE := "res://game/repaire/repaire.tscn"
 const COULEUR_OS := Color("e2d6ba")
 const COULEUR_OR := Color("ac8036")
 
 var bouton_vitrine: Button
-var bouton_expedition: Button
+var bouton_repaire: Button
 var bouton_combat: Button
 var bouton_coop: Button
-var bouton_equipement: Button
 var label_doublons: Label
 var bouton_test: Button
 var panneau_test: VBoxContainer
@@ -64,7 +64,7 @@ func _construire() -> void:
 	colonne.add_child(titre)
 
 	var sous_titre := Label.new()
-	sous_titre.text = "Prototype — jalon 4"
+	sous_titre.text = "Prototype — jalon 5"
 	sous_titre.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sous_titre.add_theme_font_size_override("font_size", 30)
 	sous_titre.add_theme_color_override("font_color", Color("6cffa0"))
@@ -74,10 +74,10 @@ func _construire() -> void:
 	espace.custom_minimum_size = Vector2(0, 10)
 	colonne.add_child(espace)
 
-	bouton_expedition = _bouton("Expédition")
-	bouton_expedition.pressed.connect(_ouvrir_expedition)
+	bouton_repaire = _bouton("Le repaire")
+	bouton_repaire.pressed.connect(_ouvrir_repaire)
 	var centre_exp := CenterContainer.new()
-	centre_exp.add_child(bouton_expedition)
+	centre_exp.add_child(bouton_repaire)
 	colonne.add_child(centre_exp)
 
 	bouton_combat = _bouton("Combat d'entraînement")
@@ -92,21 +92,13 @@ func _construire() -> void:
 	centre_coop.add_child(bouton_coop)
 	colonne.add_child(centre_coop)
 
-	# équipement (jalon 4) et vitrine, côte à côte
-	bouton_equipement = _bouton("Équipement")
-	bouton_equipement.custom_minimum_size = Vector2(245, 80)
-	bouton_equipement.add_theme_font_size_override("font_size", 30)
-	bouton_equipement.pressed.connect(_ouvrir_equipement)
+	# (jalon 5 : l'équipement est passé à l'entrepôt du repaire)
 	bouton_vitrine = _bouton("Voir les héros")
-	bouton_vitrine.custom_minimum_size = Vector2(245, 80)
+	bouton_vitrine.custom_minimum_size = Vector2(500, 80)
 	bouton_vitrine.add_theme_font_size_override("font_size", 30)
 	bouton_vitrine.pressed.connect(_ouvrir_vitrine)
-	var rangee := HBoxContainer.new()
-	rangee.add_theme_constant_override("separation", 10)
-	rangee.add_child(bouton_equipement)
-	rangee.add_child(bouton_vitrine)
 	var centre := CenterContainer.new()
-	centre.add_child(rangee)
+	centre.add_child(bouton_vitrine)
 	colonne.add_child(centre)
 
 	label_doublons = Label.new()
@@ -151,7 +143,9 @@ func _mode_test() -> void:
 	bouton_depart = _bouton("")
 	var bouton_coffres := _bouton("Coffres de test")
 	bouton_coffres.pressed.connect(remplir_coffres_de_test)
-	for b in [bouton_sante, bouton_depart, bouton_coffres]:
+	var bouton_ressources := _bouton("Ressources de test")
+	bouton_ressources.pressed.connect(remplir_ressources_de_test)
+	for b in [bouton_sante, bouton_depart, bouton_coffres, bouton_ressources]:
 		b.custom_minimum_size = Vector2(340, 64)   # (étroits : à côté des boutons du milieu, pas dessus)
 		b.add_theme_font_size_override("font_size", 24)
 		panneau_test.add_child(b)
@@ -191,6 +185,15 @@ func remplir_coffres_de_test() -> void:
 	_textes_doublons()
 
 
+## Mode test (jalon 5) : 1 000 doublons et l'entrepôt rempli jusqu'au plafond, pour essayer les achats.
+func remplir_ressources_de_test() -> void:
+	var matieres := {}
+	for m in Butin.MATIERES:
+		matieres[m] = Sauvegarde.plafond(m) - Sauvegarde.ressource(m)
+	Sauvegarde.encaisser("ressources_de_test_%d" % Time.get_ticks_usec(), [], 1000, {"test": true}, matieres)
+	_textes_doublons()
+
+
 func _textes_test() -> void:
 	bouton_sante.text = "Santé infinie : %s" % ("oui" if Partie.debug_sante_infinie else "non")
 	bouton_depart.text = "Départ : %s" % NOMS_DEPARTS.get(Partie.debug_depart, "?")
@@ -214,11 +217,11 @@ func _bouton(texte: String) -> Button:
 	return b
 
 
-func _ouvrir_expedition() -> void:
+func _ouvrir_repaire() -> void:
 	Reseau.quitter()
 	Partie.revenir_en_solo()
-	Partie.destination = &"expedition"
-	get_tree().change_scene_to_file(SCENE_CHOIX)
+	Partie.lieu_repaire = &""
+	get_tree().change_scene_to_file(SCENE_REPAIRE)
 
 
 func _ouvrir_arene() -> void:
@@ -231,10 +234,6 @@ func _ouvrir_arene() -> void:
 func _ouvrir_coop() -> void:
 	Partie.mode = Partie.Mode.SOLO
 	get_tree().change_scene_to_file(SCENE_COOP)
-
-
-func _ouvrir_equipement() -> void:
-	get_tree().change_scene_to_file(SCENE_EQUIPEMENT)
 
 
 func _ouvrir_vitrine() -> void:

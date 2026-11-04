@@ -59,6 +59,8 @@ func _ready() -> void:
 	if est_tas():
 		_modele = _modele_tas()
 		pivot.add_child(_modele)
+		if matiere != "doublons":
+			_disque_tas(Butin.COULEURS_TAS.get(matiere, Color.WHITE))   # (lisible de loin, sans colonne)
 		_etiquette(Butin.texte_tas(matiere, quantite), Butin.COULEURS_TAS.get(matiere, Color.WHITE), 0.9 + 0.24 * etage)
 	else:
 		var def := Butin.definition(objet)
@@ -100,33 +102,35 @@ func _ready() -> void:
 ## maudite (KayKit) qui luit.
 func _modele_tas() -> Node3D:
 	match matiere:
-		"bois":
+		"bois":   # quatre planches empilées, deux par rang, les rangs croisés
 			var n := Node3D.new()
-			for i in 3:   # trois planches croisées
+			for i in 4:
 				var m := MeshInstance3D.new()
 				var b := BoxMesh.new()
-				b.size = Vector3(0.62, 0.07, 0.13)
+				b.size = Vector3(0.8, 0.09, 0.17)
 				m.mesh = b
 				m.material_override = _mat_matiere("bois")
-				m.position = Vector3(0, 0.035 + 0.075 * i, (i - 1) * 0.06 if i != 1 else 0.0)
-				m.rotation.y = 0.0 if i != 1 else PI * 0.5
+				var rang := i / 2
+				var cote := (i % 2) * 2 - 1
+				m.position = Vector3(0, 0.05 + 0.1 * rang, cote * 0.12) if rang == 0 else Vector3(cote * 0.12, 0.05 + 0.1 * rang, 0)
+				m.rotation.y = 0.0 if rang == 0 else PI * 0.5
 				n.add_child(m)
 			return n
-		"fer":
+		"fer":   # trois lingots : deux dessous, un dessus en travers
 			var n := Node3D.new()
-			for p in [Vector3(-0.09, 0.05, 0), Vector3(0.09, 0.05, 0), Vector3(0, 0.14, 0)]:   # trois lingots
+			for p in [[Vector3(0, 0.06, -0.1), 0.0], [Vector3(0, 0.06, 0.1), 0.0], [Vector3(0, 0.18, 0), PI * 0.5]]:
 				var m := MeshInstance3D.new()
-				var b := PrismMesh.new()   # (lingot : plus large en bas)
-				b.size = Vector3(0.17, 0.1, 0.34)
-				b.left_to_right = 0.5
+				var b := BoxMesh.new()
+				b.size = Vector3(0.44, 0.12, 0.17)
 				m.mesh = b
 				m.material_override = _mat_matiere("fer")
-				m.position = p
+				m.position = p[0]
+				m.rotation.y = p[1]
 				n.add_child(m)
 			return n
 		"essence":
 			var f: Node3D = load(FIOLE_ESSENCE).instantiate()
-			f.scale = Vector3.ONE * 0.8
+			f.scale = Vector3.ONE * 0.9
 			for m in f.find_children("*", "MeshInstance3D", true, false):
 				m.material_overlay = _mat_matiere("essence")
 			return f
@@ -143,9 +147,12 @@ static func _mat_matiere(m: String) -> StandardMaterial3D:
 				mat.albedo_color = Color("7a4e2c")
 				mat.roughness = 0.85
 			"fer":
-				mat.albedo_color = Color("3a3f48")
-				mat.metallic = 0.7
+				mat.albedo_color = Color("4a5160")
+				mat.metallic = 0.6
 				mat.roughness = 0.35
+				mat.emission_enabled = true   # (un reflet froid : le fer noir se voit sur les dalles sombres)
+				mat.emission = Color("6f86a8")
+				mat.emission_energy_multiplier = 0.25
 			"essence":   # (lueur posée par-dessus la fiole)
 				mat.albedo_color = Color(0.3, 1.0, 0.75, 0.0)
 				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -154,6 +161,29 @@ static func _mat_matiere(m: String) -> StandardMaterial3D:
 				mat.emission_energy_multiplier = 0.9
 		_mat_matieres[m] = mat
 	return _mat_matieres[m]
+
+
+static var _mat_disques := {}
+
+
+## Un disque coloré au sol sous un tas de matériau.
+func _disque_tas(couleur: Color) -> void:
+	if _maillage_disque == null:
+		_colonne_maillages()
+	var cle := couleur.to_html()
+	if not _mat_disques.has(cle):
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.albedo_color = Color(couleur, 0.35)
+		_mat_disques[cle] = m
+	var disque := MeshInstance3D.new()
+	disque.mesh = _maillage_disque
+	disque.material_override = _mat_disques[cle]
+	disque.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	disque.scale = Vector3(0.8, 1, 0.8)
+	disque.position.y = 0.09
+	add_child(disque)
 
 
 func _sauter(f: float) -> void:
@@ -167,7 +197,7 @@ func _process(delta: float) -> void:
 	pivot.position.y = 0.35 + 0.08 * sin(_temps * 2.6)
 
 
-func _colonne(rarete: int, couleur: Color) -> void:
+static func _colonne_maillages() -> void:
 	if _maillage_colonne == null:
 		_maillage_colonne = CylinderMesh.new()
 		_maillage_colonne.top_radius = 0.05
@@ -181,6 +211,10 @@ func _colonne(rarete: int, couleur: Color) -> void:
 		_maillage_disque.height = 0.02
 		_maillage_disque.radial_segments = 20
 		_maillage_disque.rings = 1
+
+
+func _colonne(rarete: int, couleur: Color) -> void:
+	_colonne_maillages()
 	if not _mat_colonnes.has(rarete):
 		var m := StandardMaterial3D.new()
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED

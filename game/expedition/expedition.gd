@@ -31,6 +31,7 @@ var _coffre_ouvert_pour := -1
 var bosco: Bosco                  ## antre (hôte) : le Bosco Maudit
 var _bosco_debut_ms := -1
 var _bosco_fin_ms := -1
+const SCENE_REPAIRE := "res://game/repaire/repaire.tscn"
 var sacs := {}                    ## butin non sécurisé : nom du héros -> sac (voir _sac_vide ; hôte : les deux)
 var butin_au_sol: Node3D           ## objets et doublons tombés dans la salle (à deux : ceux de l'autre sont invisibles)
 var _rng_butin := RandomNumberGenerator.new()
@@ -631,6 +632,12 @@ func retour_menu() -> void:
 	if tri_en_cours:
 		hud.valider_tri()
 	super.retour_menu()
+
+
+## Jalon 5 : après une expédition (finie ou abandonnée), on revient au repaire, sur le quai.
+func _scene_retour() -> String:
+	Partie.lieu_repaire = &"quai"
+	return SCENE_REPAIRE
 
 
 # ---------------------------------------------------------------- butin (jalon 4, choix de Téo : au sol, façon Diablo)

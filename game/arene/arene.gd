@@ -239,7 +239,12 @@ func retour_menu() -> void:
 	Engine.time_scale = 1.0
 	Reseau.quitter()
 	Partie.revenir_en_solo()
-	get_tree().change_scene_to_file(SCENE_MENU)
+	get_tree().change_scene_to_file(_scene_retour())
+
+
+## Où l'on revient (l'arène : à l'écran titre ; l'expédition : au repaire).
+func _scene_retour() -> String:
+	return SCENE_MENU
 
 
 static func _depart(nom: StringName) -> Vector3:

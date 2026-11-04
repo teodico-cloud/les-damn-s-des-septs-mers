@@ -117,7 +117,7 @@ func _go() -> void:
 	h.global_position = ou + Vector3(-2.5, 0, 2.5)
 	e.bosco.sante.subir(99999.0, h)
 	await _images(200)
-	print("Bosco : ", e.butin_au_sol.get_children().map(func(o): return o.doublons if o.objet.is_empty() else load("res://game/butin/butin.gd").nom_complet(o.objet)))
+	print("Bosco : ", e.butin_au_sol.get_children().map(func(o): return o.quantite if o.objet.is_empty() else load("res://game/butin/butin.gd").nom_complet(o.objet)))
 	_regarder(ou + Vector3(0.5, 4.2, 5.8), ou + Vector3(0, 0.4, 0), 50.0)
 	await _capture("butin_bosco.png")
 

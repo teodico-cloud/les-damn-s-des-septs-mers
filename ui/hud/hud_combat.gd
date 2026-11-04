@@ -217,7 +217,7 @@ func _bouton(parent: Control, texte: String, rayon: float, rec: Recharge, decala
 	return b
 
 
-func _actions_clavier() -> void:
+static func _actions_clavier() -> void:
 	var touches := {
 		&"deplacer_gauche": [KEY_A, KEY_Q, KEY_LEFT],
 		&"deplacer_droite": [KEY_D, KEY_RIGHT],
@@ -411,7 +411,7 @@ func afficher_resultats(reussite: bool, lignes: Array, objets: Array = [], titre
 	espace.custom_minimum_size = Vector2(0, 16)
 	colonne.add_child(espace)
 	var b := Button.new()
-	b.text = "Retour au menu"
+	b.text = "Retour au repaire"   # (jalon 5 : après une expédition, on rentre au repaire)
 	b.custom_minimum_size = Vector2(420, 90)
 	b.add_theme_font_size_override("font_size", 34)
 	b.add_theme_color_override("font_color", COULEUR_OS)

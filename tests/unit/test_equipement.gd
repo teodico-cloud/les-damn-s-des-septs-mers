@@ -620,7 +620,7 @@ func test_les_squelettes_sortent_ecartes() -> void:
 	gen.demi_cote = 2.2   # petite salle : les groupes s'y serrent contre les murs
 	monde.add_child(gen)
 	var plus_proche := INF
-	for essai in 15:
+	for essai in 80:   # (beaucoup d'essais : le cas sans place tout près est rare, vu une fois en 15)
 		for e in gen.get_children():
 			gen.remove_child(e)
 			e.free()

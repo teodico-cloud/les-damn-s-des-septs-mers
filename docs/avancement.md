@@ -21,6 +21,7 @@ Dernière mise à jour : 4 novembre 2026.
 - **Jalon 4, étape 1 (butin au sol, façon Diablo) : faite**, APK 0.3.15.
 - **Jalon 4, étape 2 (sauvegarde, équipement, effets en combat, arme en main, objets uniques) : faite**, APK 0.4.17.
 - **Jalon 4, étape 3 (tri de la cale, revente, extraction d'urgence) : faite** ; relecture de fin de jalon corrigée ; APK 0.4.18.
+- **Jalon 5, étape 1 (matériaux, sauvegarde v2, repaire, salle des cartes, entrepôt) : faite** (voir plus bas).
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -212,6 +213,35 @@ Matelots squelettes qui reviennent sans fin.
   besoin), écran « Extraction d'urgence ! ». Son téléphone ne peut pas savoir si c'est l'hôte qui est parti
   ou son propre Wi-Fi qui a coupé : dans les deux cas, il garde son butin. L'hôte, lui, continue seul.
 - Essai coop « hôte parti » (`FIN=hote_parti`) ajouté au CI.
+
+## Repaire et matériaux (jalon 5, étape 1 — choix de Téo du 04/11)
+- **Matériaux** : bois de coque (matelots), fer noir (arbalétriers), essence maudite (prêtres noyés) ; chance 30 / 40 /
+  50 %, 1 à 2 par tas, tas grossis par la malédiction (comme les doublons) ; le Bosco 6 / 4 / 3, le coffre 4 / 2 / 1.
+  Au sol : planches, lingots, fiole qui luit, sur un disque à leur couleur ; ramassés comme les doublons (sans place
+  dans la cale, perdus en cas de défaite ; le Doublon terni ne compte que pour les doublons). En route, une 2e ligne
+  sous le sac : « 4 bois de coque · 2 fer noir · 3 essence maudite ». Écran de fin : « Matériaux : … », « Matériaux
+  perdus : … », « Entrepôt plein : … revendus, +N doublons ». À deux, chacun les siens (réseau version 11).
+- **Entrepôt** : plafonds 150 / 80 / 40 (niveau 2, étape 3 : 400 / 200 / 100) ; au-delà, le surplus rapporté est
+  revendu (1 / 2 / 3 doublons l'unité). Les doublons et les coffres n'ont pas de limite (choix de Téo).
+- **Sauvegarde version 2** : matériaux, niveaux du bateau (0 à 3) et du repaire (1 et 2) ; une sauvegarde version 1 est
+  convertie (rien n'est perdu) ; valeurs abîmées ramenées dans leurs bornes ; un tri en attente garde ses matériaux.
+- **Repaire** (`game/repaire/`) : grotte avec quai et navire amarré (fait par code : coque, pont, château arrière, deux
+  mâts et voiles gonflées, beaupré, pavillon noir, lanternes vertes ; il tangue). On y marche au joystick (pas dans
+  l'eau). Quatre lieux, chacun avec son enseigne dorée : salle des cartes (table et carte), chantier naval (au quai),
+  forge (foyer rougeoyant, enclume), entrepôt (coffres, caisses). Devant un lieu : bouton « Ouvrir : … » ; raccourcis à
+  droite ; en haut, doublons et matériaux. Un lieu s'ouvre en panneau par-dessus la grotte (retour d'Android : ferme
+  d'abord le panneau). Chantier naval et forge : un message (étapes 2 et 3).
+- **Salle des cartes** : destination (le Récif des Pendus), le héros (celui qui marche dans le repaire change aussitôt),
+  la malédiction, « Lever l'ancre ! ». Après l'expédition (finie ou abandonnée), retour au repaire, sur le quai ; bouton
+  de l'écran de fin : « Retour au repaire ». À deux : on lance toujours depuis « Jouer à deux », et chacun revient à son
+  repaire.
+- **Écran titre** : « Le repaire » remplace « Expédition » ; l'Équipement est passé à l'entrepôt (son retour ramène devant
+  l'entrepôt). Mode test : « Ressources de test » (1 000 doublons, entrepôt rempli jusqu'au plafond).
+- Corrigé en passant (trouvé par le test « squelettes écartés », 1 fois) : dans une petite salle, un squelette pouvait
+  encore sortir à 0,7 m d'un autre ; il cherche maintenant plus loin, et faute de place prend le point le plus libre
+  (test durci : 80 tirages ; l'ancien code échoue 2 fois sur 3).
+- Tests : 288 (28 nouveaux : `test_matieres.gd`, `test_repaire.gd` ; 31 sabotages, tous vus) ; essai coop de l'expédition :
+  l'invité voit, ramasse et range son tas de fer noir.
 
 ## Objets uniques : une fois par héros (04/11, choix de Téo)
 - Un même objet unique (Légendaire ou Maudit) ne se porte qu'une fois par héros ; l'autre héros peut porter l'autre
@@ -437,7 +467,8 @@ Aucun plantage ni blocage trouvé. Corrigé (chaque correction a un test qui éc
 ## Prochaines étapes
 1. Essai de Téo du jalon 4 complet (butin, équipement, objets uniques grâce aux « Coffres de test », tri de la
    cale, sauvegarde : fermer l'appli, rien n'est perdu ; à deux : extraction d'urgence).
-2. Jalon 5 : repaire et bateau (le butin dépensé change la suite) — plan validé le 04/11, étape 1 en cours.
+2. Jalon 5 : repaire et bateau (le butin dépensé change la suite) — plan validé le 04/11 ; étape 1 faite ; étape 2 :
+   chantier naval (cale, voiles, coque, bordée, prix, bateau qui change d'aspect, pastille « ! »).
 
 ## Points à trancher plus tard
 - Clé de signature définitive : passer à la vraie clé (secrète) **avant** que les sauvegardes comptent,

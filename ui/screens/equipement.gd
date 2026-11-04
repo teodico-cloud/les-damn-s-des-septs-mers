@@ -1,10 +1,10 @@
 extends Node3D
-## Écran Équipement (jalon 4, ouvert depuis l'écran titre, choix de Téo) : un onglet par héros, debout à
+## Écran Équipement (jalon 4 ; jalon 5 : ouvert depuis l'entrepôt du repaire) : un onglet par héros, debout à
 ## gauche avec l'arme qu'il porte en main ; ses 3 emplacements (arme, deux reliques) ; les objets des
 ## coffres qui vont à l'emplacement choisi ; la fiche de l'objet touché, avec la comparaison ▲▼ avec
 ## ce qu'il porte (annexe retenue par Téo) et le bouton Équiper. Tout est enregistré aussitôt.
 
-const SCENE_MENU := "res://ui/screens/demarrage.tscn"
+const SCENE_MENU := "res://game/repaire/repaire.tscn"   ## (jalon 5 : ouvert depuis l'entrepôt du repaire)
 const DECOR := "res://assets/models/decor/"
 const COULEUR_OS := Color("e2d6ba")
 const COULEUR_OR := Color("ac8036")
@@ -43,6 +43,7 @@ func _notification(what: int) -> void:
 
 
 func retour_menu() -> void:
+	Partie.lieu_repaire = &"entrepot"   # (on revient devant l'entrepôt)
 	if changer_de_scene:
 		get_tree().change_scene_to_file(SCENE_MENU)
 
