@@ -13,4 +13,6 @@ Les modèles de `assets/models/heroes/` sont des dérivés de ces packs (recolor
 accessoires modélisés par script dans `tools/blender/build_heroes.py`).
 
 Faits par code, sans asset (jalon 5) : le navire du repaire (`game/repaire/navire.gd`), les planches de bois de
-coque et les lingots de fer noir au sol, le foyer et l'enclume de la forge.
+coque et les lingots de fer noir au sol, le foyer et l'enclume de la forge ; les améliorations visibles du navire
+(caisses, voiles, bandes de fer, canons) et les boulets de la bordée. Icône du bouton Bordée (`assets/ui/icones/canon.svg`) :
+dessinée à la main en SVG, comme les autres icônes.

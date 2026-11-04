@@ -22,6 +22,7 @@ Dernière mise à jour : 4 novembre 2026.
 - **Jalon 4, étape 2 (sauvegarde, équipement, effets en combat, arme en main, objets uniques) : faite**, APK 0.4.17.
 - **Jalon 4, étape 3 (tri de la cale, revente, extraction d'urgence) : faite** ; relecture de fin de jalon corrigée ; APK 0.4.18.
 - **Jalon 5, étape 1 (matériaux, sauvegarde v2, repaire, salle des cartes, entrepôt) : faite**, APK 0.5.19 (voir plus bas).
+- **Jalon 5, étape 2 (chantier naval, améliorations du bateau, bordée visée au joystick) : faite** (voir plus bas).
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -243,6 +244,29 @@ Matelots squelettes qui reviennent sans fin.
 - Tests : 288 (28 nouveaux : `test_matieres.gd`, `test_repaire.gd` ; 31 sabotages, tous vus) ; essai coop de l'expédition :
   l'invité voit, ramasse et range son tas de fer noir.
 
+## Chantier naval et bateau (jalon 5, étape 2 — choix de Téo du 04/11)
+- **Chantier naval** (lieu du repaire) : les 4 améliorations, chacune « Cale   niveau 1 / 3 », ce qu'elle donne → le niveau
+  suivant, son prix (en rouge avec « il manque … » si l'on ne peut pas payer) et « Améliorer ». Un niveau à la fois : un
+  double appui n'achète jamais deux fois (journal des achats dans la sauvegarde). Prix (`bateau_prix`) : 60 à 80 doublons
+  et 12 à 20 matériaux pour un 1er niveau, ~200 doublons et 35 à 45 matériaux pour un 3e (une quinzaine d'expéditions
+  réussies pour tout).
+- **Effets** : Cale 8 → 10 / 12 / 15 objets ; Voiles 45 → 40 / 35 / 30 s dans la chaloupe (à deux : les meilleures
+  voiles des deux, fixées au départ) ; Coque : malédiction de départ jusqu'à 2 → 3 / 4 / 5 (« Plus haut : améliorez la
+  coque au chantier naval » sous le choix ; à deux, la coque de l'hôte ; Mode test : « Malédiction : toutes ») ; Bordée
+  0 → 1 / 2 / 3 tirs par expédition.
+- **Bordée** (visée au joystick, choix de Téo) : bouton « Bordée » avec le nombre de tirs (caché sans canons, grisé
+  quand c'est vide). Maintenu : un grand anneau rouge au sol, devant le héros ; en glissant le pouce depuis le bouton,
+  il suit la direction et s'éloigne jusqu'à 10 m ; relâché : « Bordée ! », 5 boulets autour du point visé, un cercle
+  rouge qui se remplit 0,9 s puis le boulet tombe et explose (45 dégâts aux squelettes à 1,6 m ; Bosco : moitié).
+  Héros épargnés. Un toucher annulé (appel) ou une mise en arrière-plan ne tire rien. Clavier : B.
+- **À deux** : le bateau de chacun est envoyé à la connexion (réseau version 12). Chacun sa cale et ses tirs ; l'invité
+  vise chez lui, l'hôte tire (s'il lui reste des tirs) et les deux voient les mêmes boulets.
+- **Bateau qui change d'aspect** (annexe retenue) : caisses sur le pont (cale), voiles de plus en plus sombres avec une
+  lueur verte (voiles), bandes de fer sur la coque, canons sur les flancs (bordée).
+- **Pastille « ! »** (annexe retenue) : au-dessus du chantier et sur son raccourci quand une amélioration est payable.
+- Petits choix faits sans Téo, à lui signaler : sans glisser le pouce, la bordée tombe à 2,5 m devant le héros ; le
+  message « Bordée ! » s'affiche chez les deux joueurs ; la bordée ne sert qu'en expédition (pas dans l'arène).
+
 ## Objets uniques : une fois par héros (04/11, choix de Téo)
 - Un même objet unique (Légendaire ou Maudit) ne se porte qu'une fois par héros ; l'autre héros peut porter l'autre
   exemplaire. Équiper le 2e exemplaire retire le premier (comme un objet déplacé d'une relique à l'autre) ; écran
@@ -327,6 +351,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 30/10/2026 | Combat « nerveux » : héros plus vif, hordes, coups qui claquent, coups critiques (choix de Téo, voir plus haut). Ennemis plus agressifs : non retenu. |
 | 30/10/2026 | Parade : elle coupe le coup en cours ; parade parfaite en bonus (0,25 s), zone dorée avant le coup + étincelles, « PARFAIT ! » et ralenti, Parade rendue. Onde de choc : non retenue. |
 | 31/10/2026 | Jalon 3, étape 3 (choix de Téo) : Bosco « brute à la hache » (tourbillon, charge qui le laisse sonné 2 s contre un mur, coup au sol ; rage à mi-vie + 3 matelots) ; coups mi-parables (seul le coup au sol se pare, les gros coups rouge sombre sont imparables) ; ~1 min 30 en solo ; malédiction 0–5 choisie au départ avec l'échelle proposée (+20 % de butin par niveau) ; chaloupe : tenir 45 s à bord, le compte s'arrête si personne n'y est ; annexe retenue : écran de fin enrichi. |
+| 04/11/2026 | Jalon 5, étape 2 (choix de Téo) : bordée **visée au joystick** (bouton maintenu, la zone suit le pouce, relâcher pour tirer). Étape 2 lancée après l'APK 0.5.19. |
 | 04/11/2026 | Jalon 5 (choix de Téo) : plan validé (matériaux bois de coque / fer noir / essence maudite lâchés par matelots / arbalétriers / prêtres ; repaire 3D où l'on marche avec 4 lieux et raccourcis ; bateau : cale 8→10/12/15, voiles 45→40/35/30 s, coque = malédiction de départ 0–2 puis 3/4/5, bordée 0→1/2/3 tirs ; une quinzaine d'expéditions réussies pour finir le bateau ; à deux : chacun sa cale et sa bordée, les meilleures voiles des deux, malédiction limitée par la coque de l'hôte). Forge : « améliorer » = **monter d'une rareté** (armes seulement, pas les uniques). Coque : **comme la conception** (le Mode test débloque tout). Entrepôt : **plafond des ressources seulement** (surplus revendu en doublons, coffres sans limite). Annexes retenues : bateau qui change d'aspect, pastille « ! » sur les lieux. Non retenues : vendre à l'entrepôt, prochain achat en vue. Ordre : 1) ressources, sauvegarde v2, repaire, salle des cartes, entrepôt ; 2) chantier naval et 4 améliorations (bordée comprise) ; 3) forge, niveaux 2, prix, relecture, APK. |
 | 04/11/2026 | Un objet unique ne se porte qu'une fois par héros (l'autre héros peut porter l'autre exemplaire). |
 | 03/11/2026 | Jalon 4, étape 3 (choix de Téo) : tri de la cale à la fin d'une expédition réussie (8 objets, les plus rares cochés d'avance, doublons sans limite, chacun trie le sien à deux) ; les objets non gardés sont **revendus en doublons** selon leur rareté ; hôte parti en pleine expédition = **extraction d'urgence** de l'invité (il garde son sac, tri de la cale) ; annexe retenue : cale visible en route (« Sac : 9 objets / cale 8 » en orange). Non retenue : vendre depuis les coffres. |
@@ -468,7 +493,9 @@ Aucun plantage ni blocage trouvé. Corrigé (chaque correction a un test qui éc
 1. Essai de Téo du jalon 4 complet (butin, équipement, objets uniques grâce aux « Coffres de test », tri de la
    cale, sauvegarde : fermer l'appli, rien n'est perdu ; à deux : extraction d'urgence).
 2. Jalon 5 : repaire et bateau (le butin dépensé change la suite) — plan validé le 04/11 ; étape 1 faite ; étape 2 :
-   chantier naval (cale, voiles, coque, bordée, prix, bateau qui change d'aspect, pastille « ! »).
+   chantier naval (cale, voiles, coque, bordée, prix, bateau qui change d'aspect, pastille « ! ») ; étape 2 faite ;
+   étape 3 : forge (monter d'une rareté, recycler, relancer un effet au niveau 2), niveaux 2 de la forge et de
+   l'entrepôt, relecture de fin de jalon.
 
 ## Points à trancher plus tard
 - Clé de signature définitive : passer à la vraie clé (secrète) **avant** que les sauvegardes comptent,
