@@ -12,6 +12,7 @@ var lieu_repaire: StringName = &""         ## où le héros réapparaît dans le
 # mode test (APK de test, écran titre) : pour essayer un point précis sans refaire toute l'expédition
 var debug_sante_infinie := false
 var debug_depart: StringName = &""          ## &"" (salle 1), &"tresor", &"bosco" ou &"chaloupe"
+var debug_tout_debloque := false            ## jalon 5 : toutes les malédictions, quelle que soit la coque
 
 
 const SCENES := {

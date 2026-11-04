@@ -2,8 +2,9 @@ class_name Repaire
 extends Node3D
 ## Le repaire (jalon 5, conception validée) : une grotte avec un quai où le navire est amarré. Le héros y
 ## marche au joystick ; quatre lieux s'ouvrent quand il s'en approche (bouton « Ouvrir »), ou d'un
-## raccourci : la salle des cartes (héros, malédiction, départ), le chantier naval (le bateau, étape 2),
-## la forge (étape 3) et l'entrepôt (matériaux, coffres, équipement). Tout est construit par code.
+## raccourci : la salle des cartes (héros, malédiction, départ), le chantier naval (les améliorations du
+## bateau, étape 2), la forge (étape 3) et l'entrepôt (matériaux, coffres, équipement). Tout est construit par
+## code. Une pastille « ! » signale un lieu où un achat est possible (annexe retenue par Téo).
 ##
 ## Plan (vu d'en haut, la caméra regarde depuis +x +z) : l'eau et le navire à gauche (x < -6,4), le quai
 ## en bois juste à côté, la salle des cartes au fond, la forge au fond à droite, l'entrepôt à droite.
@@ -38,6 +39,8 @@ var lieu_proche: StringName = &""
 var changer_de_scene := true     ## faux dans les tests : le changement de scène est seulement noté
 var scene_demandee := ""         ## (tests) la scène qu'on aurait ouverte
 var _torches: Array[OmniLight3D] = []
+var enseignes := {}               ## lieu -> Label3D (son nom)
+var pastilles := {}               ## lieu -> Label3D « ! » (achat possible)
 var _braises: OmniLight3D
 var _temps := 0.0
 
@@ -59,6 +62,7 @@ func _ready() -> void:
 	add_child(hud)
 	hud.ouvrir_demande.connect(ouvrir)
 	hud.menu_demande.connect(retour_menu)
+	mettre_a_jour_pastilles()
 
 
 func _notification(what: int) -> void:
@@ -108,9 +112,34 @@ func ouvrir(lieu: StringName) -> void:
 			p.equipement_demande.connect(_ouvrir_equipement)
 			hud.ouvrir_panneau(p)
 		&"chantier":
-			hud.message("Le chantier naval ouvrira à l'étape 2 du jalon 5.", 2.5)
+			var p := PanneauChantier.new()
+			p.achete.connect(_apres_achat)
+			hud.ouvrir_panneau(p)
 		&"forge":
 			hud.message("La forge ouvrira à l'étape 3 du jalon 5.", 2.5)
+
+
+## Un achat au chantier : le navire change d'aspect, les pastilles se mettent à jour.
+func _apres_achat(_amelioration: String) -> void:
+	navire.appliquer(Bateau.niveaux())
+	mettre_a_jour_pastilles()
+
+
+## Lieux où un achat est possible maintenant (pastille « ! » sur l'enseigne et le raccourci).
+func lieux_a_signaler() -> Array:
+	var r := []
+	if Bateau.achat_possible():
+		r.append(&"chantier")
+	return r
+
+
+func mettre_a_jour_pastilles() -> void:
+	var a_signaler := lieux_a_signaler()
+	for l in pastilles:
+		pastilles[l].visible = l in a_signaler
+	if hud:
+		for l in ORDRE_LIEUX:
+			hud.marquer(l, l in a_signaler)
 
 
 ## Salle des cartes : on lève l'ancre (seul ; à deux, on passe par « Jouer à deux »).
@@ -227,6 +256,7 @@ func _construire() -> void:
 	navire = Navire.new()
 	navire.name = "Navire"
 	navire.position = Vector3(-9.6, -1.25, 0.4)
+	navire.niveaux = Bateau.niveaux()
 	add_child(navire)
 	# murs du fond (aussi au-dessus de l'eau : le port est dans la grotte) et rochers
 	for i in 9:
@@ -273,7 +303,13 @@ func _construire() -> void:
 		l.omni_range = 7.0
 		add_child(l)
 	for l in ORDRE_LIEUX:
-		_enseigne(LIEUX[l]["nom"], LIEUX[l]["pos"] + _decalage_enseigne(l))
+		enseignes[l] = _enseigne(LIEUX[l]["nom"], LIEUX[l]["pos"] + _decalage_enseigne(l))
+		var p := _enseigne("!", LIEUX[l]["pos"] + _decalage_enseigne(l) + Vector3(0, 0.55, 0))
+		p.font_size = 90
+		p.modulate = Color(1.0, 0.4, 0.2)
+		p.name = "Pastille_" + String(l)
+		p.visible = false
+		pastilles[l] = p
 
 
 func _decalage_enseigne(l: StringName) -> Vector3:
@@ -408,7 +444,7 @@ func _entrepot() -> void:
 
 
 ## Le nom d'un lieu, en lettres d'or au-dessus de lui.
-func _enseigne(texte: String, pos: Vector3) -> void:
+func _enseigne(texte: String, pos: Vector3) -> Label3D:
 	var l := Label3D.new()
 	l.text = texte
 	l.font_size = 48
@@ -418,6 +454,7 @@ func _enseigne(texte: String, pos: Vector3) -> void:
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.position = pos
 	add_child(l)
+	return l
 
 
 func _objet(nom: String, pos: Vector3, rot_y: float) -> Node3D:

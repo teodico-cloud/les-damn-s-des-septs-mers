@@ -14,6 +14,8 @@ var rayon := 60.0
 var recharge: Recharge
 var appuye := false
 var doigt := -1
+var compteur := -1      ## jalon 5 (bordée) : tirs restants, dans une pastille ; -1 : pas de pastille
+var inactif := false    ## plus rien à faire (bordée vide) : icône grisée
 var _etait_appuye := false
 var _etait_en_recharge := false
 
@@ -55,7 +57,7 @@ func _draw() -> void:
 		# icône au centre, un peu haute pour laisser la place au nom
 		var cote := rayon * 1.22
 		var rect := Rect2(c - Vector2(cote, cote) / 2.0 - Vector2(0, rayon * 0.13), Vector2(cote, cote))
-		draw_texture_rect(icone, rect, false, Color(0.45, 0.45, 0.45) if en_recharge else Color.WHITE)
+		draw_texture_rect(icone, rect, false, Color(0.45, 0.45, 0.45) if en_recharge or inactif else Color.WHITE)
 		if not en_recharge:
 			var tp := int(rayon * 0.24)
 			var tn := police.get_string_size(texte, HORIZONTAL_ALIGNMENT_CENTER, -1, tp)
@@ -81,3 +83,12 @@ func _draw() -> void:
 		draw_string_outline(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), texte, HORIZONTAL_ALIGNMENT_LEFT, -1, taille_police, 5, Color.BLACK)
 		draw_string(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), texte, HORIZONTAL_ALIGNMENT_LEFT, -1, taille_police, COULEUR_TEXTE)
 	draw_arc(c, rayon - 2.0, 0, TAU, 48, COULEUR_BORD, 4.0, true)
+	if compteur >= 0:   # pastille en haut à droite : combien il en reste
+		var p := c + Vector2(rayon * 0.72, -rayon * 0.72)
+		var r := rayon * 0.34
+		draw_circle(p, r, Color(0.55, 0.12, 0.08) if compteur > 0 else Color(0.25, 0.22, 0.2))
+		draw_arc(p, r, 0, TAU, 24, COULEUR_BORD, 3.0, true)
+		var t := str(compteur)
+		var tp := int(r * 1.3)
+		var ts := police.get_string_size(t, HORIZONTAL_ALIGNMENT_CENTER, -1, tp)
+		draw_string(police, p + Vector2(-ts.x / 2.0, ts.y / 3.0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, tp, COULEUR_TEXTE)

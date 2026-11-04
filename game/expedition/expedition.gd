@@ -44,6 +44,9 @@ var _pause_debut_ms := 0          ## (temps réel)
 var _pause_fin_ms := -100000      ## fin de la dernière pause, et sa durée
 var _pause_duree_ms := 0
 var chaloupe_restant := -1.0      ## secondes avant le départ (-1 : personne n'est encore monté) ; invité : d'après l'hôte
+var duree_chaloupe := 45.0        ## jalon 5 : selon les voiles (à deux : les meilleures des deux bateaux), fixée au départ
+var tirs_bordee := {}             ## jalon 5 : nom du héros -> tirs de bordée restants (selon son bateau)
+var cale := 8                     ## jalon 5 : places de la cale de ce téléphone (selon son bateau)
 var a_bord := false               ## au moins un héros debout dans la chaloupe
 var vagues_lancees := 0
 
@@ -83,6 +86,14 @@ func _pret() -> void:
 	id_expedition = "%08x%08x" % [randi(), int(Time.get_unix_time_from_system()) & 0xffffffff]
 	Sauvegarde.enregistrer()            # (sauvegarde au départ, prévue dans la conception)
 	hud.mode_expedition = true
+	# le bateau (jalon 5) : cale, voiles, bordée ; à deux, celui de l'autre est arrivé à la connexion
+	cale = Bateau.ma_cale()
+	duree_chaloupe = Bateau.duree_chaloupe_partie()
+	tirs_bordee[String(heros.name)] = Bateau.tirs_bordee(Sauvegarde.niveau_bateau("bordee"))
+	if is_instance_valid(heros_partenaire):
+		tirs_bordee[String(heros_partenaire.name)] = Bateau.tirs_bordee(int(Reseau.bateau_partenaire.get("bordee", 0)))
+	hud.configurer_bordee(tirs_bordee[String(heros.name)])
+	hud.bordee_demandee.connect(demander_bordee)
 	heros.reapparition_auto = false     # tomber, c'est perdre (ou attendre d'être relevé en coop)
 	heros.rotation.y = -PI * 0.75       # tourné vers la salle
 	if is_instance_valid(heros_partenaire):
@@ -200,7 +211,7 @@ func _demarrer_salle() -> void:
 			_message("Un coffre maudit…", 2.0)
 		PlanExpedition.CHALOUPE:
 			generateur.preparer_salle(0, 0, AUCUN_POINT)
-			_message("Montez dans la chaloupe\net tenez bon %d s !" % int(EQ.chaloupe_duree), 3.0)
+			_message("Montez dans la chaloupe\net tenez bon %d s !" % int(duree_chaloupe), 3.0)
 
 
 ## Qui sort de terre dans une salle (le reste en matelots) : des arbalétriers à partir de la 2e salle,
@@ -375,7 +386,7 @@ func _verifier_coffre() -> void:
 			return
 
 
-## Quai : la chaloupe part au bout de chaloupe_duree secondes passées avec au moins un héros à bord
+## Quai : la chaloupe part au bout de duree_chaloupe secondes (voiles du bateau) passées avec au moins un héros à bord
 ## (le compte s'arrête quand personne n'y est, sans rien perdre) ; des vagues de squelettes sortent
 ## de l'eau à intervalles réguliers de ce compte (choix de Téo : « tenir 45 s à bord »).
 func _verifier_chaloupe(delta: float) -> void:
@@ -388,17 +399,17 @@ func _verifier_chaloupe(delta: float) -> void:
 	if chaloupe_restant < 0.0:
 		if not a_bord:
 			return
-		chaloupe_restant = EQ.chaloupe_duree
+		chaloupe_restant = duree_chaloupe
 		_message("La chaloupe se prépare…\nTenez bon à bord !", 2.5)
 	elif a_bord:
 		chaloupe_restant = maxf(chaloupe_restant - delta, 0.0)
-	var ecoule := EQ.chaloupe_duree - chaloupe_restant
+	var ecoule := duree_chaloupe - chaloupe_restant
 	# une vague attend que le quai se vide un peu (instantané de la coop sous un paquet Wi-Fi, téléphone)
-	while vagues_lancees < EQ.chaloupe_vagues and ecoule >= vagues_lancees * EQ.chaloupe_duree / EQ.chaloupe_vagues \
+	while vagues_lancees < EQ.chaloupe_vagues and ecoule >= vagues_lancees * duree_chaloupe / EQ.chaloupe_vagues \
 			and generateur.vivants() + generateur.allies() < EQ.chaloupe_max_debout:   # (relevés compris)
 		_lancer_vague(vagues_lancees)
 		vagues_lancees += 1
-	salle.houle = clampf(ecoule / EQ.chaloupe_duree, 0.0, 1.0)
+	salle.houle = clampf(ecoule / duree_chaloupe, 0.0, 1.0)
 	_afficher_chaloupe()
 	if chaloupe_restant <= 0.0:
 		_terminer(true)
@@ -437,7 +448,7 @@ func caler_chaloupe(restant: float, p_a_bord: bool) -> void:
 	chaloupe_restant = restant
 	a_bord = p_a_bord
 	if restant >= 0.0:
-		salle.houle = clampf((EQ.chaloupe_duree - restant) / EQ.chaloupe_duree, 0.0, 1.0)
+		salle.houle = clampf((duree_chaloupe - restant) / duree_chaloupe, 0.0, 1.0)
 	_afficher_chaloupe()
 
 
@@ -522,10 +533,10 @@ func _afficher_fin(p_reussite: bool, lignes: Array, p_sacs: Dictionary = {}, tit
 	_titre_fin = titre
 	hud.afficher_salle("")
 	var sac := _mon_sac()
-	if p_reussite and sac["objets"].size() > EQ.cale_places:
+	if p_reussite and sac["objets"].size() > cale:
 		tri_en_cours = true
 		hud.tri_valide.connect(_charger_la_cale, CONNECT_ONE_SHOT)
-		hud.afficher_tri(sac["objets"], EQ.cale_places)
+		hud.afficher_tri(sac["objets"], cale)
 		return
 	_charger_la_cale(sac["objets"] if p_reussite else [])
 
@@ -758,7 +769,47 @@ func _mettre_au_sac(proprietaire: String, objet: Dictionary, quantite: int, mati
 			hud.afficher_ramasse("+" + Butin.texte_tas(matiere, quantite), Butin.COULEURS_TAS.get(matiere, Color.WHITE))
 		else:
 			hud.afficher_ramasse(Butin.nom_complet(objet), Butin.couleur(objet))
-		hud.afficher_sac(sac["objets"].size(), sac["doublons"], EQ.cale_places, sac)
+		hud.afficher_sac(sac["objets"].size(), sac["doublons"], cale, sac)
+
+
+# ---------------------------------------------------------------- bordée (jalon 5, visée au joystick)
+## Le joueur a visé et relâché le bouton Bordée : seul ou hôte, on tire ; invité, l'hôte décide.
+func demander_bordee(cible: Vector3) -> void:
+	if finie or en_transition or not heros.est_vivant() or int(tirs_bordee.get(String(heros.name), 0)) <= 0:
+		return
+	if Reseau.est_invite():
+		Reseau.envoyer_bordee(cible)
+		tirs_bordee[String(heros.name)] -= 1   # (l'affichage ; l'hôte compte de son côté)
+		hud.configurer_bordee(tirs_bordee[String(heros.name)])
+		return
+	tirer_bordee(heros, cible)
+
+
+## Hôte (ou seul) : le navire de `h` tire sa bordée sur `cible` (s'il lui reste des tirs) : des boulets
+## tombent autour, un peu l'un après l'autre ; l'invité voit les mêmes (EventBus.effet_visuel).
+func tirer_bordee(h: Heros, cible: Vector3) -> void:
+	var nom := String(h.name)
+	if finie or en_transition or salle == null or not h.est_vivant() or int(tirs_bordee.get(nom, 0)) <= 0:
+		return
+	tirs_bordee[nom] -= 1
+	if h == heros:
+		hud.configurer_bordee(tirs_bordee[nom])
+	var depuis := Vector3(h.global_position.x, 0, h.global_position.z)
+	var vers := Vector3(cible.x, 0, cible.z) - depuis
+	if vers.length() > EQ.bordee_portee:   # (un invité ne vise pas plus loin que la portée)
+		vers = vers.normalized() * EQ.bordee_portee
+	var centre := depuis + vers
+	for i in EQ.bordee_boulets:
+		var p := centre
+		if i > 0:   # le premier au centre, les autres tout autour
+			var a := TAU * float(i - 1) / float(EQ.bordee_boulets - 1) + _rng_butin.randf_range(-0.4, 0.4)
+			p = centre + Vector3(cos(a), 0, sin(a)) * EQ.bordee_dispersion * _rng_butin.randf_range(0.55, 1.0)
+		p.x = clampf(p.x, -Salle.DEMI + 0.4, Salle.DEMI - 0.4)
+		p.z = clampf(p.z, -Salle.DEMI + 0.4, Salle.DEMI - 0.4)
+		var delai := EQ.bordee_ecart * i
+		Boulet.creer(salle, p, h, delai)
+		EventBus.effet_visuel.emit(h, "boulet_%d" % roundi(delai * 1000.0), p)
+	_message("Bordée !", 1.2)
 
 
 # ---------------------------------------------------------------- coop

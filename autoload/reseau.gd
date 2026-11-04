@@ -12,7 +12,7 @@ signal combat_lance
 
 const PORT_JEU := 34778
 const PORT_ANNONCE := 34779
-const VERSION_RESEAU := 11       ## à augmenter quand le protocole change (refuse un autre APK) ; 7 : Bosco, malédiction, chaloupe ; 8 : butin ; 9 : équipement ; 10 : coups discrets ; 11 : matériaux
+const VERSION_RESEAU := 12       ## à augmenter quand le protocole change (refuse un autre APK) ; 7 : Bosco, malédiction, chaloupe ; 8 : butin ; 9 : équipement ; 10 : coups discrets ; 11 : matériaux ; 12 : bateau et bordée
 const DELAI_ANNONCE := 0.5
 
 enum Role { AUCUN, HOTE, INVITE }
@@ -23,6 +23,7 @@ var heros_partenaire: StringName = &""
 ## Les objets que porte le héros du partenaire (jalon 4) : échangés à la connexion, pour que les deux
 ## téléphones équipent les deux héros pareil (PV, vitesse, arme en main…).
 var equipement_partenaire: Array = []
+var bateau_partenaire: Dictionary = {}   ## niveaux du bateau de l'autre téléphone (jalon 5 : voiles, bordée…)
 ## Arène en cours (SynchroArene) : les messages de l'invité passent par ce nœud-ci, qui existe des
 ## deux côtés dès le démarrage, puis lui sont transmis (l'arène de l'hôte peut s'ouvrir après).
 var synchro: Node
@@ -139,7 +140,7 @@ func _on_pair_connecte(id: int) -> void:
 ## Appelé par l'invité juste après la connexion : version du jeu et accord sur les héros. L'invité
 ## envoie l'équipement de ses deux héros (l'hôte lui attribue celui qu'il ne joue pas).
 @rpc("any_peer", "reliable")
-func _bonjour(version: int, equipements: Dictionary) -> void:
+func _bonjour(version: int, equipements: Dictionary, bateau: Dictionary) -> void:
 	if role != Role.HOTE or multiplayer.get_remote_sender_id() != id_partenaire:
 		return
 	if version != VERSION_RESEAU:
@@ -148,15 +149,18 @@ func _bonjour(version: int, equipements: Dictionary) -> void:
 	var heros_hote := StringName(_infos_hote["heros"])
 	heros_partenaire = _autre_heros(heros_hote)
 	equipement_partenaire = equipement_valide(equipements.get(String(heros_partenaire), []), heros_partenaire)
-	_bienvenue.rpc_id(id_partenaire, _infos_hote["heros"], String(heros_partenaire), Sauvegarde.equipes(heros_hote))
+	bateau_partenaire = Bateau.niveaux_valides(bateau)
+	_bienvenue.rpc_id(id_partenaire, _infos_hote["heros"], String(heros_partenaire), Sauvegarde.equipes(heros_hote),
+			Bateau.niveaux())
 	partenaire_connecte.emit({"heros": heros_partenaire})
 
 
 @rpc("authority", "reliable")
-func _bienvenue(heros_hote: String, heros_invite: String, equipement_hote: Array) -> void:
+func _bienvenue(heros_hote: String, heros_invite: String, equipement_hote: Array, bateau_hote: Dictionary) -> void:
 	heros_partenaire = StringName(heros_hote)
 	Partie.heros_local = StringName(heros_invite)
 	equipement_partenaire = equipement_valide(equipement_hote, heros_partenaire)
+	bateau_partenaire = Bateau.niveaux_valides(bateau_hote)
 	partenaire_connecte.emit({"heros": heros_partenaire})
 
 
@@ -206,6 +210,11 @@ func envoyer_action(nom: StringName) -> void:
 	_action.rpc_id(1, nom)
 
 
+## Bordée de l'invité (jalon 5) : le point visé ; l'hôte décide (tirs restants, dégâts).
+func envoyer_bordee(cible: Vector3) -> void:
+	_bordee.rpc_id(1, cible)
+
+
 func _depuis_partenaire() -> bool:
 	return role == Role.HOTE and multiplayer.get_remote_sender_id() == id_partenaire and is_instance_valid(synchro)
 
@@ -226,6 +235,12 @@ func _entrees(seq: int, x: float, z: float) -> void:
 func _action(nom: StringName) -> void:
 	if _depuis_partenaire():
 		synchro.recevoir_action(nom)
+
+
+@rpc("any_peer", "reliable")
+func _bordee(cible: Vector3) -> void:
+	if _depuis_partenaire():
+		synchro.recevoir_bordee(cible)
 
 
 # ---------------------------------------------------------------- rejoindre
@@ -251,7 +266,8 @@ func rejoindre(adresse: String) -> Error:
 func _on_connecte_a_l_hote() -> void:
 	id_partenaire = 1
 	_delai_court(1)
-	_bonjour.rpc_id(1, VERSION_RESEAU, {"bretteur": Sauvegarde.equipes(&"bretteur"), "occultiste": Sauvegarde.equipes(&"occultiste")})
+	_bonjour.rpc_id(1, VERSION_RESEAU, {"bretteur": Sauvegarde.equipes(&"bretteur"), "occultiste": Sauvegarde.equipes(&"occultiste")},
+			Bateau.niveaux())
 
 
 func _on_connexion_ratee() -> void:
@@ -269,6 +285,7 @@ func _on_pair_deconnecte(id: int) -> void:
 		id_partenaire = 0
 		heros_partenaire = &""
 		equipement_partenaire = []
+		bateau_partenaire = {}
 		partenaire_parti.emit("Ton partenaire a quitté la partie.")
 
 
@@ -315,6 +332,7 @@ func quitter() -> void:
 	id_partenaire = 0
 	heros_partenaire = &""
 	equipement_partenaire = []
+	bateau_partenaire = {}
 
 
 # ---------------------------------------------------------------- adresse et code

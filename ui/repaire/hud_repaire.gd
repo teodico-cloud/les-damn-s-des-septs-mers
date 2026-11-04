@@ -108,6 +108,31 @@ func rafraichir() -> void:
 		labels_ressources[m].text = Butin.texte_tas(m, Sauvegarde.ressource(m))
 
 
+## Pastille « ! » sur le raccourci d'un lieu (un achat y est possible).
+func marquer(lieu: StringName, oui: bool) -> void:
+	var b: Button = raccourcis.get(lieu)
+	if b == null:
+		return
+	var p := b.get_node_or_null("Pastille") as Label
+	if p == null:
+		p = Label.new()
+		p.name = "Pastille"
+		p.text = "!"
+		p.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		p.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		p.add_theme_font_size_override("font_size", 28)
+		p.add_theme_color_override("font_color", Color.WHITE)
+		var fond := StyleBoxFlat.new()
+		fond.bg_color = Color(0.85, 0.3, 0.15)
+		fond.set_corner_radius_all(18)
+		p.add_theme_stylebox_override("normal", fond)
+		p.size = Vector2(36, 36)
+		p.position = Vector2(-14, -12)
+		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(p)
+	p.visible = oui
+
+
 ## Le héros est devant un lieu (ou plus aucun : &"").
 func montrer_lieu(lieu: StringName) -> void:
 	lieu_affiche = lieu

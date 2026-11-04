@@ -20,6 +20,7 @@ var bouton_test: Button
 var panneau_test: VBoxContainer
 var bouton_sante: Button
 var bouton_depart: Button
+var bouton_coque: Button
 var label_test: Label
 const DEPARTS: Array[StringName] = [&"", &"tresor", &"bosco", &"chaloupe"]
 const NOMS_DEPARTS := {&"": "salle 1", &"tresor": "trésor", &"bosco": "antre du Bosco", &"chaloupe": "chaloupe"}
@@ -141,11 +142,12 @@ func _mode_test() -> void:
 	add_child(panneau_test)
 	bouton_sante = _bouton("")
 	bouton_depart = _bouton("")
+	bouton_coque = _bouton("")
 	var bouton_coffres := _bouton("Coffres de test")
 	bouton_coffres.pressed.connect(remplir_coffres_de_test)
 	var bouton_ressources := _bouton("Ressources de test")
 	bouton_ressources.pressed.connect(remplir_ressources_de_test)
-	for b in [bouton_sante, bouton_depart, bouton_coffres, bouton_ressources]:
+	for b in [bouton_sante, bouton_depart, bouton_coque, bouton_coffres, bouton_ressources]:
 		b.custom_minimum_size = Vector2(340, 64)   # (étroits : à côté des boutons du milieu, pas dessus)
 		b.add_theme_font_size_override("font_size", 24)
 		panneau_test.add_child(b)
@@ -154,6 +156,9 @@ func _mode_test() -> void:
 		_textes_test())
 	bouton_depart.pressed.connect(func():
 		Partie.debug_depart = DEPARTS[(DEPARTS.find(Partie.debug_depart) + 1) % DEPARTS.size()]
+		_textes_test())
+	bouton_coque.pressed.connect(func():
+		Partie.debug_tout_debloque = not Partie.debug_tout_debloque
 		_textes_test())
 	label_test = Label.new()
 	label_test.add_theme_font_size_override("font_size", 24)
@@ -197,7 +202,8 @@ func remplir_ressources_de_test() -> void:
 func _textes_test() -> void:
 	bouton_sante.text = "Santé infinie : %s" % ("oui" if Partie.debug_sante_infinie else "non")
 	bouton_depart.text = "Départ : %s" % NOMS_DEPARTS.get(Partie.debug_depart, "?")
-	var actif := Partie.debug_sante_infinie or Partie.debug_depart != &""
+	bouton_coque.text = "Malédiction : %s" % ("toutes" if Partie.debug_tout_debloque else "selon la coque")
+	var actif := Partie.debug_sante_infinie or Partie.debug_depart != &"" or Partie.debug_tout_debloque
 	label_test.text = "MODE TEST actif" if actif else ""
 
 

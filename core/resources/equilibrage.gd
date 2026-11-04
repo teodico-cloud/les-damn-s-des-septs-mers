@@ -284,6 +284,30 @@ extends Resource
 @export var mat_plafonds_niveau_2 := {"bois": 400, "fer": 200, "essence": 100}
 @export var mat_prix_surplus := {"bois": 1, "fer": 2, "essence": 3}   ## doublons par unité revendue
 
+@export_group("Bateau (jalon 5, étape 2 : choix de Téo du 04/11)")
+## Ce que donne chaque niveau (1, 2, 3) ; le niveau 0 est la base (cale_places, chaloupe_duree…)
+@export var bateau_cale: PackedInt32Array = [10, 12, 15]          ## objets rapportés
+@export var bateau_voiles: PackedFloat32Array = [40.0, 35.0, 30.0]  ## secondes à tenir dans la chaloupe
+@export var bateau_coque: PackedInt32Array = [2, 3, 4, 5]          ## malédiction de départ la plus haute (niveaux 0 à 3)
+@export var bateau_bordee: PackedInt32Array = [0, 1, 2, 3]         ## tirs de bordée par expédition (niveaux 0 à 3)
+## Prix de chaque niveau (1, 2, 3) : doublons et matériaux (une quinzaine d'expéditions réussies pour tout)
+@export var bateau_prix := {
+	"cale": [{"doublons": 60, "bois": 15}, {"doublons": 120, "bois": 30}, {"doublons": 180, "bois": 45, "fer": 5}],
+	"voiles": [{"doublons": 60, "bois": 12}, {"doublons": 120, "bois": 25, "essence": 5}, {"doublons": 180, "bois": 35, "essence": 10}],
+	"coque": [{"doublons": 80, "bois": 20, "fer": 5}, {"doublons": 150, "bois": 30, "fer": 15}, {"doublons": 220, "bois": 40, "fer": 25, "essence": 10}],
+	"bordee": [{"doublons": 70, "fer": 15}, {"doublons": 140, "fer": 25, "essence": 5}, {"doublons": 200, "fer": 35, "essence": 15}],
+}
+@export_subgroup("Bordée (tir du navire, visé au joystick)")
+@export var bordee_boulets := 5               ## boulets par tir
+@export var bordee_dispersion := 2.0          ## mètres : autour du point visé
+@export var bordee_rayon := 1.6               ## mètres : chaque boulet blesse les squelettes à cette distance
+@export var bordee_degats := 45.0             ## par boulet ; le Bosco en prend la moitié (choix de Téo)
+@export var bordee_mult_bosco := 0.5
+@export var bordee_annonce := 0.9             ## secondes de cercle rouge avant l'impact
+@export var bordee_ecart := 0.12              ## secondes entre deux boulets
+@export var bordee_portee := 10.0             ## mètres : le plus loin qu'on vise depuis le héros
+@export var bordee_portee_min := 2.5          ## sans glisser le pouce : la zone devant le héros
+
 @export_group("Équipement (jalon 4, étape 2 : effets validés par Téo le 01/11)")
 ## Rareté d'un objet de base : son effet de base est multiplié par (Commun, Rare, Épique) ; jamais un défaut
 ## (la lenteur de la hache reste la même)

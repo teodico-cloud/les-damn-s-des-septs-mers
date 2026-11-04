@@ -170,13 +170,11 @@ func test_l_entrepot_montre_les_materiaux() -> void:
 	assert_eq(Partie.lieu_repaire, &"entrepot", "On reviendra devant l'entrepôt")
 
 
-func test_chantier_et_forge_pas_encore_ouverts() -> void:
+func test_la_forge_pas_encore_ouverte() -> void:
 	var r := await _repaire()
-	r.ouvrir(&"chantier")
+	r.ouvrir(&"forge")
 	assert_null(r.hud.panneau)
 	assert_true(r.hud.label_message.visible)
-	assert_string_contains(r.hud.label_message.text, "étape 2")
-	r.ouvrir(&"forge")
 	assert_string_contains(r.hud.label_message.text, "étape 3")
 
 

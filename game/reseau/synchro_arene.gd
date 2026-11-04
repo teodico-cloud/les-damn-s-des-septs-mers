@@ -115,6 +115,13 @@ func recevoir_action(nom: StringName) -> void:
 	_differer(_traiter_action.bind(nom), true)
 
 
+## Bordée de l'invité (jalon 5) : l'hôte tire pour lui (s'il lui reste des tirs).
+func recevoir_bordee(cible: Vector3) -> void:
+	_differer(func():
+		if hote and is_instance_valid(heros_partenaire) and arene.has_method("tirer_bordee"):
+			arene.tirer_bordee(heros_partenaire, cible), true)
+
+
 func _traiter_action(nom: StringName) -> void:
 	if not hote or not is_instance_valid(heros_partenaire):
 		return
@@ -490,6 +497,11 @@ func _effet_recu(nom_lanceur: String, type: String, position: Vector3) -> void:
 		EventBus.parade_parfaite.emit(heros, position)
 		if heros == heros_local and heros.has_method("parade_parfaite_recue"):
 			heros.parade_parfaite_recue()
+		return
+	if type.begins_with("boulet_"):
+		# bordée (jalon 5) : décidée par l'hôte, même pour notre héros ; « boulet_<délai en ms> »
+		var ou: Node = arene.get("salle") if arene.get("salle") else arene
+		Boulet.creer(ou, position, null, float(type.substr(7)) / 1000.0)
 		return
 	if type == "sablier":
 		# Sablier de la Marée : décidé par l'hôte (coup esquivé), même pour notre héros (les squelettes

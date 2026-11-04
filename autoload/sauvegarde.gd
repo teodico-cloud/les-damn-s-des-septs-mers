@@ -47,6 +47,7 @@ static func profil_neuf() -> Dictionary:
 		"ressources": {"bois": 0, "fer": 0, "essence": 0},
 		"bateau": {"cale": 0, "voiles": 0, "coque": 0, "bordee": 0},
 		"repaire": {"forge": 1, "entrepot": 1},
+		"achats": [],   ## journal des achats (« bateau_cale_2 »…) ; un niveau ne s'achète qu'une fois
 	}
 
 
@@ -116,6 +117,10 @@ static func convertir(d: Dictionary) -> Dictionary:
 	var repaire = d.get("repaire", {})
 	for i in INSTALLATIONS:
 		r["repaire"][i] = clampi(int(repaire.get(i, 1)) if repaire is Dictionary else 1, 1, 2)
+	var achats = d.get("achats", [])
+	if achats is Array:
+		for a in achats:
+			r["achats"].append(String(a))
 	for o in d.get("objets", []):
 		if o is Dictionary and o.has("id") and Butin.definition(o).size() > 0:
 			r["objets"].append(normaliser(o))
@@ -292,6 +297,27 @@ func niveau_bateau(amelioration: String) -> int:
 
 func niveau_repaire(installation: String) -> int:
 	return int(donnees.get("repaire", {}).get(installation, 1))
+
+
+## Chantier naval (jalon 5, étape 2) : achète le niveau `niveau_vise` d'une amélioration du bateau, payé en
+## doublons et matériaux. Seulement le niveau suivant : un double appui n'achète jamais deux fois (le second
+## vise un niveau déjà acquis). Renvoie faux si ce n'est pas possible (déjà acquis, trop pauvre…).
+func ameliorer_bateau(amelioration: String, niveau_vise: int) -> bool:
+	if not amelioration in AMELIORATIONS or niveau_vise > NIVEAU_MAX_BATEAU or niveau_bateau(amelioration) != niveau_vise - 1:
+		return false
+	var p := Bateau.prix(amelioration, niveau_vise)
+	if p.is_empty() or not Bateau.manque(p).is_empty():
+		return false
+	donnees["doublons"] = doublons() - int(p.get("doublons", 0))
+	for m in Butin.MATIERES:
+		donnees["ressources"][m] = ressource(m) - int(p.get(m, 0))
+	donnees["bateau"][amelioration] = niveau_vise
+	if not donnees.has("achats"):
+		donnees["achats"] = []
+	donnees["achats"].append("bateau_%s_%d" % [amelioration, niveau_vise])
+	enregistrer()
+	changee.emit()
+	return true
 
 
 # ---------------------------------------------------------------- équipement

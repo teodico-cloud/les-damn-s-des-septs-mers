@@ -2,8 +2,9 @@ class_name ChoixMalediction
 extends PanelContainer
 ## Choix du niveau de malédiction avant une expédition (choix de Téo : 0 à 5, choisi au départ) :
 ## « < Malédiction 3 — Lames maudites > », les effets cumulés et le bonus de butin. Écrit dans
-## Partie.malediction (l'hôte l'envoie à l'invité au lancement). Tous les niveaux sont ouverts
-## jusqu'à la sauvegarde (jalon 4).
+## Partie.malediction (l'hôte l'envoie à l'invité au lancement). Jalon 5 (choix de Téo, comme la
+## conception) : la coque renforcée du bateau débloque les niveaux hauts (0 à 2 sans elle, puis 3, 4, 5) ;
+## à deux, c'est la coque de l'hôte qui compte ; le Mode test peut tout débloquer.
 
 signal change(niveau: int)
 
@@ -16,6 +17,8 @@ var label_effets: Label
 var label_butin: Label
 var bouton_moins: Button
 var bouton_plus: Button
+var label_coque: Label
+var maximum := Malediction.MAX   ## le plus haut niveau permis (Bateau.ma_malediction_max)
 
 
 func _ready() -> void:
@@ -58,18 +61,26 @@ func _ready() -> void:
 	label_butin.add_theme_font_size_override("font_size", 22)
 	label_butin.add_theme_color_override("font_color", Color("e0b04a"))
 	colonne.add_child(label_butin)
+	label_coque = Label.new()
+	label_coque.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label_coque.add_theme_font_size_override("font_size", 18)
+	label_coque.add_theme_color_override("font_color", Color(COULEUR_OS, 0.65))
+	colonne.add_child(label_coque)
+	maximum = Bateau.ma_malediction_max()
+	label_coque.text = "Plus haut : améliorez la coque au chantier naval" if maximum < Malediction.MAX else ""
+	label_coque.visible = maximum < Malediction.MAX
 	choisir(Partie.malediction, false)
 
 
 ## Change le niveau : `relatif` vrai → ajoute `n` au niveau actuel ; sinon le règle à `n`.
 func choisir(n: int, relatif: bool) -> void:
-	var niveau := clampi(Partie.malediction + n if relatif else n, 0, Malediction.MAX)
+	var niveau := clampi(Partie.malediction + n if relatif else n, 0, maximum)
 	Partie.malediction = niveau
 	label_titre.text = Malediction.titre(niveau)
 	label_effets.text = Malediction.effets(niveau).replace("\n", " · ")   # (une ou deux lignes : compact)
 	label_butin.text = "Butin %s : plus d'objets, et plus rares" % Malediction.texte_butin(niveau)
 	bouton_moins.disabled = niveau <= 0
-	bouton_plus.disabled = niveau >= Malediction.MAX
+	bouton_plus.disabled = niveau >= maximum
 	change.emit(niveau)
 
 

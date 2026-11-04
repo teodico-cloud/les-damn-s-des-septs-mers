@@ -3,7 +3,9 @@ extends Node3D
 ## Le navire des héros, amarré au quai du repaire (jalon 5) : coque, pont, château arrière, deux mâts et
 ## leurs voiles, beaupré, lanternes vertes ; construit par code (la conception : « coque et voiles
 ## simplifiées » faites à la main), il tangue doucement. Proue vers +z.
-## (Étape 2 : il changera un peu d'aspect avec les améliorations du chantier naval, annexe retenue.)
+## Il change un peu d'aspect avec les améliorations du chantier naval (annexe retenue par Téo) : caisses sur
+## le pont (cale), voiles plus sombres qui luisent de vert (voiles), bandes de fer sur la coque (coque),
+## canons sur les flancs (bordée). Voir `appliquer`.
 
 const BOIS := Color(0.36, 0.22, 0.12)
 const BOIS_SOMBRE := Color(0.2, 0.12, 0.07)
@@ -16,6 +18,9 @@ const CREUX := 1.7                            ## de la quille au plat-bord (au m
 
 var _corps: Node3D                            ## tout ce qui tangue
 var _temps := 0.0
+var _voiles: Array[MeshInstance3D] = []
+var _ameliorations: Node3D                    ## ce qu'ajoutent les niveaux du bateau (refait par `appliquer`)
+var niveaux := {}                             ## les niveaux affichés
 static var _mats := {}
 
 
@@ -59,6 +64,64 @@ func _ready() -> void:
 		l.omni_range = 4.0
 		l.position = Vector3(0, CREUX + 1.2, z)
 		_corps.add_child(l)
+	appliquer(niveaux)
+
+
+## Montre les améliorations du bateau ({"cale": 0 à 3, "voiles": …, "coque": …, "bordee": …}).
+func appliquer(p_niveaux: Dictionary) -> void:
+	niveaux = p_niveaux.duplicate()
+	if _corps == null:
+		return
+	if _ameliorations:
+		_ameliorations.free()
+	_ameliorations = Node3D.new()
+	_ameliorations.name = "Ameliorations"
+	_corps.add_child(_ameliorations)
+	var pont := CREUX - 0.25
+	# cale : des caisses arrimées sur le pont, entre les mâts
+	for i in int(niveaux.get("cale", 0)):
+		var c := _boite(Vector3((i % 2) * 0.7 - 0.35, pont + 0.3, -0.5 + 0.75 * (i / 2)), Vector3(0.6, 0.6, 0.6), Color(0.55, 0.36, 0.2))
+		c.reparent(_ameliorations, false)
+		c.name = "Caisse%d" % i
+	# voiles : de plus en plus sombres, d'une toile maudite qui luit de vert
+	var nv := int(niveaux.get("voiles", 0))
+	var teintes := [TOILE, Color(0.42, 0.4, 0.36), Color(0.2, 0.21, 0.22), Color(0.08, 0.09, 0.1)]
+	var mat := _mat(teintes[clampi(nv, 0, 3)], true, false).duplicate() as StandardMaterial3D
+	if nv >= 2:
+		mat.emission_enabled = true
+		mat.emission = LUEUR
+		mat.emission_energy_multiplier = 0.05 if nv == 2 else 0.1   # (une lueur, pas une toile verte)
+	for v in _voiles:
+		v.material_override = mat
+	# coque : des bandes de fer sur les flancs
+	var nc := int(niveaux.get("coque", 0))
+	for i in nc * 2:
+		var z := -2.4 + 4.8 * float(i) / maxf(nc * 2 - 1, 1)
+		for cote in [-1.0, 1.0]:
+			var bande := _boite(Vector3(cote * LARGEUR * 0.5, CREUX * 0.55, z), Vector3(0.08, 1.1, 0.22), Color(0.22, 0.24, 0.27))
+			bande.material_override = _mat_fer()
+			bande.reparent(_ameliorations, false)
+			bande.name = "Bande%d_%d" % [i, int(cote)]
+	# bordée : des canons qui sortent des flancs
+	for i in int(niveaux.get("bordee", 0)):
+		var z := 1.6 - 1.6 * i
+		for cote in [-1.0, 1.0]:
+			var canon := _cylindre(0.13, 0.9, Color(0.06, 0.06, 0.07))
+			canon.material_override = _mat_fer()
+			canon.position = Vector3(cote * (LARGEUR * 0.5 + 0.2), pont + 0.05, z)
+			canon.rotation_degrees.z = 90.0
+			canon.reparent(_ameliorations, false)
+			canon.name = "Canon%d_%d" % [i, int(cote)]
+
+
+static func _mat_fer() -> StandardMaterial3D:
+	if not _mats.has("fer"):
+		var m := StandardMaterial3D.new()
+		m.albedo_color = Color(0.18, 0.19, 0.22)
+		m.metallic = 0.7
+		m.roughness = 0.4
+		_mats["fer"] = m
+	return _mats["fer"]
 
 
 func _process(delta: float) -> void:
@@ -84,6 +147,7 @@ func _mat_et_voiles(pied: Vector3, hauteur: float, hauteurs_vergues: Array, larg
 		voile.material_override = _mat(TOILE, true)
 		voile.position = pied + Vector3(0, y - 0.05, 0.16)
 		_corps.add_child(voile)
+		_voiles.append(voile)
 
 
 ## Voile : une toile gonflée par le vent (bombée vers l'avant, plus au milieu), du haut (y = 0) vers le bas.

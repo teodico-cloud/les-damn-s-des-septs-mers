@@ -1,9 +1,11 @@
 extends SceneTree
 ## Captures du repaire (jalon 5) : la grotte vue de jeu (héros au milieu, au quai, devant chaque lieu),
 ## vue de dessus (vérifier le plan), et les panneaux de la salle des cartes et de l'entrepôt ; « matieres » :
-## les tas de matériaux au sol en expédition, le sac en haut à gauche, l'écran de fin (entrepôt plein).
+## les tas de matériaux au sol en expédition, le sac en haut à gauche, l'écran de fin (entrepôt plein) ;
+## « chantier » : le chantier naval (pauvre puis riche), la pastille, le navire avant et après ses améliorations,
+## la malédiction limitée par la coque ; « bordee » : la zone visée, les boulets qui tombent, les explosions.
 ## Usage : xvfb-run -a godot --path . --rendering-method gl_compatibility --rendering-driver opengl3
-##         --resolution 1280x720 -s <chemin absolu>/tools/capture_repaire.gd -- <dossier> [vues|panneaux|dessus|matieres]
+##         --resolution 1280x720 -s <chemin absolu>/tools/capture_repaire.gd -- <dossier> [vues|panneaux|dessus|matieres|chantier|bordee]
 ## Ne pas typer avec les classes du jeu (voir CLAUDE.md, pièges).
 
 var dossier := ""
@@ -38,6 +40,14 @@ func _go() -> void:
 	var quoi: String = args[1] if args.size() > 1 else "tout"
 	if quoi == "matieres":
 		await _matieres()
+		quit()
+		return
+	if quoi == "chantier":
+		await _chantier()
+		quit()
+		return
+	if quoi == "bordee":
+		await _bordee()
 		quit()
 		return
 	var sauvegarde = root.get_node("Sauvegarde")
@@ -172,6 +182,93 @@ func _studio_matieres() -> void:
 	cam.current = true
 	await _images(40)
 	await _capture("matieres_gros_plan.png")
+
+
+func _chantier() -> void:
+	var sauvegarde = root.get_node("Sauvegarde")
+	sauvegarde.chemin = "user://sauvegarde_captures.json"
+	sauvegarde.reinitialiser()
+	sauvegarde.encaisser("capture", [], 90, {}, {"bois": 20, "fer": 3})
+	root.get_node("Partie").heros_local = &"bretteur"
+	root.get_node("Partie").lieu_repaire = &"chantier"
+	repaire = load("res://game/repaire/repaire.tscn").instantiate()
+	repaire.changer_de_scene = false
+	root.add_child(repaire)
+	await _images(30)
+	await _capture("chantier_pastille.png")
+	repaire.ouvrir(&"chantier")
+	await _images(6)
+	await _capture("chantier_panneau.png")
+	repaire.hud.fermer_panneau()
+	# le navire, tel quel puis tout amélioré, vu de près
+	var cam := Camera3D.new()
+	root.add_child(cam)
+	cam.fov = 45.0
+	cam.look_at_from_position(Vector3(-3.0, 5.5, 8.5), Vector3(-9.4, 1.6, 0.4))
+	cam.current = true
+	repaire.hud.visible = false
+	await _images(4)
+	await _capture("navire_avant.png")
+	repaire.navire.appliquer({"cale": 3, "voiles": 3, "coque": 3, "bordee": 3})
+	await _images(4)
+	await _capture("navire_apres.png")
+	cam.queue_free()
+	repaire.camera.current = true
+	repaire.hud.visible = true
+	# riche : on achète, le panneau suit
+	sauvegarde.donnees["doublons"] = 600
+	for m in ["bois", "fer", "essence"]:
+		sauvegarde.donnees["ressources"][m] = 80
+	repaire.navire.appliquer(load("res://game/repaire/bateau.gd").niveaux())
+	repaire.ouvrir(&"chantier")
+	await _images(4)
+	repaire.hud.panneau.acheter("bordee", 1)
+	repaire.hud.panneau.acheter("voiles", 1)
+	await _images(6)
+	await _capture("chantier_achete.png")
+	repaire.hud.fermer_panneau()
+	repaire.ouvrir(&"cartes")
+	await _images(6)
+	await _capture("cartes_coque.png")
+
+
+func _bordee() -> void:
+	var partie = root.get_node("Partie")
+	var sauvegarde = root.get_node("Sauvegarde")
+	sauvegarde.chemin = "user://sauvegarde_captures.json"
+	sauvegarde.reinitialiser()
+	sauvegarde.donnees["bateau"]["bordee"] = 3
+	partie.heros_local = &"bretteur"
+	partie.destination = &"expedition"
+	partie.debug_sante_infinie = true
+	partie.debug_depart = &""
+	var e = load("res://game/expedition/expedition.tscn").instantiate()
+	root.add_child(e)
+	await _images(150)   # (la horde sort de terre)
+	e.hud.menu_demande.disconnect(e.retour_menu)
+	var hud = e.hud
+	var centre: Vector2 = hud.bouton_bordee.centre_ecran()
+	var toucher := InputEventScreenTouch.new()
+	toucher.index = 3
+	toucher.pressed = true
+	toucher.position = centre
+	hud._input(toucher)
+	var glisser := InputEventScreenDrag.new()
+	glisser.index = 3
+	glisser.position = centre + Vector2(-60, -110)
+	hud._input(glisser)
+	await _images(3)
+	await _capture("bordee_visee.png")
+	toucher.pressed = false
+	hud._input(toucher)
+	Engine.time_scale = 0.15
+	await _images(12)
+	await _capture("bordee_annonce.png")
+	await _images(28)
+	await _capture("bordee_impact.png")
+	Engine.time_scale = 1.0
+	await _images(60)
+	await _capture("bordee_apres.png")
 
 
 func _aller(p: Vector3) -> void:

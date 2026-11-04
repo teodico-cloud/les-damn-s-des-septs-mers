@@ -10,6 +10,7 @@ extends SceneTree
 
 var role := ""
 var destination: StringName = &"arene"
+var boulets_de_l_invite := 0   ## jalon 5 : boulets de la bordée de l'invité, tirés chez l'hôte
 var scenario_fin := "chaloupe"   ## expédition : « chaloupe » (fin normale) ou « hote_parti » (l'hôte part en pleine expédition)
 var reseau: Node
 var partie: Node
@@ -92,6 +93,10 @@ func _derouler(args: PackedStringArray) -> void:
 	sauvegarde.equiper(&"bretteur", "relique_1", role + "_chandelle_b")
 	sauvegarde.equiper(&"occultiste", "arme", role + "_grimoire")
 	sauvegarde.equiper(&"occultiste", "relique_1", role + "_chandelle_o")
+	# jalon 5 : le bateau de l'invité a de meilleures voiles (la chaloupe des deux en profite) et une bordée
+	if role == "invite":
+		sauvegarde.donnees["bateau"]["voiles"] = 2
+		sauvegarde.donnees["bateau"]["bordee"] = 1
 	if role == "hote":
 		partie.heros_local = StringName(OS.get_environment("HEROS_HOTE")) if OS.has_environment("HEROS_HOTE") else &"bretteur"
 		partie.mode = 1   # HOTE
@@ -358,6 +363,13 @@ func _hote_expedition() -> void:
 		await process_frame
 	_verifier(arene.synchro._invite_pret, "l'invité a ouvert l'expédition")
 	print("MESURE hote salle 1 modele=%s portes=%s" % [arene.modele, arene.types_portes])
+	# jalon 5 : le bateau de l'invité, reçu à la connexion
+	_verifier(arene.duree_chaloupe == 35.0, "chaloupe : les meilleures voiles des deux (%.0f s)" % arene.duree_chaloupe)
+	_verifier(arene.tirs_bordee.get("HerosInvite", -1) == 1 and arene.tirs_bordee.get("HerosHote", -1) == 0,
+			"tirs de bordée : chacun selon son bateau (%s)" % str(arene.tirs_bordee))
+	root.get_node("EventBus").effet_visuel.connect(func(l, t, _p):
+		if t.begins_with("boulet_") and l == arene.heros_partenaire:
+			boulets_de_l_invite += 1)
 	await _attendre(1.5)
 	load("res://game/arene/arene.gd").chance_orbe = 1.0
 	_verifier(await _vider_salle(), "salle 1 nettoyée")
@@ -408,6 +420,8 @@ func _hote_expedition() -> void:
 	_verifier(not arene.sacs.get("HerosHote", {"objets": []})["objets"].any(func(o): return o["id"] == "coop01"),
 			"… dans le sac de l'invité, pas dans celui de l'hôte")
 	_verifier(int(sac_invite.get("fer", 0)) >= 3, "… avec son tas de fer noir (%d)" % int(sac_invite.get("fer", 0)))
+	_verifier(boulets_de_l_invite == 5, "la bordée de l'invité, tirée par l'hôte (%d boulets)" % boulets_de_l_invite)
+	_verifier(arene.tirs_bordee.get("HerosInvite", -1) == 0, "… et comptée (plus de tir pour lui)")
 	# étape 3 : le Bosco (l'invité doit voir sa charge et sa rage), puis la chaloupe (compte à rebours)
 	var bosco = gen._faire_apparaitre(Vector3(0.0, 0, -3.0), &"bosco")
 	await _attendre(2.5)   # sortie de terre
@@ -462,6 +476,17 @@ func _invite_expedition() -> void:
 	_verifier(arene.numero == 2, "salle suivante reçue")
 	print("MESURE invite salle 2 modele=%s type=%s" % [arene.modele, arene.type_salle])
 	await _attendre(1.5)
+	# jalon 5 : notre bordée, visée devant nous ; l'hôte tire pour nous
+	_verifier(arene.duree_chaloupe == 35.0, "chaloupe : les mêmes voiles que l'hôte (%.0f s)" % arene.duree_chaloupe)
+	_verifier(arene.hud.bouton_bordee.visible and arene.hud.bouton_bordee.compteur == 1, "bouton Bordée, 1 tir")
+	arene.demander_bordee(h.global_position + Vector3(-2.0, 0, -2.0))
+	_verifier(arene.hud.bouton_bordee.compteur == 0, "tir parti : 0 restant")
+	var boulets_vus := 0
+	var fin_b := Time.get_ticks_msec() + 3000
+	while Time.get_ticks_msec() < fin_b:
+		await process_frame
+		boulets_vus = maxi(boulets_vus, get_nodes_in_group("boulets").size())
+	_verifier(boulets_vus == 5, "nos boulets, décidés par l'hôte, tombent chez nous (%d)" % boulets_vus)
 	var entree: Vector3 = load("res://game/expedition/salles.gd").ENTREE_INVITE
 	var d := Vector2(h.global_position.x - entree.x, h.global_position.z - entree.z).length()
 	_verifier(d < 1.0, "notre héros entre dans la nouvelle salle (à %.2f m de l'entrée)" % d)

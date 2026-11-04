@@ -8,6 +8,7 @@ extends CanvasLayer
 
 signal menu_demande
 signal tri_valide(gardes: Array)   ## tri de la cale fini : les objets gardés
+signal bordee_demandee(cible: Vector3)   ## jalon 5 : bouton Bordée relâché, le point visé
 
 const COULEUR_OS := Color("e2d6ba")
 
@@ -34,6 +35,15 @@ var _actions := {}   ## BoutonAction -> nom d'action
 var _doigt_menu := -1      ## doigt posé sur le bouton Menu
 var _menu_demande := false
 var mode_expedition := false
+## Bordée (jalon 5, choix de Téo : visée au joystick) : bouton maintenu, une zone rouge au sol suit le pouce
+## (glissé depuis le bouton) ; relâché, le navire tire. Sans glisser : devant le héros.
+const BORDEE: Equilibrage = preload("res://data/equilibrage.tres")
+const ZONE_MORTE_BORDEE := 25.0     ## pixels : en deçà, la zone reste devant le héros
+const GLISSE_BORDEE := 170.0        ## pixels : glissé jusqu'à la portée la plus longue
+var bouton_bordee: BoutonAction
+var viseur_bordee: MeshInstance3D   ## la zone visée, au sol (dans le monde du héros)
+var cible_bordee := Vector3.ZERO
+var _doigt_bordee := -1
 var label_salle: Label
 var voile: ColorRect           ## fondu au noir entre deux salles
 var panneau_fin: Control
@@ -69,6 +79,11 @@ func _ready() -> void:
 	bouton_esquive = _bouton(racine, noms[&"esquive"], 62.0, heros.recharge_esquive, Vector2(-345, -105), &"esquive")
 	bouton_competence_1 = _bouton(racine, noms[&"competence_1"], 62.0, heros.recharge_competence_1, Vector2(-330, -285), &"competence_1")
 	bouton_competence_2 = _bouton(racine, noms[&"competence_2"], 62.0, heros.recharge_competence_2, Vector2(-170, -365), &"competence_2")
+	# bordée (jalon 5) : cachée tant que le navire n'a pas de canons (configurer_bordee)
+	bouton_bordee = _bouton(racine, "Bordée", 54.0, null, Vector2(-505, -235), &"bordee")
+	bouton_bordee.icone = preload("res://assets/ui/icones/canon.svg")
+	_boutons.erase(bouton_bordee)   # (son toucher est à part : on vise avant de tirer)
+	bouton_bordee.visible = false
 
 	barre_vie = Control.new()
 	barre_vie.position = Vector2(24, 20)
@@ -227,6 +242,7 @@ static func _actions_clavier() -> void:
 		&"esquive": [KEY_K, KEY_SHIFT],
 		&"competence_1": [KEY_L],
 		&"competence_2": [KEY_I],
+		&"bordee": [KEY_B],
 	}
 	for action in touches:
 		if InputMap.has_action(action):
@@ -236,6 +252,73 @@ static func _actions_clavier() -> void:
 			var e := InputEventKey.new()
 			e.physical_keycode = k
 			InputMap.action_add_event(action, e)
+
+
+# ---------------------------------------------------------------- bordée (jalon 5)
+## Les tirs de bordée qui restent : le bouton apparaît si le navire a des canons, grisé quand c'est vide.
+func configurer_bordee(tirs: int) -> void:
+	bouton_bordee.visible = bouton_bordee.visible or tirs > 0
+	bouton_bordee.compteur = tirs
+	bouton_bordee.inactif = tirs <= 0
+	bouton_bordee.queue_redraw()
+
+
+func _commencer_visee(doigt: int) -> void:
+	_doigt_bordee = doigt
+	bouton_bordee.doigt = doigt
+	bouton_bordee.appuye = true
+	if viseur_bordee == null:
+		viseur_bordee = MeshInstance3D.new()
+		var anneau := TorusMesh.new()
+		anneau.inner_radius = BORDEE.bordee_dispersion + BORDEE.bordee_rayon * 0.5 - 0.2
+		anneau.outer_radius = BORDEE.bordee_dispersion + BORDEE.bordee_rayon * 0.5
+		anneau.rings = 40
+		anneau.ring_segments = 6
+		viseur_bordee.mesh = anneau
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.albedo_color = Color(1.0, 0.3, 0.2, 0.75)
+		viseur_bordee.material_override = m
+		viseur_bordee.scale = Vector3(1, 0.1, 1)
+		viseur_bordee.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var croix := MeshInstance3D.new()   # le centre visé
+		var disque := CylinderMesh.new()
+		disque.top_radius = 0.35
+		disque.bottom_radius = 0.35
+		disque.height = 0.2
+		croix.mesh = disque
+		croix.material_override = m
+		viseur_bordee.add_child(croix)
+		heros.get_parent().add_child(viseur_bordee)
+	viseur_bordee.visible = true
+	viser_bordee(Vector2.ZERO)
+
+
+## Le pouce a glissé de `d` pixels depuis le bouton : la zone suit (direction de l'écran, distance selon le
+## glissé, jusqu'à la portée) ; sans glisser, elle reste devant le héros.
+func viser_bordee(d: Vector2) -> void:
+	var dir: Vector3 = heros.avant()
+	var dist := BORDEE.bordee_portee_min
+	if d.length() >= ZONE_MORTE_BORDEE:
+		dir = camera.joystick_vers_monde(d.normalized()) if camera else Vector3(d.x, 0, d.y).normalized()
+		dist = lerpf(BORDEE.bordee_portee_min, BORDEE.bordee_portee, clampf((d.length() - ZONE_MORTE_BORDEE) / GLISSE_BORDEE, 0.0, 1.0))
+	dir.y = 0.0
+	cible_bordee = heros.global_position + dir.normalized() * dist
+	cible_bordee.y = 0.0
+	if viseur_bordee:
+		viseur_bordee.global_position = cible_bordee + Vector3.UP * 0.06
+
+
+## Le pouce se lève : on tire (sauf si le système a annulé le toucher).
+func finir_visee(tirer: bool) -> void:
+	_doigt_bordee = -1
+	bouton_bordee.doigt = -1
+	bouton_bordee.appuye = false
+	if viseur_bordee:
+		viseur_bordee.visible = false
+	if tirer:
+		bordee_demandee.emit(cible_bordee)
 
 
 # ---------------------------------------------------------------- toucher (plusieurs doigts)
@@ -248,6 +331,11 @@ func _input(event: InputEvent) -> void:
 			# pouce gauche est souvent déjà sur le joystick
 			if bouton_menu.get_global_rect().has_point(event.position):
 				_doigt_menu = event.index
+				return
+			if bouton_bordee.visible and _doigt_bordee == -1 and bouton_bordee.contient(event.position):
+				if not bouton_bordee.inactif and heros.est_vivant() and panneau_fin == null:
+					_commencer_visee(event.index)
+				get_viewport().set_input_as_handled()
 				return
 			for b in _boutons:
 				if b.doigt == -1 and b.contient(event.position):
@@ -268,9 +356,13 @@ func _input(event: InputEvent) -> void:
 				if b.doigt == event.index:
 					b.doigt = -1
 					b.appuye = false
+			if _doigt_bordee == event.index:
+				finir_visee(not event.canceled)
 			if joystick.actif and joystick.doigt == event.index:
 				joystick.relacher()
 	elif event is InputEventScreenDrag:
+		if _doigt_bordee == event.index:
+			viser_bordee(event.position - bouton_bordee.centre_ecran())
 		if joystick.actif and joystick.doigt == event.index:
 			joystick.deplacer(event.position)
 			get_viewport().set_input_as_handled()
@@ -592,6 +684,8 @@ func relacher_tout() -> void:
 		b.doigt = -1
 		b.appuye = false
 	_doigt_menu = -1
+	if _doigt_bordee != -1:
+		finir_visee(false)   # (appel, notifications : la visée est abandonnée, rien n'est tiré)
 	if joystick:
 		joystick.relacher()
 
@@ -614,6 +708,9 @@ func _process(delta: float) -> void:
 	for action in [&"attaque", &"esquive", &"competence_1", &"competence_2"]:
 		if Input.is_action_just_pressed(action):
 			_demander(action)
+	if Input.is_action_just_pressed(&"bordee") and bouton_bordee.visible and not bouton_bordee.inactif:
+		viser_bordee(Vector2.ZERO)   # (clavier : devant le héros)
+		bordee_demandee.emit(cible_bordee)
 	var v := joystick.valeur
 	var clavier := Input.get_vector(&"deplacer_gauche", &"deplacer_droite", &"deplacer_haut", &"deplacer_bas")
 	if clavier.length() > v.length():
