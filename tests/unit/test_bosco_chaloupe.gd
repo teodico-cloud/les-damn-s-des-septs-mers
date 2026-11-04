@@ -494,6 +494,7 @@ func test_bosco_enrage_des_le_debut_au_niveau_5() -> void:
 
 func test_choix_de_la_malediction() -> void:
 	Partie.malediction = 0
+	Partie.debug_tout_debloque = true   # (jalon 5 : sans coque renforcée, on s'arrête à 2 ; voir test_bateau.gd)
 	var c := ChoixMalediction.new()
 	add_child_autofree(c)
 	await wait_physics_frames(1)
@@ -509,6 +510,7 @@ func test_choix_de_la_malediction() -> void:
 		c.bouton_plus.pressed.emit()
 	assert_eq(Partie.malediction, 5, "Pas au-dessus de 5")
 	assert_true(c.bouton_plus.disabled)
+	Partie.debug_tout_debloque = false
 
 
 func test_l_hote_envoie_la_malediction() -> void:
