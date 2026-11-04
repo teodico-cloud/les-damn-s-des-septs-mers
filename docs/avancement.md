@@ -21,7 +21,7 @@ Dernière mise à jour : 4 novembre 2026.
 - **Jalon 4, étape 1 (butin au sol, façon Diablo) : faite**, APK 0.3.15.
 - **Jalon 4, étape 2 (sauvegarde, équipement, effets en combat, arme en main, objets uniques) : faite**, APK 0.4.17.
 - **Jalon 4, étape 3 (tri de la cale, revente, extraction d'urgence) : faite** ; relecture de fin de jalon corrigée ; APK 0.4.18.
-- **Jalon 5, étape 1 (matériaux, sauvegarde v2, repaire, salle des cartes, entrepôt) : faite** (voir plus bas).
+- **Jalon 5, étape 1 (matériaux, sauvegarde v2, repaire, salle des cartes, entrepôt) : faite**, APK 0.5.19 (voir plus bas).
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
