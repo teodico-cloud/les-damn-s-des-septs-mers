@@ -130,12 +130,12 @@ func test_les_squelettes_lachent_du_butin() -> void:
 	for i in 200:
 		e._on_ennemi_vaincu_butin(s)
 	var tas := _au_sol(e, e.heros)
-	var objets := tas.filter(func(o): return not o.est_doublons()).size()
+	var objets := tas.filter(func(o): return not o.est_tas()).size()
 	var pieces := tas.filter(func(o): return o.est_doublons())
 	assert_between(objets, 4, 26, "~6 %% d'objets sur 200 matelots (%d)" % objets)
 	assert_between(pieces.size(), 50, 92, "~35 %% de tas de doublons (%d)" % pieces.size())
 	for p in pieces:
-		assert_between(p.doublons, EQ.butin_doublons_min, EQ.butin_doublons_max)
+		assert_between(p.quantite, EQ.butin_doublons_min, EQ.butin_doublons_max)
 	for o in tas:
 		assert_true(o.visible, "Seul : on voit tout son butin")
 		assert_lte(absf(o.position.x), Salle.DEMI - 0.7, "Dans la salle")
@@ -149,21 +149,21 @@ func test_le_bosco_lache_un_tresor() -> void:
 	e.bosco.sante.subir(99999.0, e.heros)
 	await wait_physics_frames(3)
 	var tas := _au_sol(e, e.heros)
-	var objets := tas.filter(func(o): return not o.est_doublons())
+	var objets := tas.filter(func(o): return not o.est_tas())
 	assert_eq(objets.size(), EQ.butin_bosco_objets, "Le Bosco lâche ses objets")
 	assert_gte(objets.map(func(o): return o.objet["rarete"]).max(), Butin.Rarete.EPIQUE, "Dont au moins un Épique")
 	for o in objets:
 		assert_gte(o.objet["rarete"], Butin.Rarete.RARE, "Rien de commun sur le Bosco")
 	var pieces := tas.filter(func(o): return o.est_doublons())
 	assert_eq(pieces.size(), 1)
-	assert_eq(pieces[0].doublons, EQ.butin_bosco_doublons)
+	assert_eq(pieces[0].quantite, EQ.butin_bosco_doublons)
 	# (le hasard : 40 autres tirages, toujours au moins un Épique, jamais de Commun)
 	var sans_epique := 0
 	var communs := 0
 	for i in 40:
 		var avant := e.butin_au_sol.get_child_count()
 		e._on_ennemi_vaincu_butin(e.bosco)
-		var nouveaux := e.butin_au_sol.get_children().slice(avant).filter(func(o): return not o.est_doublons())
+		var nouveaux := e.butin_au_sol.get_children().slice(avant).filter(func(o): return not o.est_tas())
 		var raretes: Array = nouveaux.map(func(o): return o.objet["rarete"])
 		if raretes.max() < Butin.Rarete.EPIQUE:
 			sans_epique += 1
@@ -178,7 +178,7 @@ func test_le_coffre_crache_son_tresor() -> void:
 	e.heros.global_position = e.salle.coffre.global_position + Vector3(1.0, 0, -0.2)
 	await wait_physics_frames(3)
 	assert_true(e.salle.coffre_ouvert)
-	var objets := _au_sol(e, e.heros).filter(func(o): return not o.est_doublons()).map(func(o): return o.objet)
+	var objets := _au_sol(e, e.heros).filter(func(o): return not o.est_tas()).map(func(o): return o.objet)
 	objets.append_array(e.sacs.get(String(e.heros.name), {"objets": []})["objets"])   # (déjà ramassés)
 	assert_eq(objets.size(), EQ.butin_coffre_objets, "Le coffre crache ses objets")
 	for o in objets:
@@ -249,13 +249,14 @@ func test_a_deux_chacun_son_butin() -> void:
 	await wait_physics_frames(3)
 	var a_moi := _au_sol(e, e.heros)
 	var a_lui := _au_sol(e, invite)
-	assert_eq(a_moi.size(), EQ.butin_bosco_objets + 1, "Le Bosco lâche pour l'hôte…")
-	assert_eq(a_lui.size(), EQ.butin_bosco_objets + 1, "… et autant pour l'invité")
+	var tas_bosco := 1 + EQ.mat_bosco.values().filter(func(q): return q > 0).size()   # (doublons et matériaux)
+	assert_eq(a_moi.size(), EQ.butin_bosco_objets + tas_bosco, "Le Bosco lâche pour l'hôte…")
+	assert_eq(a_lui.size(), EQ.butin_bosco_objets + tas_bosco, "… et autant pour l'invité")
 	for o in a_moi:
 		assert_true(o.visible, "L'hôte voit le sien")
 	for o in a_lui:
 		assert_false(o.visible, "Pas celui de l'invité (seul l'invité le voit, chez lui)")
-		if not o.est_doublons():
+		if not o.est_tas():
 			var d := Butin.definition(o.objet)
 			assert_true(d["heros"] in ["", "occultiste"], "Les armes de l'invité sont pour son Occultiste")
 	_poser(e)

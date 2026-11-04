@@ -1,20 +1,24 @@
 class_name ObjetAuSol
 extends Node3D
-## Un objet ou des doublons tombés au sol (jalon 4, façon Diablo) : le modèle flotte et tourne, une
-## colonne de lumière à la couleur de la rareté le signale de loin, son nom flotte au-dessus. Il saute
+## Un objet, des doublons ou un tas de matériau (jalon 5 : bois de coque, fer noir, essence maudite)
+## tombés au sol (jalon 4, façon Diablo) : le modèle flotte et tourne, une colonne de lumière à la couleur
+## de la rareté signale un objet de loin, son nom flotte au-dessus. Il saute
 ## hors du squelette vaincu jusqu'à sa place. Il appartient à un joueur (`proprietaire`, nom de son
 ## héros) : à deux, chacun ne voit que le sien (l'hôte garde ceux de l'invité, invisibles, pour décider
 ## du ramassage).
 
 const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 const PIECES := "res://assets/models/decor/coin_stack_medium.glb"
+const FIOLE_ESSENCE := "res://assets/models/decor/bottle_C_green.glb"
 
 static var _mat_colonnes := {}       ## rareté -> matière (partagées)
 static var _maillage_colonne: CylinderMesh
 static var _maillage_disque: CylinderMesh
+static var _mat_matieres := {}       ## matériau -> matière (planches, lingots, lueur de l'essence)
 
-var objet := {}                      ## l'objet (voir Butin) ; vide pour des doublons
-var doublons := 0
+var objet := {}                      ## l'objet (voir Butin) ; vide pour un tas (doublons ou matériau)
+var matiere := "doublons"            ## un tas : "doublons", "bois", "fer" ou "essence"
+var quantite := 0                    ## combien dans le tas
 var proprietaire := ""               ## nom du héros à qui il revient
 var id := ""
 var pose := false                    ## retombé à sa place : on peut le ramasser (pas en plein vol)
@@ -25,11 +29,13 @@ var _depart := Vector3.ZERO
 var _arrivee := Vector3.ZERO
 
 
-## `depart` : d'où il saute (le squelette vaincu) ; `pos` : où il retombe.
-static func creer(p_objet: Dictionary, p_doublons: int, p_proprietaire: String, depart: Vector3, pos: Vector3) -> ObjetAuSol:
+## `depart` : d'où il saute (le squelette vaincu) ; `pos` : où il retombe ; un tas : `quantite` de `p_matiere`.
+static func creer(p_objet: Dictionary, p_quantite: int, p_proprietaire: String, depart: Vector3, pos: Vector3,
+		p_matiere := "doublons") -> ObjetAuSol:
 	var o := ObjetAuSol.new()
 	o.objet = p_objet
-	o.doublons = p_doublons
+	o.quantite = p_quantite
+	o.matiere = p_matiere if p_objet.is_empty() else "doublons"
 	o.proprietaire = p_proprietaire
 	o.id = p_objet.get("id", "") if not p_objet.is_empty() else "d%d_%d" % [Time.get_ticks_usec(), randi() % 100000]
 	o.name = "Butin_" + o.id
@@ -39,17 +45,21 @@ static func creer(p_objet: Dictionary, p_doublons: int, p_proprietaire: String, 
 
 
 func est_doublons() -> bool:
+	return objet.is_empty() and matiere == "doublons"
+
+
+## Un tas (doublons ou matériau), pas un objet.
+func est_tas() -> bool:
 	return objet.is_empty()
 
 
 func _ready() -> void:
 	var pivot := Node3D.new()
 	add_child(pivot)
-	if est_doublons():
-		_modele = load(PIECES).instantiate()
-		_modele.scale = Vector3.ONE * 0.55
+	if est_tas():
+		_modele = _modele_tas()
 		pivot.add_child(_modele)
-		_etiquette("%d doublons" % doublons, Color("e0b04a"), 0.9 + 0.24 * etage)
+		_etiquette(Butin.texte_tas(matiere, quantite), Butin.COULEURS_TAS.get(matiere, Color.WHITE), 0.9 + 0.24 * etage)
 	else:
 		var def := Butin.definition(objet)
 		var rarete := int(objet.get("rarete", 0))
@@ -84,6 +94,66 @@ func _ready() -> void:
 	var t := create_tween()
 	t.tween_method(_sauter, 0.0, 1.0, 0.35)
 	t.tween_callback(func(): pose = true)
+
+
+## Pièces (KayKit) ; planches de bois de coque et lingots de fer noir (faits par code) ; fiole d'essence
+## maudite (KayKit) qui luit.
+func _modele_tas() -> Node3D:
+	match matiere:
+		"bois":
+			var n := Node3D.new()
+			for i in 3:   # trois planches croisées
+				var m := MeshInstance3D.new()
+				var b := BoxMesh.new()
+				b.size = Vector3(0.62, 0.07, 0.13)
+				m.mesh = b
+				m.material_override = _mat_matiere("bois")
+				m.position = Vector3(0, 0.035 + 0.075 * i, (i - 1) * 0.06 if i != 1 else 0.0)
+				m.rotation.y = 0.0 if i != 1 else PI * 0.5
+				n.add_child(m)
+			return n
+		"fer":
+			var n := Node3D.new()
+			for p in [Vector3(-0.09, 0.05, 0), Vector3(0.09, 0.05, 0), Vector3(0, 0.14, 0)]:   # trois lingots
+				var m := MeshInstance3D.new()
+				var b := PrismMesh.new()   # (lingot : plus large en bas)
+				b.size = Vector3(0.17, 0.1, 0.34)
+				b.left_to_right = 0.5
+				m.mesh = b
+				m.material_override = _mat_matiere("fer")
+				m.position = p
+				n.add_child(m)
+			return n
+		"essence":
+			var f: Node3D = load(FIOLE_ESSENCE).instantiate()
+			f.scale = Vector3.ONE * 0.8
+			for m in f.find_children("*", "MeshInstance3D", true, false):
+				m.material_overlay = _mat_matiere("essence")
+			return f
+	var pieces: Node3D = load(PIECES).instantiate()
+	pieces.scale = Vector3.ONE * 0.55
+	return pieces
+
+
+static func _mat_matiere(m: String) -> StandardMaterial3D:
+	if not _mat_matieres.has(m):
+		var mat := StandardMaterial3D.new()
+		match m:
+			"bois":
+				mat.albedo_color = Color("7a4e2c")
+				mat.roughness = 0.85
+			"fer":
+				mat.albedo_color = Color("3a3f48")
+				mat.metallic = 0.7
+				mat.roughness = 0.35
+			"essence":   # (lueur posée par-dessus la fiole)
+				mat.albedo_color = Color(0.3, 1.0, 0.75, 0.0)
+				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				mat.emission_enabled = true
+				mat.emission = Color(0.3, 1.0, 0.75)
+				mat.emission_energy_multiplier = 0.9
+		_mat_matieres[m] = mat
+	return _mat_matieres[m]
 
 
 func _sauter(f: float) -> void:

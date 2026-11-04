@@ -18,6 +18,14 @@ const NOMS_RARETES: Array[String] = ["Commun", "Rare", "Épique", "Légendaire",
 const COULEURS: Array[Color] = [Color(0.88, 0.86, 0.8), Color(0.35, 0.62, 1.0), Color(0.78, 0.42, 1.0),
 		Color(1.0, 0.66, 0.15), Color(0.32, 1.0, 0.5)]
 
+## Matériaux (jalon 5, choix de Téo du 04/11) : ramassés comme les doublons (sans place dans la cale, perdus
+## en cas de défaite), dépensés au repaire. Chaque type de squelette lâche le sien.
+const MATIERES: Array[String] = ["bois", "fer", "essence"]
+const NOMS_MATIERES := {"bois": "bois de coque", "fer": "fer noir", "essence": "essence maudite"}
+const COULEURS_TAS := {"doublons": Color("e0b04a"), "bois": Color("c8935a"), "fer": Color("a9bccf"),
+		"essence": Color("5fe0c0")}
+const MATIERE_ENNEMI := {&"matelot": "bois", &"arbaletrier": "fer", &"pretre": "essence"}
+
 ## Objets de base (Commun, Rare, Épique). « heros » vide : une relique, pour les deux héros. « echelle » :
 ## taille au sol des petits objets (sinon 0,9 pour une arme, 0,7 pour une relique). « effets » : l'effet de
 ## base (Commun ; ×1,25 Rare, ×1,5 Épique, défauts compris jamais), voir Equipement pour leur sens.
@@ -158,6 +166,25 @@ static func par_rarete(objets: Array) -> Array:
 		var rj := int(objets[j].get("rarete", 0))
 		return ri > rj if ri != rj else i < j)
 	return indices.map(func(i): return objets[i])
+
+
+## Le matériau que lâche ce type de squelette ("" : aucun).
+static func matiere_de(type_ennemi: StringName) -> String:
+	return MATIERE_ENNEMI.get(type_ennemi, "")
+
+
+## « 3 bois de coque », « 1 fer noir », « 12 doublons »
+static func texte_tas(matiere: String, n: int) -> String:
+	return "%d %s" % [n, NOMS_MATIERES.get(matiere, "doublons")]
+
+
+## « 14 bois de coque · 5 fer noir » : les matériaux non nuls d'un sac ou d'un dictionnaire ("" s'il n'y en a pas).
+static func texte_matieres(d: Dictionary) -> String:
+	var parts := []
+	for m in MATIERES:
+		if int(d.get(m, 0)) > 0:
+			parts.append(texte_tas(m, int(d[m])))
+	return " · ".join(parts)
 
 
 ## Chance qu'un squelette vaincu lâche un objet (pour chaque joueur), malédiction comprise.

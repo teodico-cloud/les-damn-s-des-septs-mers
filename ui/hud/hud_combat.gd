@@ -42,6 +42,7 @@ var _boss: Node3D
 var _boss_dessine := Vector2(-1, -1)   ## (PV, rage) déjà dessinés : on ne redessine que s'ils changent
 var label_malediction: Label   ## expédition : niveau de malédiction, sous les PV
 var label_sac: Label           ## expédition : objets et doublons dans le sac (non sécurisés)
+var label_matieres: Label      ## jalon 5 : les matériaux du sac (bois de coque, fer noir, essence maudite)
 var fil_butin: VBoxContainer   ## ce qu'on vient de ramasser (s'efface tout seul)
 var panneau_tri: Control       ## tri de la cale (fin d'expédition, sac trop plein)
 var _tri_objets: Array = []    ## du plus rare au moins rare
@@ -176,9 +177,14 @@ func _ready() -> void:
 	label_sac.position = Vector2(28, 94)
 	label_sac.visible = false
 	racine.add_child(label_sac)
+	label_matieres = label_malediction.duplicate() as Label
+	label_matieres.add_theme_color_override("font_color", Color("c8935a"))
+	label_matieres.position = Vector2(28, 122)
+	label_matieres.visible = false
+	racine.add_child(label_matieres)
 
 	fil_butin = VBoxContainer.new()
-	fil_butin.position = Vector2(28, 136)
+	fil_butin.position = Vector2(28, 160)
 	fil_butin.add_theme_constant_override("separation", 2)
 	fil_butin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	racine.add_child(fil_butin)
@@ -320,11 +326,13 @@ func afficher_ramasse(texte: String, couleur: Color) -> void:
 
 
 ## Le sac de l'expédition (non sécurisé : perdu en cas de défaite), et la place dans la cale (annexe
-## retenue par Téo) : en orange quand il faudra trier à la fin.
-func afficher_sac(objets: int, doublons: int, places: int) -> void:
+## retenue par Téo) : en orange quand il faudra trier à la fin. Dessous, ses matériaux (`sac`).
+func afficher_sac(objets: int, doublons: int, places: int, sac := {}) -> void:
 	label_sac.visible = true
 	label_sac.text = "Sac : %d objet%s / cale %d · %d doublons" % [objets, "s" if objets > 1 else "", places, doublons]
 	label_sac.add_theme_color_override("font_color", Color(1.0, 0.55, 0.15) if objets > places else Color("e0b04a"))
+	label_matieres.text = Butin.texte_matieres(sac)
+	label_matieres.visible = label_matieres.text != ""
 
 
 ## Nom de la salle en cours (expédition).
@@ -348,6 +356,7 @@ func afficher_resultats(reussite: bool, lignes: Array, objets: Array = [], titre
 	label_mort.visible = false
 	label_message.visible = false
 	label_sac.visible = false
+	label_matieres.visible = false
 	fil_butin.visible = false
 	var fond := ColorRect.new()
 	fond.color = Color(0.02, 0.03, 0.04, 0.0)
@@ -434,6 +443,7 @@ func afficher_tri(objets: Array, places: int) -> void:
 	label_mort.visible = false
 	label_message.visible = false
 	label_sac.visible = false
+	label_matieres.visible = false
 	fil_butin.visible = false
 	_tri_objets = Butin.par_rarete(objets)
 	_tri_places = places

@@ -2,7 +2,8 @@ extends Node
 ## Sauvegarde locale (autoload « Sauvegarde », jalon 4) : un fichier JSON sur le téléphone, avec un
 ## numéro de version. Ce qui est gardé : les doublons, les objets rapportés (les coffres), l'équipement
 ## de chaque héros, les expéditions déjà encaissées (une même expédition n'est jamais comptée deux fois)
-## et l'historique des 20 dernières.
+## et l'historique des 20 dernières. Version 2 (jalon 5) : les matériaux (bois de coque, fer noir, essence
+## maudite, plafonnés par l'entrepôt), les niveaux du bateau et ceux du repaire.
 ##
 ## Écriture sûre : on écrit un fichier temporaire, on le relit pour vérifier, on garde une copie de
 ## secours de l'ancien, puis on remplace. À la lecture : le fichier, sinon la copie de secours, sinon un
@@ -11,10 +12,14 @@ extends Node
 
 signal changee   ## doublons, objets ou équipement ont changé
 
-const VERSION := 1
+const VERSION := 2
+const AMELIORATIONS: Array[String] = ["cale", "voiles", "coque", "bordee"]   ## le bateau (niveaux 0 à 3)
+const NIVEAU_MAX_BATEAU := 3
+const INSTALLATIONS: Array[String] = ["forge", "entrepot"]   ## le repaire (niveaux 1 et 2)
 const CHEMIN_JEU := "user://sauvegarde.json"
 const MAX_EXPEDITIONS := 200    ## identifiants d'expéditions encaissées gardés (anti-doublon)
 const MAX_HISTORIQUE := 20
+const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 
 var chemin := CHEMIN_JEU         ## les tests en prennent un autre (tests/pre_run.gd)
 var donnees := {}
@@ -39,6 +44,9 @@ static func profil_neuf() -> Dictionary:
 		"equipement": {"bretteur": _vide(), "occultiste": _vide()},
 		"expeditions": [],
 		"historique": [],
+		"ressources": {"bois": 0, "fer": 0, "essence": 0},
+		"bateau": {"cale": 0, "voiles": 0, "coque": 0, "bordee": 0},
+		"repaire": {"forge": 1, "entrepot": 1},
 	}
 
 
@@ -65,13 +73,13 @@ func charger() -> void:
 func _finir_tri_en_attente() -> void:
 	var t = donnees.get("tri_en_attente")
 	if t is Dictionary:
-		encaisser(t["id"], t["objets"], t["doublons"], t["resume"])
+		encaisser(t["id"], t["objets"], t["doublons"], t["resume"], t.get("matieres", {}))
 
 
 ## Pendant le tri de la cale, l'appli passe en arrière-plan : la sélection du moment est notée.
-func noter_tri_en_attente(id_expedition: String, gardes: Array, p_doublons: int, resume: Dictionary) -> void:
+func noter_tri_en_attente(id_expedition: String, gardes: Array, p_doublons: int, resume: Dictionary, matieres := {}) -> void:
 	donnees["tri_en_attente"] = {"id": id_expedition, "objets": gardes.map(func(o): return normaliser(o)),
-			"doublons": p_doublons, "resume": resume.duplicate()}
+			"doublons": p_doublons, "resume": resume.duplicate(), "matieres": _entiers(matieres)}
 	enregistrer()
 
 
@@ -98,8 +106,16 @@ static func _lire(p: String) -> Variant:
 ## Met une sauvegarde lue (d'une version plus ancienne, ou incomplète) au format actuel.
 static func convertir(d: Dictionary) -> Dictionary:
 	var r := profil_neuf()
-	# (version 1 : la première ; les conversions des versions suivantes s'ajouteront ici, testées)
+	# version 1 → 2 : matériaux, bateau et repaire absents (valeurs de départ du profil neuf) ; les
+	# conversions des versions suivantes s'ajouteront ici, testées
 	r["doublons"] = maxi(int(d.get("doublons", 0)), 0)
+	r["ressources"] = _entiers(d.get("ressources", {}))
+	var bateau = d.get("bateau", {})
+	for a in AMELIORATIONS:
+		r["bateau"][a] = clampi(int(bateau.get(a, 0)) if bateau is Dictionary else 0, 0, NIVEAU_MAX_BATEAU)
+	var repaire = d.get("repaire", {})
+	for i in INSTALLATIONS:
+		r["repaire"][i] = clampi(int(repaire.get(i, 1)) if repaire is Dictionary else 1, 1, 2)
 	for o in d.get("objets", []):
 		if o is Dictionary and o.has("id") and Butin.definition(o).size() > 0:
 			r["objets"].append(normaliser(o))
@@ -138,8 +154,17 @@ static func convertir(d: Dictionary) -> Dictionary:
 	if t is Dictionary and t.get("objets") is Array and t.has("id"):
 		r["tri_en_attente"] = {"id": String(t["id"]), "doublons": maxi(int(t.get("doublons", 0)), 0),
 				"objets": t["objets"].filter(func(o): return o is Dictionary and o.has("id")).map(func(o): return normaliser(o)),
-				"resume": t.get("resume", {}) if t.get("resume") is Dictionary else {}}
+				"resume": t.get("resume", {}) if t.get("resume") is Dictionary else {},
+				"matieres": _entiers(t.get("matieres", {}))}
 	r["version"] = VERSION
+	return r
+
+
+## Les trois matériaux d'un dictionnaire relu (ou d'un sac), entiers et jamais négatifs.
+static func _entiers(d: Variant) -> Dictionary:
+	var r := {}
+	for m in Butin.MATIERES:
+		r[m] = maxi(int(d.get(m, 0)), 0) if d is Dictionary else 0
 	return r
 
 
@@ -198,9 +223,10 @@ func objet(id: String) -> Dictionary:
 	return {}
 
 
-## Fin d'une expédition : son butin rejoint les coffres, une seule fois par expédition (anti-doublon).
+## Fin d'une expédition : son butin rejoint les coffres, une seule fois par expédition (anti-doublon) ;
+## ses matériaux, l'entrepôt (le surplus au-delà du plafond est revendu : voir ranger).
 ## Renvoie faux si cette expédition était déjà encaissée.
-func encaisser(id_expedition: String, nouveaux: Array, p_doublons: int, resume := {}) -> bool:
+func encaisser(id_expedition: String, nouveaux: Array, p_doublons: int, resume := {}, matieres := {}) -> bool:
 	var attente_finie := false
 	if donnees.get("tri_en_attente", {}).get("id", "") == id_expedition:
 		donnees.erase("tri_en_attente")   # (le tri noté pendant une pause est fini)
@@ -216,17 +242,56 @@ func encaisser(id_expedition: String, nouveaux: Array, p_doublons: int, resume :
 		if o is Dictionary and o.has("id") and objet(String(o["id"])).is_empty():
 			donnees["objets"].append(normaliser(o))
 	donnees["doublons"] = doublons() + maxi(p_doublons, 0)
+	var rangement := ranger(matieres)
+	for m in Butin.MATIERES:
+		donnees["ressources"][m] = ressource(m) + int(rangement["gardees"][m])
+	donnees["doublons"] = doublons() + int(rangement["doublons"])
 	var h := resume.duplicate()
 	h["id"] = id_expedition
 	h["date"] = Time.get_datetime_string_from_system()
 	h["objets"] = nouveaux.size()
 	h["doublons"] = p_doublons
+	h["matieres"] = _entiers(matieres)
 	donnees["historique"].append(h)
 	while donnees["historique"].size() > MAX_HISTORIQUE:
 		donnees["historique"].pop_front()
 	enregistrer()
 	changee.emit()
 	return true
+
+
+# ---------------------------------------------------------------- matériaux, bateau, repaire (jalon 5)
+func ressource(m: String) -> int:
+	return int(donnees.get("ressources", {}).get(m, 0))
+
+
+## Ce que l'entrepôt garde au plus de ce matériau (selon son niveau).
+func plafond(m: String) -> int:
+	var table: Dictionary = EQ.mat_plafonds_niveau_2 if niveau_repaire("entrepot") >= 2 else EQ.mat_plafonds
+	return int(table.get(m, 0))
+
+
+## Ce que deviendraient ces matériaux rangés à l'entrepôt maintenant : ce qui y entre, le surplus au-delà
+## du plafond (choix de Téo : revendu) et les doublons de cette revente.
+func ranger(matieres: Dictionary) -> Dictionary:
+	var gardees := {}
+	var surplus := {}
+	var d := 0
+	for m in Butin.MATIERES:
+		var n := maxi(int(matieres.get(m, 0)), 0)
+		var place := maxi(plafond(m) - ressource(m), 0)
+		gardees[m] = mini(n, place)
+		surplus[m] = n - gardees[m]
+		d += surplus[m] * int(EQ.mat_prix_surplus.get(m, 0))
+	return {"gardees": gardees, "surplus": surplus, "doublons": d}
+
+
+func niveau_bateau(amelioration: String) -> int:
+	return int(donnees.get("bateau", {}).get(amelioration, 0))
+
+
+func niveau_repaire(installation: String) -> int:
+	return int(donnees.get("repaire", {}).get(installation, 1))
 
 
 # ---------------------------------------------------------------- équipement

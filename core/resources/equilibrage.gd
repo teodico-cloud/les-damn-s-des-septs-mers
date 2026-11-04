@@ -271,6 +271,19 @@ extends Resource
 ## Objets non gardés au tri de la cale : revendus, en doublons selon leur rareté (Commun … Maudit)
 @export var cale_prix_raretes: PackedInt32Array = [2, 5, 10, 15, 20]
 
+@export_group("Matériaux (jalon 5 : choix de Téo du 04/11)")
+## Chance qu'un squelette vaincu lâche son matériau (pour chaque joueur) : matelot → bois de coque,
+## arbalétrier → fer noir, prêtre noyé → essence maudite ; la malédiction grossit les tas (comme les doublons)
+@export var mat_chance := {"bois": 0.3, "fer": 0.4, "essence": 0.5}
+@export var mat_min := 1
+@export var mat_max := 2
+@export var mat_bosco := {"bois": 6, "fer": 4, "essence": 3}     ## le Bosco : un peu des trois
+@export var mat_coffre := {"bois": 4, "fer": 2, "essence": 1}    ## le coffre de la salle trésor
+## Entrepôt : ce qu'il garde au plus (niveau 1, niveau 2) ; au-delà, le surplus est revendu (choix de Téo)
+@export var mat_plafonds := {"bois": 150, "fer": 80, "essence": 40}
+@export var mat_plafonds_niveau_2 := {"bois": 400, "fer": 200, "essence": 100}
+@export var mat_prix_surplus := {"bois": 1, "fer": 2, "essence": 3}   ## doublons par unité revendue
+
 @export_group("Équipement (jalon 4, étape 2 : effets validés par Téo le 01/11)")
 ## Rareté d'un objet de base : son effet de base est multiplié par (Commun, Rare, Épique) ; jamais un défaut
 ## (la lenteur de la hache reste la même)

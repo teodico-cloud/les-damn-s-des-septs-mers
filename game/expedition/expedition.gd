@@ -31,7 +31,7 @@ var _coffre_ouvert_pour := -1
 var bosco: Bosco                  ## antre (hôte) : le Bosco Maudit
 var _bosco_debut_ms := -1
 var _bosco_fin_ms := -1
-var sacs := {}                    ## butin non sécurisé : nom du héros -> {"objets": [...], "doublons": n} (hôte : les deux)
+var sacs := {}                    ## butin non sécurisé : nom du héros -> sac (voir _sac_vide ; hôte : les deux)
 var butin_au_sol: Node3D           ## objets et doublons tombés dans la salle (à deux : ceux de l'autre sont invisibles)
 var _rng_butin := RandomNumberGenerator.new()
 var id_expedition := ""           ## propre à ce téléphone : l'expédition n'est encaissée qu'une fois (Sauvegarde)
@@ -369,6 +369,7 @@ func _verifier_coffre() -> void:
 					_lacher(g, Butin.tirer_objet(_rng_butin, g.archetype, Malediction.niveau(), Butin.Rarete.RARE), 0,
 							salle.coffre.global_position, _autour(devant))
 				_lacher(g, {}, roundi(EQ.butin_coffre_doublons * Malediction.mult_butin()), salle.coffre.global_position, _autour(devant))
+				_lacher_matieres(g, EQ.mat_coffre, salle.coffre.global_position, devant)
 			_message("Le coffre maudit vous soigne\net crache son trésor !", 2.5)
 			return
 
@@ -529,7 +530,12 @@ func _afficher_fin(p_reussite: bool, lignes: Array, p_sacs: Dictionary = {}, tit
 
 
 func _mon_sac() -> Dictionary:
-	return sacs.get(String(heros.name), {"objets": [], "doublons": 0})
+	return sacs.get(String(heros.name), _sac_vide())
+
+
+## Le sac d'expédition : objets, doublons et matériaux (jalon 5), perdus en cas de défaite.
+static func _sac_vide() -> Dictionary:
+	return {"objets": [], "doublons": 0, "bois": 0, "fer": 0, "essence": 0}
 
 
 ## La cale est chargée (`gardes` : les objets rapportés) : les autres objets du sac sont revendus, tout
@@ -542,18 +548,30 @@ func _charger_la_cale(gardes: Array) -> void:
 	var revendus: Array = bilan["revendus"]
 	var revente: int = bilan["revente"]
 	var doublons: int = bilan["doublons"]
+	var matieres: Dictionary = bilan["matieres"]
 	var lignes_fin := _lignes_fin.duplicate()
+	var ajout := []
 	if reussite:
-		lignes_fin.insert(1, "Butin rapporté : %s et %d doublons" % [_objets(gardes.size()), doublons])
+		ajout.append("Butin rapporté : %s et %d doublons" % [_objets(gardes.size()), doublons])
+		if Butin.texte_matieres(matieres) != "":
+			ajout.append("Matériaux : " + Butin.texte_matieres(matieres))
 		if not revendus.is_empty():
-			lignes_fin.insert(2, "Revendus faute de place : %s, +%d doublons" % [_objets(revendus.size()), revente])
+			ajout.append("Revendus faute de place : %s, +%d doublons" % [_objets(revendus.size()), revente])
+		var rangement := Sauvegarde.ranger(matieres)   # (entrepôt plein : le surplus est revendu, choix de Téo)
+		if Butin.texte_matieres(rangement["surplus"]) != "":
+			ajout.append("Entrepôt plein : %s revendus, +%d doublons" % [Butin.texte_matieres(rangement["surplus"]), rangement["doublons"]])
 	else:
-		lignes_fin.insert(1, "Butin perdu : %s et %d doublons" % [_objets(sac["objets"].size()), sac["doublons"]])
-	Sauvegarde.encaisser(id_expedition, gardes, doublons, _resume_fin(revendus.size()))
+		ajout.append("Butin perdu : %s et %d doublons" % [_objets(sac["objets"].size()), sac["doublons"]])
+		if Butin.texte_matieres(sac) != "":
+			ajout.append("Matériaux perdus : " + Butin.texte_matieres(sac))
+	for i in ajout.size():
+		lignes_fin.insert(1 + i, ajout[i])
+	Sauvegarde.encaisser(id_expedition, gardes, doublons, _resume_fin(revendus.size()), matieres)
 	hud.afficher_resultats(reussite, lignes_fin, gardes, _titre_fin)
 
 
-## Ce que rapporte la cale chargée de `gardes` : les autres objets du sac revendus, leurs doublons.
+## Ce que rapporte la cale chargée de `gardes` : les autres objets du sac revendus, leurs doublons, et
+## les matériaux du sac (rien en cas de défaite).
 func _bilan_cale(gardes: Array) -> Dictionary:
 	var sac := _mon_sac()
 	var ids := gardes.map(func(o): return o["id"])
@@ -561,7 +579,11 @@ func _bilan_cale(gardes: Array) -> Dictionary:
 	var revente := 0
 	for o in revendus:
 		revente += Butin.prix_revente(o)
-	return {"revendus": revendus, "revente": revente, "doublons": sac["doublons"] + revente if reussite else 0}
+	var matieres := {}
+	for m in Butin.MATIERES:
+		matieres[m] = int(sac.get(m, 0)) if reussite else 0
+	return {"revendus": revendus, "revente": revente, "doublons": sac["doublons"] + revente if reussite else 0,
+			"matieres": matieres}
 
 
 func _resume_fin(nb_revendus: int) -> Dictionary:
@@ -585,7 +607,8 @@ func _notification(what: int) -> void:
 		if tri_en_cours:
 			var gardes := hud.gardes_tri()
 			var bilan := _bilan_cale(gardes)
-			Sauvegarde.noter_tri_en_attente(id_expedition, gardes, bilan["doublons"], _resume_fin(bilan["revendus"].size()))
+			Sauvegarde.noter_tri_en_attente(id_expedition, gardes, bilan["doublons"], _resume_fin(bilan["revendus"].size()),
+					bilan["matieres"])
 	elif what == NOTIFICATION_APPLICATION_RESUMED and _en_pause:
 		_en_pause = false
 		_pause_fin_ms = Time.get_ticks_msec()
@@ -611,8 +634,9 @@ func retour_menu() -> void:
 
 
 # ---------------------------------------------------------------- butin (jalon 4, choix de Téo : au sol, façon Diablo)
-## Hôte (ou seul) : un squelette vaincu lâche, pour chaque joueur séparément, peut-être un objet et des
-## doublons ; le Bosco, beaucoup plus (au moins un Épique). À deux, chacun ne voit que le sien.
+## Hôte (ou seul) : un squelette vaincu lâche, pour chaque joueur séparément, peut-être un objet, des
+## doublons et son matériau (jalon 5) ; le Bosco, beaucoup plus (au moins un Épique). À deux, chacun ne
+## voit que le sien.
 func _on_ennemi_vaincu_butin(e: Node) -> void:
 	if finie or not (e is Ennemi) or not e.is_inside_tree():
 		return
@@ -624,12 +648,25 @@ func _on_ennemi_vaincu_butin(e: Node) -> void:
 				var minimum := Butin.Rarete.EPIQUE if i == 0 else Butin.Rarete.RARE
 				_lacher(h, Butin.tirer_objet(_rng_butin, h.archetype, n, minimum), 0, depart, _autour(depart))
 			_lacher(h, {}, roundi(EQ.butin_bosco_doublons * Malediction.mult_butin()), depart, _autour(depart))
+			_lacher_matieres(h, EQ.mat_bosco, depart, depart)
 			continue
 		if _rng_butin.randf() < Butin.chance_objet(e.type_ennemi()):
 			_lacher(h, Butin.tirer_objet(_rng_butin, h.archetype, n), 0, depart, _autour(depart))
 		if _rng_butin.randf() < EQ.butin_doublons_chance:
 			var d := roundi(_rng_butin.randi_range(EQ.butin_doublons_min, EQ.butin_doublons_max) * Malediction.mult_butin())
 			_lacher(h, {}, d, depart, _autour(depart))
+		var m := Butin.matiere_de(e.type_ennemi())
+		if m != "" and _rng_butin.randf() < float(EQ.mat_chance.get(m, 0.0)):
+			var q := maxi(1, roundi(_rng_butin.randi_range(EQ.mat_min, EQ.mat_max) * Malediction.mult_butin()))
+			_lacher(h, {}, q, depart, _autour(depart), m)
+
+
+## Un tas de chaque matériau de `quantites` (Bosco, coffre), malédiction comprise.
+func _lacher_matieres(h: Node3D, quantites: Dictionary, depart: Vector3, autour: Vector3) -> void:
+	for m in Butin.MATIERES:
+		var q := roundi(int(quantites.get(m, 0)) * Malediction.mult_butin())
+		if q > 0:
+			_lacher(h, {}, q, depart, _autour(autour), m)
 
 
 ## Une place libre autour d'un point, dans la salle (sur le quai, jamais dans l'eau).
@@ -644,14 +681,15 @@ func _autour(p: Vector3) -> Vector3:
 	return Vector3(q.x, 0.0, q.z)
 
 
-## Pose un objet (ou des doublons) pour le joueur de `h` ; envoie à l'invité ce qui lui revient.
-func _lacher(h: Node3D, objet: Dictionary, doublons: int, depart: Vector3, pos: Vector3) -> void:
-	var o := ObjetAuSol.creer(objet, doublons, String(h.name), depart, pos)
+## Pose un objet (ou un tas : `quantite` de doublons ou d'un matériau) pour le joueur de `h` ; envoie à
+## l'invité ce qui lui revient.
+func _lacher(h: Node3D, objet: Dictionary, quantite: int, depart: Vector3, pos: Vector3, matiere := "doublons") -> void:
+	var o := ObjetAuSol.creer(objet, quantite, String(h.name), depart, pos, matiere)
 	o.visible = h == heros   # à deux, l'hôte ne voit pas le butin de l'invité (chacun le sien)
 	o.etage = _etage(o.proprietaire, pos)
 	_conteneur_butin().add_child(o)
 	if synchro and h != heros:
-		synchro.envoyer_lieu("butin", [numero, o.id, objet, doublons, depart, pos])
+		synchro.envoyer_lieu("butin", [numero, o.id, objet, quantite, depart, pos, o.matiere])
 
 
 ## Combien d'objets du même joueur sont déjà tombés tout près : le nom du nouveau monte d'autant.
@@ -683,10 +721,12 @@ func _ramasser_butin() -> void:
 		var h := _heros_nomme(o.proprietaire)
 		if h == null or not h.est_vivant() or not o.a_portee(h.global_position):
 			continue
-		var doublons := roundi(o.doublons * (1.0 + h.b("doublons")))   # (Doublon terni…)
-		_mettre_au_sac(o.proprietaire, o.objet, doublons)
+		var q: int = o.quantite
+		if o.est_doublons():
+			q = roundi(q * (1.0 + h.b("doublons")))   # (Doublon terni… : les doublons seulement)
+		_mettre_au_sac(o.proprietaire, o.objet, q, o.matiere)
 		if synchro and h != heros:
-			synchro.envoyer_lieu("ramasse", [o.id, o.objet, doublons])
+			synchro.envoyer_lieu("ramasse", [o.id, o.objet, q, o.matiere])
 		o.queue_free()
 
 
@@ -697,19 +737,21 @@ func _heros_nomme(nom: String) -> Heros:
 	return null
 
 
-func _mettre_au_sac(proprietaire: String, objet: Dictionary, doublons: int) -> void:
+## Dans le sac : un objet, ou `quantite` de doublons ou d'un matériau.
+func _mettre_au_sac(proprietaire: String, objet: Dictionary, quantite: int, matiere := "doublons") -> void:
 	if not sacs.has(proprietaire):
-		sacs[proprietaire] = {"objets": [], "doublons": 0}
+		sacs[proprietaire] = _sac_vide()
 	var sac: Dictionary = sacs[proprietaire]
 	if not objet.is_empty():
 		sac["objets"].append(objet)
-	sac["doublons"] += doublons
+	elif matiere in Butin.MATIERES or matiere == "doublons":
+		sac[matiere] = int(sac.get(matiere, 0)) + quantite
 	if proprietaire == String(heros.name):
 		if objet.is_empty():
-			hud.afficher_ramasse("+%d doublons" % doublons, Color("e0b04a"))
+			hud.afficher_ramasse("+" + Butin.texte_tas(matiere, quantite), Butin.COULEURS_TAS.get(matiere, Color.WHITE))
 		else:
 			hud.afficher_ramasse(Butin.nom_complet(objet), Butin.couleur(objet))
-		hud.afficher_sac(sac["objets"].size(), sac["doublons"], EQ.cale_places)
+		hud.afficher_sac(sac["objets"].size(), sac["doublons"], EQ.cale_places, sac)
 
 
 # ---------------------------------------------------------------- coop
@@ -739,18 +781,19 @@ func evenement_lieu(type: String, donnees: Array) -> void:
 		"message":
 			if numero == donnees[0] or en_transition:
 				hud.afficher_message(donnees[1], donnees[2])
-		"butin":   # [n° de salle, id, objet, doublons, départ, position] : notre butin, tiré par l'hôte
+		"butin":   # [n° de salle, id, objet, quantité, départ, position, matière] : notre butin, tiré par l'hôte
 			if salle and numero == donnees[0] and not en_transition:
-				var o := ObjetAuSol.creer(donnees[2], donnees[3], String(heros.name), donnees[4], donnees[5])
+				var o := ObjetAuSol.creer(donnees[2], donnees[3], String(heros.name), donnees[4], donnees[5],
+						String(donnees[6]) if donnees.size() > 6 else "doublons")
 				o.id = donnees[1]
 				o.name = "Butin_" + o.id
 				o.etage = _etage(o.proprietaire, donnees[5])
 				_conteneur_butin().add_child(o)
-		"ramasse":   # [id, objet, doublons] : l'hôte a vu notre héros passer dessus
+		"ramasse":   # [id, objet, quantité, matière] : l'hôte a vu notre héros passer dessus
 			var o := _conteneur_butin().get_node_or_null("Butin_" + String(donnees[0]))
 			if o:
 				o.queue_free()
-			_mettre_au_sac(String(heros.name), donnees[1], donnees[2])
+			_mettre_au_sac(String(heros.name), donnees[1], donnees[2], String(donnees[3]) if donnees.size() > 3 else "doublons")
 		"vague":
 			if salle and numero == donnees[0]:
 				for p in donnees[1]:

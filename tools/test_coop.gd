@@ -396,6 +396,7 @@ func _hote_expedition() -> void:
 	var objet_hote := {"id": "coop02", "base": "sabre", "rarete": 1, "effets": []}
 	var ici: Vector3 = arene.heros_partenaire.global_position + Vector3(1.6, 0, 0)
 	arene._lacher(arene.heros_partenaire, objet_invite, 0, ici, ici)
+	arene._lacher(arene.heros_partenaire, {}, 3, ici, ici + Vector3(0, 0, 0.3), "fer")   # (jalon 5 : un tas de fer noir)
 	arene._lacher(arene.heros, objet_hote, 0, Vector3(-4.5, 0, -4.5), Vector3(-4.5, 0, -4.5))
 	await _attendre(1.0)
 	var chez_hote = arene.butin_au_sol.get_node_or_null("Butin_coop01")
@@ -406,6 +407,7 @@ func _hote_expedition() -> void:
 	_verifier(sac_invite["objets"].any(func(o): return o["id"] == "coop01"), "le héros de l'invité ramasse son butin (décidé par l'hôte)")
 	_verifier(not arene.sacs.get("HerosHote", {"objets": []})["objets"].any(func(o): return o["id"] == "coop01"),
 			"… dans le sac de l'invité, pas dans celui de l'hôte")
+	_verifier(int(sac_invite.get("fer", 0)) >= 3, "… avec son tas de fer noir (%d)" % int(sac_invite.get("fer", 0)))
 	# étape 3 : le Bosco (l'invité doit voir sa charge et sa rage), puis la chaloupe (compte à rebours)
 	var bosco = gen._faire_apparaitre(Vector3(0.0, 0, -3.0), &"bosco")
 	await _attendre(2.5)   # sortie de terre
@@ -479,6 +481,7 @@ func _invite_expedition() -> void:
 	var vu_flaque := false
 	var vu_butin := false
 	var vu_butin_hote := false
+	var vu_fer := false
 	var Carreau = load("res://game/combat/carreau.gd")
 	var Flaque = load("res://game/combat/flaque_maudite.gd")
 	fin = Time.get_ticks_msec() + 30000
@@ -490,6 +493,8 @@ func _invite_expedition() -> void:
 				vu_butin = true
 				await _capture("exp_coop_invite_butin.png")
 			vu_butin_hote = vu_butin_hote or arene.butin_au_sol.get_node_or_null("Butin_coop02") != null
+			for t in arene.butin_au_sol.get_children():
+				vu_fer = vu_fer or (t.matiere == "fer" and t.quantite == 3 and t.visible)
 		for e in arene.generateur.get_children():
 			if e.has_method("type_ennemi") and e.marionnette:
 				vu_arb = vu_arb or e.type_ennemi() == &"arbaletrier"
@@ -527,10 +532,15 @@ func _invite_expedition() -> void:
 	_verifier(not vu_butin_hote, "le butin de l'hôte n'apparaît pas chez nous (chacun le sien)")
 	var sac: Dictionary = arene.sacs.get(String(h.name), {"objets": []})
 	_verifier(sac["objets"].any(func(o): return o["id"] == "coop01"), "ramassé : dans notre sac (%d objets)" % sac["objets"].size())
+	_verifier(vu_fer, "notre tas de fer noir, lâché par l'hôte, vu chez nous")
+	_verifier(int(sac.get("fer", 0)) >= 3, "ramassé : le fer noir dans notre sac (%d)" % int(sac.get("fer", 0)))
 	if arene.hud.panneau_fin:
 		var textes: Array = arene.hud.panneau_fin.find_children("*", "Label", true, false).map(func(l): return l.text)
 		_verifier(textes.any(func(x): return x.begins_with("Butin rapporté : ")) and "Bâton de corail" in textes,
 				"écran de fin : notre butin rapporté, avec le bâton")
+		_verifier(textes.any(func(x): return x.begins_with("Matériaux : ") and x.contains("fer noir")),
+				"écran de fin : nos matériaux rapportés")
+		_verifier(root.get_node("Sauvegarde").ressource("fer") >= 3, "le fer noir rangé à notre entrepôt")
 
 
 ## Compare ce que l'invité affiche avec le dernier instantané reçu de l'hôte.
