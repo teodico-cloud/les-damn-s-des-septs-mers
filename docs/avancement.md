@@ -266,6 +266,8 @@ Matelots squelettes qui reviennent sans fin.
 - **Pastille « ! »** (annexe retenue) : au-dessus du chantier et sur son raccourci quand une amélioration est payable.
 - Petits choix faits sans Téo, à lui signaler : sans glisser le pouce, la bordée tombe à 2,5 m devant le héros ; le
   message « Bordée ! » s'affiche chez les deux joueurs ; la bordée ne sert qu'en expédition (pas dans l'arène).
+- Tests : 304 (16 nouveaux dans `test_bateau.gd` ; 29 sabotages, tous vus) ; essai coop de l'expédition étendu : les
+  voiles de l'invité comptent chez les deux (35 s), sa bordée est tirée par l'hôte et ses 5 boulets tombent chez lui.
 
 ## Objets uniques : une fois par héros (04/11, choix de Téo)
 - Un même objet unique (Légendaire ou Maudit) ne se porte qu'une fois par héros ; l'autre héros peut porter l'autre
