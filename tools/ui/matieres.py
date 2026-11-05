@@ -5,6 +5,7 @@ cordage, ornements à l'or vieilli (rose des vents, coins), sceau de cire. Aucun
 
 Usage (depuis la racine du dépôt) :
     python3 tools/ui/matieres.py planches <dossier>     # planches de direction artistique (étape 0)
+    python3 tools/ui/matieres.py textures assets/ui/matieres   # les textures du thème du jeu
 """
 import math
 import sys
@@ -527,8 +528,144 @@ def planche_matieres(chemin):
     im.convert("RGB").save(chemin)
 
 
+# ---------------------------------------------------------------- textures du jeu (thème Godot)
+## Marges des textures « 9 cases » : à reprendre telles quelles dans tools/ui/fabriquer_theme.gd.
+MARGES = {
+    "bouton": (34, 12), "bouton_appuye": (34, 12), "bouton_desactive": (34, 12),
+    "plaque": (28, 22), "panneau": (72, 72), "cuir": (24, 24), "onglet": (20, 16),
+}
+
+
+def bouton_vide(w, h, etat="normal", graine=11):
+    """Le bouton sans texte (le texte vient de Godot) : planche cerclée de fer, filet gravé."""
+    teinte = {"normal": 1.0, "appuye": 0.78, "desactive": 0.6}[etat]
+    im = bois(w, h, graine, planches=1, teinte=teinte)
+    if etat == "desactive":
+        a = np.asarray(im).astype(float)
+        gris = a[..., :3].mean(axis=2, keepdims=True)
+        a[..., :3] = a[..., :3] * 0.35 + gris * 0.65
+        im = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA")
+    bande = 26
+    for x0 in (0, w - bande):
+        m = metal(bande, h, graine + 7, rivets=False, oxyde=0.8 if etat != "desactive" else 0.2)
+        im.paste(m, (x0, 0))
+        dessiner_rivet(im, x0 + bande // 2, h // 2 - 15, 4)
+        dessiner_rivet(im, x0 + bande // 2, h // 2 + 15, 4)
+    d = ImageDraw.Draw(im)
+    d.rectangle([bande + 6, 7, w - bande - 7, h - 8], outline=(22, 14, 8, 200), width=2)
+    d.rectangle([bande + 6, 9, w - bande - 7, h - 6], outline=(140, 104, 66, 60), width=1)
+    d.rectangle([0, 0, w - 1, h - 1], outline=(10, 7, 4, 255), width=2)
+    if etat == "appuye":
+        ombre = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        ImageDraw.Draw(ombre).rectangle([bande, 2, w - bande, 9], fill=(0, 0, 0, 90))
+        im.alpha_composite(ombre)
+    return im
+
+
+def onglet(w, h, graine=15):
+    im = cuir(w, h, graine)
+    ImageDraw.Draw(im).rectangle([0, 0, w - 1, h - 1], outline=(10, 7, 4, 255), width=2)
+    return im
+
+
+def cordage_raccordable(longueur, epaisseur):
+    """Corde qui se raccorde à elle-même de gauche à droite (pour être répétée)."""
+    pas = longueur / round(longueur / (epaisseur * 0.9))
+    w, h = longueur, epaisseur
+    y, x = np.mgrid[0:h, 0:w].astype(float)
+    u = ((x + y * 1.1) % pas) / pas
+    torsade = np.sin(np.pi * u) ** 0.7
+    cyl = np.cos((y - h / 2) / (h / 2) * (np.pi / 2) * 0.95)
+    lum = 0.25 + 0.75 * torsade * cyl
+    return image(degrade(lum, (40, 28, 16), (190, 156, 104)), np.clip(cyl * 4, 0, 1) * 255)
+
+
+def trait_encre(w, h=14, graine=16):
+    """Séparateur à l'encre sur parchemin : un trait qui s'amincit aux bouts, un losange au milieu."""
+    s = 4
+    im = Image.new("RGBA", (w * s, h * s), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    cy = h * s / 2
+    encre = (52, 34, 18, 230)
+    for i in range(w * s):
+        t = i / (w * s)
+        ep = max(1, int(s * 1.6 * math.sin(math.pi * t) ** 0.6))
+        d.line([(i, cy - ep / 2), (i, cy + ep / 2)], fill=encre)
+    L = h * s * 0.42
+    cx = w * s / 2
+    d.polygon([(cx - L, cy), (cx, cy - L * 0.6), (cx + L, cy), (cx, cy + L * 0.6)], fill=(110, 30, 24, 240))
+    return im.resize((w, h), Image.LANCZOS)
+
+
+def sceau_marque(taille, texte="!", graine=17):
+    """Petit sceau de cire avec une marque (pastille « ! » des lieux du repaire)."""
+    im = sceau(taille, graine)
+    s = 4
+    T = taille * s
+    grand = im.resize((T, T), Image.LANCZOS)
+    d = ImageDraw.Draw(grand)
+    f = police("fell_sc", int(T * 0.55))
+    d.text((T / 2 + s, T / 2 + s), texte, font=f, fill=(70, 10, 8, 255), anchor="mm")
+    d.text((T / 2, T / 2), texte, font=f, fill=(226, 120, 96, 255), anchor="mm")
+    return grand.resize((taille, taille), Image.LANCZOS)
+
+
+def sceau_lisse(taille, graine=18):
+    """Sceau de cire sans dessin (fond des marques)."""
+    s = 4
+    T = taille * s
+    im = Image.new("RGBA", (T, T), (0, 0, 0, 0))
+    rng = np.random.default_rng(graine)
+    cx = cy = T / 2
+    pts = [(cx + T * (0.44 + rng.uniform(-0.035, 0.035)) * math.cos(i / 40 * 2 * math.pi),
+            cy + T * (0.44 + rng.uniform(-0.035, 0.035)) * math.sin(i / 40 * 2 * math.pi)) for i in range(40)]
+    d = ImageDraw.Draw(im)
+    d.polygon([(x + 2 * s, y + 3 * s) for x, y in pts], fill=(20, 5, 4, 140))
+    d.polygon(pts, fill=c("rouge"))
+    d.ellipse([cx - T * 0.32, cy - T * 0.32, cx + T * 0.32, cy + T * 0.32], fill=(118, 24, 21, 255),
+              outline=(170, 50, 42, 255), width=2 * s)
+    return im.filter(ImageFilter.GaussianBlur(s * 0.4)).resize((taille, taille), Image.LANCZOS)
+
+
+def fond_ecran(w=640, h=360, graine=97):
+    n = bruit(w, h, 220, None, graine)
+    g = bruit(w, h, 3, None, graine + 1, octaves=1)
+    lum = 0.32 + 0.4 * n + 0.06 * (g - 0.5)
+    y, x = np.mgrid[0:h, 0:w].astype(float)
+    v = ((x - w * 0.42) / (w * 0.75)) ** 2 + ((y - h * 0.45) / (h * 0.7)) ** 2
+    lum *= np.clip(1.15 - v, 0.25, 1.0)
+    return image(degrade(lum, (8, 7, 6), (52, 42, 33)))
+
+
+def textures(dossier):
+    dossier = Path(dossier)
+    dossier.mkdir(parents=True, exist_ok=True)
+    sorties = {
+        "bouton": bouton_vide(320, 88, "normal"),
+        "bouton_appuye": bouton_vide(320, 88, "appuye"),
+        "bouton_desactive": bouton_vide(320, 88, "desactive"),
+        "plaque": metal(320, 72, 12, rivets=True),
+        "panneau": panneau_parchemin(512, 512, graine=13),
+        "cuir": cuir(256, 256, 2),
+        "onglet": onglet(220, 64),
+        "cordage": cordage_raccordable(288, 14),
+        "trait_encre": trait_encre(420),
+        "fond": fond_ecran(),
+        "rose_des_vents": rose_des_vents(256),
+        "sceau": sceau(128),
+        "sceau_lisse": sceau_lisse(96),
+        "sceau_marque": sceau_marque(72),
+        "coin": coin_ornement(96),
+    }
+    for nom, im in sorties.items():
+        im.save(dossier / f"{nom}.png")
+    print("Textures :", ", ".join(sorted(sorties)))
+
+
 if __name__ == "__main__":
-    if len(sys.argv) >= 3 and sys.argv[1] == "planches":
+    if len(sys.argv) >= 3 and sys.argv[1] == "textures":
+        textures(sys.argv[2])
+    elif len(sys.argv) >= 3 and sys.argv[1] == "planches":
         dossier = Path(sys.argv[2])
         dossier.mkdir(parents=True, exist_ok=True)
         planche_polices(dossier / "planche_polices.png")

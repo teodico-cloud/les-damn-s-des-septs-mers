@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Fer noir : un lingot de fer brut, une arête claire, un peu de rouille -->
+  <path d="M8 46 L16 24 H48 L56 46 Z" fill="#1c120a" opacity="0.5" transform="translate(1 2)"/>
+  <path d="M8 46 L16 24 H48 L56 46 Z" fill="#3d3b37" stroke="#120d09" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M16 24 H48 L44 32 H20 Z" fill="#6b6760" stroke="#120d09" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M19 26 H45" stroke="#a9a397" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="22" cy="40" r="3" fill="#6d3d1e" opacity="0.9"/>
+  <circle cx="41" cy="38" r="2" fill="#6d3d1e" opacity="0.8"/>
+  <path d="M26 42h12" stroke="#2a2825" stroke-width="2"/>
+</svg>
