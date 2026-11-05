@@ -26,7 +26,9 @@ Dernière mise à jour : 4 novembre 2026.
 - **Jalon 5, étape 3 (forge : améliorer, recycler, relancer ; forge et entrepôt niveau 2) : faite** (voir plus bas) ;
   relecture de fin de jalon corrigée ; **APK 0.5.21 (fin du jalon 5)**, envoyé à Téo le 05/11.
 - **Attaque façon Diablo (05/11, demande de Téo)** : bond, arcs, moulinet, tir qui explose, téléportation à charges
-  (voir plus bas) ; APK suivant.
+  (voir plus bas) ; APK 0.5.22.
+- **Jalon 6 — refonte de l'interface (05/11, demande de Téo)** : tous les écrans existants refaits (voir plus bas) ;
+  APK 0.5.23. Reste l'écran Paramètres, puis les sons.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
