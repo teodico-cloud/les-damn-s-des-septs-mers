@@ -25,6 +25,8 @@ Dernière mise à jour : 4 novembre 2026.
 - **Jalon 5, étape 2 (chantier naval, améliorations du bateau, bordée visée au joystick) : faite**, APK 0.5.20 (voir plus bas).
 - **Jalon 5, étape 3 (forge : améliorer, recycler, relancer ; forge et entrepôt niveau 2) : faite** (voir plus bas) ;
   relecture de fin de jalon corrigée ; **APK 0.5.21 (fin du jalon 5)**, envoyé à Téo le 05/11.
+- **Attaque façon Diablo (05/11, demande de Téo)** : bond, arcs, moulinet, tir qui explose, téléportation à charges
+  (voir plus bas) ; APK suivant.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -292,6 +294,8 @@ vide, se sentir planté, pas assez de squelettes touchés ; modèle Diablo 3/4 ;
 - Petits choix faits sans Téo, à lui signaler : portée du bond 4 m ; l'explosion fait autant de dégâts aux voisins
   que le tir à sa cible (9) ; elle part aussi quand le tir touche un mur ; la jauge façon Diablo 3/4 (l'attaque remplit,
   les compétences dépensent) gardée pour une étape suivante.
+- Tests : 328 (10 dans `test_attaque_diablo.gd`, 1 dans `test_sante_recharge.gd`, 3 anciens mis à jour) ; 17 sabotages,
+  tous vus ; essais coop réussis (arène 36, expédition 54, Wi-Fi moyen 54, hôte parti 56 vérifications).
 
 ## Forge et niveaux 2 du repaire (jalon 5, étape 3 — choix de Téo du 04-05/11)
 - **Forge** (lieu du repaire), trois onglets :
