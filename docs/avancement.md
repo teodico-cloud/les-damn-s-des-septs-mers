@@ -294,8 +294,10 @@ Matelots squelettes qui reviennent sans fin.
 - Petits choix faits sans Téo, à lui signaler : les valeurs du recyclage ; un objet unique se recycle (12 fer pour une
   arme Légendaire) mais ne s'améliore pas ; la pastille de la forge ne signale que son agrandissement.
 - Corrigé en relisant : l'arme recyclée restait dans la main du héros qui marche dans le repaire (jusqu'à en sortir).
-- Tests : 314 (10 nouveaux dans `test_forge.gd` ; 30 sabotages, tous vus après 3 tests renforcés : un unique mal rangé,
-  l'identifiant d'un objet recyclé qui restait dans l'équipement, le second effet d'un objet à relancer).
+- Tests : 317 après la relecture (12 dans `test_forge.gd`, 1 de plus dans `test_bateau.gd`) ; 42 sabotages de l'étape 3
+  et de la relecture (3 tests renforcés en route : un unique mal rangé, l'identifiant d'un objet recyclé qui restait dans
+  l'équipement, le second effet d'un objet à relancer) ; essais coop réussis (arène 36, expédition 54, Wi-Fi moyen 54,
+  hôte parti 56 vérifications).
 
 ## Objets uniques : une fois par héros (04/11, choix de Téo)
 - Un même objet unique (Légendaire ou Maudit) ne se porte qu'une fois par héros ; l'autre héros peut porter l'autre
