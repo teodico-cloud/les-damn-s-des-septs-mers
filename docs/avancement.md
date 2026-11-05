@@ -291,7 +291,8 @@ Matelots squelettes qui reviennent sans fin.
   double appui ne paie jamais deux fois.
 - Petits choix faits sans Téo, à lui signaler : les valeurs du recyclage ; un objet unique se recycle (12 fer pour une
   arme Légendaire) mais ne s'améliore pas ; la pastille de la forge ne signale que son agrandissement.
-- Tests : 313 (9 nouveaux dans `test_forge.gd` ; 29 sabotages, tous vus après 3 tests renforcés : un unique mal rangé,
+- Corrigé en relisant : l'arme recyclée restait dans la main du héros qui marche dans le repaire (jusqu'à en sortir).
+- Tests : 314 (10 nouveaux dans `test_forge.gd` ; 30 sabotages, tous vus après 3 tests renforcés : un unique mal rangé,
   l'identifiant d'un objet recyclé qui restait dans l'équipement, le second effet d'un objet à relancer).
 
 ## Objets uniques : une fois par héros (04/11, choix de Téo)

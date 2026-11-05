@@ -118,8 +118,14 @@ func ouvrir(lieu: StringName) -> void:
 			hud.ouvrir_panneau(p)
 		&"forge":
 			var p := PanneauForge.new()
-			p.change.connect(mettre_a_jour_pastilles)
+			p.change.connect(_apres_forge)
 			hud.ouvrir_panneau(p)
+
+
+## Un passage à la forge : l'arme en main a pu changer (recyclée, améliorée), les pastilles aussi.
+func _apres_forge() -> void:
+	heros.equiper(Sauvegarde.equipes(heros.archetype))
+	mettre_a_jour_pastilles()
 
 
 ## Un achat au chantier : le navire change d'aspect, les pastilles se mettent à jour.

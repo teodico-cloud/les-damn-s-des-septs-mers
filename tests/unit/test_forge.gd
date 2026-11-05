@@ -201,6 +201,24 @@ func test_le_panneau_de_la_forge() -> void:
 	assert_true(e.has("pv"), "Le premier effet ne bouge pas")
 
 
+func test_l_arme_en_main_suit_la_forge() -> void:
+	Sauvegarde.encaisser("e", [_o("s", "sabre")], 0)
+	Sauvegarde.equiper(&"bretteur", "arme", "s")
+	_riche()
+	var r := await _repaire()
+	assert_eq(r.heros.arme_portee().get("id"), "s", "Le sabre en main")
+	r.ouvrir(&"forge")
+	var p := r.hud.panneau as PanneauForge
+	await wait_process_frames(2)
+	p.boutons["s"].pressed.emit()
+	assert_eq(int(r.heros.arme_portee().get("rarete", -1)), Butin.Rarete.RARE, "Le héros tient l'arme améliorée")
+	p.choisir_onglet("recycler")
+	p.recycler("s")
+	p.recycler("s")
+	assert_true(r.heros.arme_portee().is_empty(), "Recyclée : plus dans sa main")
+	assert_null(r.heros._arme_equipee, "Le modèle du sabre a disparu")
+
+
 func test_pastilles_de_la_forge_et_de_l_entrepot() -> void:
 	var r := await _repaire()
 	assert_false(r.pastilles[&"forge"].visible)
