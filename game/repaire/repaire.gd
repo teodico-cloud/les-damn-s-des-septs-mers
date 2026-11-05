@@ -110,13 +110,16 @@ func ouvrir(lieu: StringName) -> void:
 		&"entrepot":
 			var p := PanneauEntrepot.new()
 			p.equipement_demande.connect(_ouvrir_equipement)
+			p.agrandi.connect(mettre_a_jour_pastilles)
 			hud.ouvrir_panneau(p)
 		&"chantier":
 			var p := PanneauChantier.new()
 			p.achete.connect(_apres_achat)
 			hud.ouvrir_panneau(p)
 		&"forge":
-			hud.message("La forge ouvrira à l'étape 3 du jalon 5.", 2.5)
+			var p := PanneauForge.new()
+			p.change.connect(mettre_a_jour_pastilles)
+			hud.ouvrir_panneau(p)
 
 
 ## Un achat au chantier : le navire change d'aspect, les pastilles se mettent à jour.
@@ -130,6 +133,9 @@ func lieux_a_signaler() -> Array:
 	var r := []
 	if Bateau.achat_possible():
 		r.append(&"chantier")
+	for i in [&"forge", &"entrepot"]:   # (seulement leur niveau 2 : sinon la pastille brillerait tout le temps)
+		if Forge.agrandissement_possible(String(i)):
+			r.append(i)
 	return r
 
 

@@ -297,6 +297,16 @@ extends Resource
 	"coque": [{"doublons": 80, "bois": 20, "fer": 5}, {"doublons": 150, "bois": 30, "fer": 15}, {"doublons": 220, "bois": 40, "fer": 25, "essence": 10}],
 	"bordee": [{"doublons": 70, "fer": 15}, {"doublons": 140, "fer": 25, "essence": 5}, {"doublons": 200, "fer": 35, "essence": 15}],
 }
+@export_subgroup("Forge et niveaux 2 du repaire (étape 3 : prix proposés à Téo le 04/11)")
+## Monter une arme d'une rareté : [Commun → Rare, Rare → Épique]
+@export var forge_prix_rarete := [{"doublons": 80, "fer": 10}, {"doublons": 160, "fer": 25, "essence": 5}]
+## Recycler : une arme rend du fer noir, une relique de l'essence maudite, selon la rareté (Commun … Maudit)
+@export var forge_recyclage_arme: PackedInt32Array = [2, 4, 8, 12, 12]
+@export var forge_recyclage_relique: PackedInt32Array = [1, 2, 4, 6, 6]
+## Relancer un effet en plus (forge niveau 2) : l'effet choisi est remplacé au hasard par un autre
+@export var forge_prix_relance := {"doublons": 40, "essence": 4}
+## Agrandir une installation au niveau 2
+@export var repaire_prix_niveau_2 := {"forge": {"doublons": 300, "bois": 40, "fer": 20}, "entrepot": {"doublons": 250, "bois": 60}}
 @export_subgroup("Bordée (tir du navire, visé au joystick)")
 @export var bordee_boulets := 5               ## boulets par tir
 @export var bordee_dispersion := 2.0          ## mètres : autour du point visé

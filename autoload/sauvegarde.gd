@@ -24,9 +24,11 @@ const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 var chemin := CHEMIN_JEU         ## les tests en prennent un autre (tests/pre_run.gd)
 var donnees := {}
 var restauree := false           ## vrai si le fichier était illisible et que la copie de secours a servi
+var rng := RandomNumberGenerator.new()   ## forge : effets tirés au hasard (les tests peuvent fixer la graine)
 
 
 func _ready() -> void:
+	rng.randomize()
 	charger()
 
 
@@ -315,6 +317,99 @@ func ameliorer_bateau(amelioration: String, niveau_vise: int) -> bool:
 	if not donnees.has("achats"):
 		donnees["achats"] = []
 	donnees["achats"].append("bateau_%s_%d" % [amelioration, niveau_vise])
+	enregistrer()
+	changee.emit()
+	return true
+
+
+# ---------------------------------------------------------------- forge et niveaux 2 (jalon 5, étape 3)
+func _payer(p: Dictionary) -> void:
+	donnees["doublons"] = doublons() - int(p.get("doublons", 0))
+	for m in Butin.MATIERES:
+		donnees["ressources"][m] = ressource(m) - int(p.get(m, 0))
+
+
+func _noter_achat(nom: String) -> void:
+	if not donnees.has("achats"):
+		donnees["achats"] = []
+	donnees["achats"].append(nom)
+
+
+## Forge : l'arme `id` monte d'une rareté, si elle a encore la rareté `rarete_vue` (un double appui ne la fait pas
+## monter deux fois) et si l'on peut payer. Elle gagne un effet en plus tiré au hasard ; portée, elle le reste.
+func ameliorer_objet(id: String, rarete_vue: int) -> bool:
+	var o := objet(id)
+	if o.is_empty() or int(o.get("rarete", 0)) != rarete_vue or not Forge.ameliorable(o):
+		return false
+	var p := Forge.prix_amelioration(o)
+	if not Bateau.manque(p).is_empty():
+		return false
+	_payer(p)
+	if not (o.get("effets") is Dictionary):
+		o["effets"] = {}
+	var cle := Forge.effet_au_hasard(rng, o["effets"])
+	if cle != "":
+		o["effets"][cle] = float(EQ.equip_effets_plus[cle])
+	o["rarete"] = rarete_vue + 1
+	_noter_achat("forge_%s_%d" % [id, rarete_vue + 1])
+	enregistrer()
+	changee.emit()
+	return true
+
+
+## Forge : l'objet `id` est recyclé (retiré de l'équipement s'il était porté) ; il rend des matériaux, rangés à
+## l'entrepôt (au-delà du plafond : revendus). Renvoie ce rangement ({} si l'objet n'existe plus : un double
+## appui ne recycle rien de plus).
+func recycler(id: String) -> Dictionary:
+	var o := objet(id)
+	if o.is_empty():
+		return {}
+	var ou := ou_est_porte(id)
+	if not ou.is_empty():
+		donnees["equipement"][String(ou[0])][ou[1]] = ""
+	donnees["objets"].erase(o)
+	var rangement := ranger(Forge.recyclage(o))
+	for m in Butin.MATIERES:
+		donnees["ressources"][m] = ressource(m) + int(rangement["gardees"][m])
+	donnees["doublons"] = doublons() + int(rangement["doublons"])
+	_noter_achat("recyclage_%s" % id)
+	enregistrer()
+	changee.emit()
+	return rangement
+
+
+## Forge niveau 2 : l'effet en plus `effet` de l'objet `id` (choisi par le joueur) est remplacé au hasard par un
+## autre qu'il n'a pas. Renvoie le nouvel effet ("" si ce n'est pas possible : forge niveau 1, effet absent,
+## trop pauvre…).
+func relancer_effet(id: String, effet: String) -> String:
+	var o := objet(id)
+	if niveau_repaire("forge") < 2 or o.is_empty() or not (o.get("effets") is Dictionary) or not o["effets"].has(effet):
+		return ""
+	var p := Forge.prix_relance()
+	if not Bateau.manque(p).is_empty():
+		return ""
+	var nouveau := Forge.effet_au_hasard(rng, o["effets"], effet)
+	if nouveau == "":
+		return ""
+	_payer(p)
+	o["effets"].erase(effet)
+	o["effets"][nouveau] = float(EQ.equip_effets_plus[nouveau])
+	_noter_achat("relance_%s_%s" % [id, effet])
+	enregistrer()
+	changee.emit()
+	return nouveau
+
+
+## Agrandit la forge ou l'entrepôt au niveau 2 (une seule fois), si l'on peut payer.
+func agrandir(installation: String) -> bool:
+	if not installation in INSTALLATIONS or niveau_repaire(installation) >= 2:
+		return false
+	var p := Forge.prix_niveau_2(installation)
+	if p.is_empty() or not Bateau.manque(p).is_empty():
+		return false
+	_payer(p)
+	donnees["repaire"][installation] = 2
+	_noter_achat("repaire_%s_2" % installation)
 	enregistrer()
 	changee.emit()
 	return true

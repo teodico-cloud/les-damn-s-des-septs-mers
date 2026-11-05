@@ -3,9 +3,10 @@ extends SceneTree
 ## vue de dessus (vérifier le plan), et les panneaux de la salle des cartes et de l'entrepôt ; « matieres » :
 ## les tas de matériaux au sol en expédition, le sac en haut à gauche, l'écran de fin (entrepôt plein) ;
 ## « chantier » : le chantier naval (pauvre puis riche), la pastille, le navire avant et après ses améliorations,
-## la malédiction limitée par la coque ; « bordee » : la zone visée, les boulets qui tombent, les explosions.
+## la malédiction limitée par la coque ; « bordee » : la zone visée, les boulets qui tombent, les explosions ;
+## « forge » : ses trois onglets (améliorer, recycler avec confirmation, relancer), l'entrepôt à agrandir.
 ## Usage : xvfb-run -a godot --path . --rendering-method gl_compatibility --rendering-driver opengl3
-##         --resolution 1280x720 -s <chemin absolu>/tools/capture_repaire.gd -- <dossier> [vues|panneaux|dessus|matieres|chantier|bordee]
+##         --resolution 1280x720 -s <chemin absolu>/tools/capture_repaire.gd -- <dossier> [vues|panneaux|dessus|matieres|chantier|bordee|forge]
 ## Ne pas typer avec les classes du jeu (voir CLAUDE.md, pièges).
 
 var dossier := ""
@@ -48,6 +49,10 @@ func _go() -> void:
 		return
 	if quoi == "bordee":
 		await _bordee()
+		quit()
+		return
+	if quoi == "forge":
+		await _forge()
 		quit()
 		return
 	var sauvegarde = root.get_node("Sauvegarde")
@@ -269,6 +274,57 @@ func _bordee() -> void:
 	Engine.time_scale = 1.0
 	await _images(60)
 	await _capture("bordee_apres.png")
+
+
+func _forge() -> void:
+	var sauvegarde = root.get_node("Sauvegarde")
+	sauvegarde.chemin = "user://sauvegarde_captures.json"
+	sauvegarde.reinitialiser()
+	sauvegarde.rng.seed = 3
+	sauvegarde.encaisser("capture", [
+		{"id": "s1", "base": "sabre", "rarete": 0, "effets": {}},
+		{"id": "h1", "base": "hache", "rarete": 1, "effets": {"critique": 0.06}},
+		{"id": "c1", "base": "coutelas", "rarete": 2, "effets": {"pv": 10.0, "epines": 0.2}},
+		{"id": "f1", "base": "fiole", "rarete": 1, "effets": {"vitesse": 0.06}},
+		{"id": "k1", "base": "cle", "rarete": 0, "effets": {}},
+	], 0)
+	sauvegarde.equiper(&"bretteur", "arme", "h1")
+	sauvegarde.donnees["doublons"] = 640
+	sauvegarde.donnees["ressources"] = {"bois": 70, "fer": 70, "essence": 30}   # (sous les plafonds 150 / 80 / 40)
+	root.get_node("Partie").heros_local = &"bretteur"
+	root.get_node("Partie").lieu_repaire = &"forge"
+	repaire = load("res://game/repaire/repaire.tscn").instantiate()
+	repaire.changer_de_scene = false
+	root.add_child(repaire)
+	await _images(30)
+	await _capture("forge_pastilles.png")
+	repaire.ouvrir(&"forge")
+	await _images(6)
+	await _capture("forge_ameliorer.png")
+	var p = repaire.hud.panneau
+	p.ameliorer("s1", 0)
+	await _images(4)
+	await _capture("forge_amelioree.png")
+	p.choisir_onglet("recycler")
+	p.recycler("k1")
+	await _images(4)
+	await _capture("forge_recycler_confirmer.png")
+	p.recycler("k1")
+	await _images(4)
+	await _capture("forge_recycle.png")
+	p.choisir_onglet("relancer")
+	await _images(4)
+	await _capture("forge_relancer_verrou.png")
+	p.agrandir()
+	await _images(4)
+	await _capture("forge_relancer.png")
+	p.relancer("c1", "epines")
+	await _images(4)
+	await _capture("forge_relance.png")
+	repaire.hud.fermer_panneau()
+	repaire.ouvrir(&"entrepot")
+	await _images(6)
+	await _capture("entrepot_agrandir.png")
 
 
 func _aller(p: Vector3) -> void:

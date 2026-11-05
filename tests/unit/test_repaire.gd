@@ -170,12 +170,14 @@ func test_l_entrepot_montre_les_materiaux() -> void:
 	assert_eq(Partie.lieu_repaire, &"entrepot", "On reviendra devant l'entrepôt")
 
 
-func test_la_forge_pas_encore_ouverte() -> void:
+func test_les_quatre_lieux_s_ouvrent() -> void:
 	var r := await _repaire()
-	r.ouvrir(&"forge")
-	assert_null(r.hud.panneau)
-	assert_true(r.hud.label_message.visible)
-	assert_string_contains(r.hud.label_message.text, "étape 3")
+	var attendus := {&"cartes": "PanneauCartes", &"chantier": "PanneauChantier", &"forge": "PanneauForge", &"entrepot": "PanneauEntrepot"}
+	for l in attendus:
+		r.ouvrir(l)
+		assert_not_null(r.hud.panneau, String(l))
+		assert_eq(r.hud.panneau.get_script().get_global_name(), attendus[l])
+		r.hud.fermer_panneau()
 
 
 func test_retour_d_android_ferme_d_abord_le_lieu() -> void:
