@@ -1,11 +1,16 @@
 class_name Bretteur
 extends Heros
-## Le Bretteur : combo de 3 coups au sabre (le 3e est lourd), roulade qui traverse les ennemis,
-## Parade-riposte (un coup de face paré déclenche une riposte qui étourdit ; parée juste à temps,
-## c'est une parade parfaite), Fente qui traverse.
+## Le Bretteur : combo de 3 coups au sabre, roulade qui traverse les ennemis, Parade-riposte (un coup de
+## face paré déclenche une riposte qui étourdit ; parée juste à temps, c'est une parade parfaite), Fente
+## qui traverse.
+## Le combo, façon Diablo (choix de Téo du 05/11) : chaque coup bondit sur le squelette visé s'il est à
+## portée (jamais dans le vide) ; deux taillades en arc large, puis le moulinet qui touche tout autour.
+
+const MOULINET := 2         ## le 3e coup du combo
 
 
 var _combo := -1            ## coup du combo en cours (0, 1, 2)
+var _cible_coup: Node3D     ## le squelette sur lequel le coup en cours bondit (null : sur place)
 var _fin_dernier_coup := -10.0
 var _impact_fait := false
 var _duree_action := 0.0
@@ -52,7 +57,7 @@ func _etat_specifique(delta: float) -> void:
 
 # ---------------------------------------------------------------- combo d'attaque
 func _commencer_attaque() -> void:
-	var suivant := _combo + 1 if (horloge - _fin_dernier_coup <= EQ.combo_fenetre and _combo < 2) else 0
+	var suivant := _combo + 1 if (horloge - _fin_dernier_coup <= EQ.combo_fenetre and _combo < MOULINET) else 0
 	_commencer_coup(suivant)
 
 
@@ -60,19 +65,37 @@ func _commencer_coup(index: int) -> void:
 	_combo = index
 	_direction = direction_attaque()
 	_faire_face(_direction)
+	var cible := cible_visee()
+	_cible_coup = cible if cible and _distance_plate(cible) <= EQ.combo_aimant_portee else null
 	_impact_fait = false
 	var nom: String = EQ.combo_animations[index]
-	_duree_action = anim.get_animation(nom).length / _vitesse_combo()
-	_jouer(nom, _vitesse_combo(), 0.08, true)
+	var fin: float = EQ.combo_fin_geste[index] if EQ.combo_fin_geste[index] > 0.0 else anim.get_animation(nom).length
+	_duree_action = fin / _vitesse_coup(index)
+	_jouer(nom, _vitesse_coup(index), 0.08, true)
 	_changer(Etat.ATTAQUE)
 
 
+func _distance_plate(n: Node3D) -> float:
+	return Vector2(n.global_position.x - global_position.x, n.global_position.z - global_position.z).length()
+
+
 func _etat_attaque(_delta: float) -> void:
-	var impact: float = EQ.combo_instant_impact[_combo] / _vitesse_combo()
-	# petit pas en avant jusqu'à l'impact, puis immobile
-	var pas := EQ.combo_pas_en_avant / maxf(impact, 0.05) if _t < impact else 0.0
-	velocity.x = _direction.x * pas
-	velocity.z = _direction.z * pas
+	var impact: float = EQ.combo_instant_impact[_combo] / _vitesse_coup(_combo)
+	# jusqu'à l'impact : bond sur le squelette visé (on arrive au contact pile pour l'impact), sinon petit pas
+	var vitesse := 0.0
+	if _t < impact:
+		vitesse = EQ.combo_pas_en_avant / maxf(impact, 0.05)
+		if is_instance_valid(_cible_coup) and _cible_coup.has_method("est_ciblable") and _cible_coup.est_ciblable():
+			var vers := Combat.direction_plate(global_position, _cible_coup.global_position)
+			var reste := _distance_plate(_cible_coup) - EQ.combo_aimant_contact
+			vitesse = 0.0
+			if vers != Vector3.ZERO:
+				_direction = vers
+				_faire_face(vers)
+			if reste > 0.0:
+				vitesse = minf(reste / maxf(impact - _t, 1.0 / 60.0), EQ.combo_aimant_vitesse_max)
+	velocity.x = _direction.x * vitesse
+	velocity.z = _direction.z * vitesse
 	if (commandes.en_attente(&"esquive", horloge) and recharge_esquive.prete()) \
 			or (commandes.en_attente(&"competence_1", horloge) and recharge_competence_1.prete()):
 		_essayer_actions_prioritaires()   # l'esquive et la parade peuvent interrompre un coup à tout moment
@@ -83,13 +106,13 @@ func _etat_attaque(_delta: float) -> void:
 	if _impact_fait:
 		if _essayer_actions_prioritaires():
 			return
-		if _combo < 2 and _t >= impact + 0.08 and commandes.prendre(&"attaque", horloge):
+		if _combo < MOULINET and _t >= impact + 0.08 and commandes.prendre(&"attaque", horloge):
 			_commencer_coup(_combo + 1)
 			return
-		if _combo < 2 and _t >= impact + EQ.combo_annulation and commandes.deplacement.length() > 0.25:
+		if _combo < MOULINET and _t >= impact + EQ.combo_annulation and commandes.deplacement.length() > 0.25:
 			# le coup a porté : le joystick coupe la fin du geste (on frappe, on bouge, on refrappe) ;
-			# le combo reste enchaînable pendant sa fenêtre. Le 3e coup, le lourd, va toujours au bout
-			# (choix de Téo : il garde son poids)
+			# le combo reste enchaînable pendant sa fenêtre. Le moulinet va toujours au bout (choix de Téo :
+			# il garde son poids ; il est seulement plus rapide)
 			_fin_dernier_coup = horloge
 			_changer(Etat.LIBRE)
 			return
@@ -99,18 +122,36 @@ func _etat_attaque(_delta: float) -> void:
 
 
 func _frapper_combo() -> void:
-	var centre := global_position + _direction * EQ.combo_portee + Vector3.UP
 	var lourd: bool = EQ.combo_lourd[_combo]
 	# traînée lumineuse du sabre (aussi montrée chez l'autre joueur en coop)
 	EffetsMagie.trainee_sabre(get_parent(), global_position, _direction, _combo)
 	EventBus.effet_visuel.emit(self, "trainee_%d_%d" % [_combo, roundi(rad_to_deg(atan2(_direction.x, _direction.z)))], global_position)
-	for cible in Combat.cibles_dans_sphere(get_world_3d(), centre, EQ.combo_rayon, Combat.COUCHE_ENNEMIS, [self]):
+	for cible in cibles_du_coup(_combo):
 		Combat.porter_coup(self, cible, EQ.combo_degats[_combo], lourd)
+
+
+## Ce que touche le coup `index` maintenant : les taillades, tout un arc devant le héros (dans `_direction`) ;
+## le moulinet, tout ce qui l'entoure.
+func cibles_du_coup(index: int) -> Array[Node3D]:
+	var autour := index == MOULINET
+	var portee: float = EQ.combo_moulinet_rayon if autour else EQ.combo_arc_portee
+	var r: Array[Node3D] = []
+	for c in Combat.cibles_dans_sphere(get_world_3d(), global_position + Vector3.UP, portee, Combat.COUCHE_ENNEMIS, [self]):
+		var vers := Combat.direction_plate(global_position, c.global_position)
+		if autour or vers == Vector3.ZERO or _distance_plate(c) < 0.8 \
+				or rad_to_deg(_direction.angle_to(vers)) <= EQ.combo_arc_angle / 2.0:
+			r.append(c)
+	return r
 
 
 ## Vitesse des coups du combo : l'arme portée la change (hache plus lente, coutelas plus vif).
 func _vitesse_combo() -> float:
 	return EQ.combo_vitesse_animation * mult_attaque()
+
+
+## Vitesse du coup `index` : le moulinet va plus vite que les taillades (choix de Téo du 05/11).
+func _vitesse_coup(index: int) -> float:
+	return _vitesse_combo() * (EQ.combo_vitesse_moulinet if index == MOULINET else 1.0)
 
 
 # ---------------------------------------------------------------- esquive (roulade)

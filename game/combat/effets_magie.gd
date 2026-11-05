@@ -55,6 +55,38 @@ static func eclat(parent: Node, pos: Vector3) -> void:
 	_bouffee(parent, pos, 10, 0.3, 0.5, Color(0.6, 1.0, 0.7, 1.0), Color(0.2, 0.9, 0.4, 0.0))
 
 
+## Explosion du tir de l'Occultiste (05/11) : une gerbe verte et un disque au sol qui s'étale jusqu'à la taille de
+## ce qu'elle blesse, puis s'efface.
+static func explosion_maudite(parent: Node, pos: Vector3, rayon: float) -> void:
+	if parent == null or not parent.is_inside_tree():
+		return
+	_bouffee(parent, pos, 22, 0.45, 1.3, Color(0.75, 1.0, 0.8, 1.0), Color(0.15, 0.7, 0.35, 0.0))
+	var cle := "disque_explosion_%s" % rayon
+	if not _ressources.has(cle):
+		var disque := CylinderMesh.new()
+		disque.top_radius = rayon
+		disque.bottom_radius = rayon
+		disque.height = 0.02
+		disque.radial_segments = 24
+		disque.rings = 1
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.albedo_color = Color(0.4, 1.0, 0.55, 0.5)
+		disque.material = mat
+		_ressources[cle] = disque
+	var m := MeshInstance3D.new()
+	m.mesh = _ressources[cle]
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	m.position = Vector3(pos.x, 0.06, pos.z)
+	m.scale = Vector3(0.3, 1.0, 0.3)
+	parent.add_child(m)
+	var t := m.create_tween()
+	t.tween_property(m, "scale", Vector3.ONE, 0.12).set_ease(Tween.EASE_OUT)
+	t.tween_property(m, "transparency", 1.0, 0.22)
+	t.tween_callback(m.queue_free)
+
+
 static func _bouffee(parent: Node, pos: Vector3, nombre: int, duree: float, taille: float, debut: Color, fin: Color) -> void:
 	if parent == null or not parent.is_inside_tree():
 		return
@@ -191,15 +223,17 @@ static func cercle(parent: Node, pos: Vector3, rayon: float, duree: float, coule
 	t.tween_callback(m.queue_free)
 
 
-## Traînée lumineuse d'un coup de sabre : un arc qui s'efface en une fraction de seconde devant le
-## héros. `coup` : 0 = diagonal, 1 = horizontal, 2 = de haut en bas (le coup lourd, plus large).
+## Traînée lumineuse d'un coup de sabre : un arc qui s'efface en une fraction de seconde autour du
+## héros. `coup` : 0 = diagonal, 1 = horizontal (les taillades, en arc large devant lui), 2 = le moulinet
+## (un tour complet, à plat).
 static func trainee_sabre(parent: Node, pos: Vector3, direction: Vector3, coup: int) -> void:
 	if parent == null or not parent.is_inside_tree() or direction.length() < 0.01:
 		return
-	var cle := "arc_sabre"
+	var moulinet := coup == 2
+	var cle := "tour_sabre" if moulinet else "arc_sabre"
 	if not _ressources.has(cle):
-		_ressources[cle] = _maillage_arc(1.0, 1.65, deg_to_rad(150.0), 18)
-	var cle_mat := "mat_trainee_%d" % (1 if coup == 2 else 0)
+		_ressources[cle] = _maillage_arc(1.0, 1.65, TAU if moulinet else deg_to_rad(150.0), 40 if moulinet else 18)
+	var cle_mat := "mat_trainee_%d" % (1 if moulinet else 0)
 	if not _ressources.has(cle_mat):
 		var mat := StandardMaterial3D.new()   # partagée : chaque traînée s'efface par sa transparence
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -207,23 +241,24 @@ static func trainee_sabre(parent: Node, pos: Vector3, direction: Vector3, coup: 
 		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 		mat.vertex_color_use_as_albedo = true
 		# mélange plutôt qu'addition : sur le sol clair, l'addition virait au blanc éblouissant
-		mat.albedo_color = Color(1.0, 0.8, 0.3, 0.95) if coup < 2 else Color(1.0, 0.55, 0.15, 1.0)
+		mat.albedo_color = Color(1.0, 0.8, 0.3, 0.95) if not moulinet else Color(1.0, 0.55, 0.15, 1.0)
 		_ressources[cle_mat] = mat
 	var m := MeshInstance3D.new()
 	m.mesh = _ressources[cle]
 	m.material_override = _ressources[cle_mat]
 	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var lacet := atan2(direction.x, direction.z)
-	var roulis: float = [deg_to_rad(-35.0), 0.0, deg_to_rad(90.0)][clampi(coup, 0, 2)]
+	var roulis: float = [deg_to_rad(-25.0), 0.0, 0.0][clampi(coup, 0, 2)]
 	m.basis = Basis(Vector3.UP, lacet) * Basis(Vector3(0, 0, 1), roulis)
-	m.position = pos + Vector3.UP * 1.05
+	m.position = pos + Vector3.UP * (0.8 if moulinet else 1.05)
 	parent.add_child(m)
 	var t := m.create_tween()
 	t.set_parallel(true)
-	var grand := 1.15 if coup == 2 else 1.0
+	# à la taille de ce que le coup touche (arc de 2,3 m, moulinet de 2,4 m)
+	var grand := 1.3
 	m.scale = Vector3.ONE * 0.85 * grand
-	t.tween_property(m, "scale", Vector3.ONE * 1.1 * grand, 0.18).set_ease(Tween.EASE_OUT)
-	t.tween_property(m, "transparency", 1.0, 0.18).set_delay(0.04)
+	t.tween_property(m, "scale", Vector3.ONE * 1.1 * grand, 0.18 if not moulinet else 0.24).set_ease(Tween.EASE_OUT)
+	t.tween_property(m, "transparency", 1.0, 0.18 if not moulinet else 0.24).set_delay(0.04)
 	t.chain().tween_callback(m.queue_free)
 
 

@@ -139,6 +139,7 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   `tools/capture_salles.gd [modèle]` ; squelettes sur fond neutre, arbalétrier, carreau renvoyé, prêtre,
   flaque, salles piège, explosion : `tools/capture_ennemis.gd` ; Bosco (portrait, annonces, charge, sonné,
   rage), choix de la malédiction, chaloupe sous les vagues, écran de fin : `tools/capture_bosco.gd` ;
+  attaque façon Diablo (bond, moulinet, tir qui explose, charges de la téléportation) : `tools/capture_attaque.gd` ;
   butin (vitrine du catalogue, au sol, ramassage, trésor du Bosco, fins) : `tools/capture_butin.gd`,
   `SEULEMENT_VITRINE=1` pour la vitrine seule ; armes en main, écran Équipement, objets uniques en jeu :
   `tools/capture_equipement.gd -- <dossier> [armes|ecran|uniques|cale|double]` ; repaire (vues de jeu, de dessus,
@@ -369,6 +370,15 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Forge : les tirages au hasard (effet en plus, relance) passent par `Sauvegarde.rng` (un test fixe sa graine). Chaque
   achat vérifie l'état vu par le bouton (rareté, niveau, effet encore présent). Les panneaux ne gardent jamais un objet
   en mémoire : ils relisent la sauvegarde à chaque `rafraichir()`.
+- Combo du Bretteur (façon Diablo, 05/11) : la vitesse du coup n est `_vitesse_coup(n)` (le moulinet, 3e coup, va
+  `combo_vitesse_moulinet` fois plus vite) et sa fin `combo_fin_geste` (le moulinet s'arrête à 1,71 s : la suite de
+  l'animation est immobile). Un test qui attend l'impact du coup n utilise `_vitesse_coup(n)`. Chaque coup bondit sur
+  `cible_visee()` si elle est à `combo_aimant_portee` ou moins : un test qui veut un coup sur place met le squelette
+  plus loin ; ce que touche un coup : `Bretteur.cibles_du_coup(n)`.
+- Recharge à charges (`Recharge.new(duree, n)`, téléportation) : `prete()` = il reste une charge ; mettre `restant = 0`
+  ne rend une charge qu'à une recharge simple (Parade rendue). La pastille du bouton suit seule les charges.
+- Tir de l'Occultiste : sa cible est choisie au départ par `Projectile.cible_devant` (chez l'invité aussi, pour l'image :
+  même règle, aucun message) ; l'explosion passe par `porter_coup_discret` (pas d'arrêt sur image par voisin).
 - Panneaux du repaire : après une action, le panneau se refait **tout de suite** et un autre bouton apparaît sous le
   doigt (niveau suivant, « Sûr ? Recycler ») ; le second toucher d'un vrai double appui le touchait (relecture : cale
   achetée deux fois). Toute action commence donc par `appui_accepte()` (ignorée 0,4 s après la précédente). Dans un

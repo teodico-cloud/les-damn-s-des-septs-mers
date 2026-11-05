@@ -18,7 +18,7 @@ var _os_baguette := -1
 func _init() -> void:
 	archetype = &"occultiste"
 	modele = preload("res://assets/models/heroes/Occultiste.glb")
-	recharge_esquive = Recharge.new(EQ.occ_tele_recharge)
+	recharge_esquive = Recharge.new(EQ.occ_tele_recharge, EQ.occ_tele_charges)   # (deux sauts, puis attendre)
 	recharge_competence_1 = Recharge.new(EQ.occ_marque_recharge)
 	recharge_competence_2 = Recharge.new(EQ.occ_chaines_recharge)
 

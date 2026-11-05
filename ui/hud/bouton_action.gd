@@ -14,10 +14,12 @@ var rayon := 60.0
 var recharge: Recharge
 var appuye := false
 var doigt := -1
-var compteur := -1      ## jalon 5 (bordée) : tirs restants, dans une pastille ; -1 : pas de pastille
+var compteur := -1      ## jalon 5 (bordée) : tirs restants, dans une pastille ; -1 : pas de pastille (une recharge
+                        ## à charges, téléportation : ses charges, mises à jour seules)
 var inactif := false    ## plus rien à faire (bordée vide) : icône grisée
 var _etait_appuye := false
 var _etait_en_recharge := false
+var _charge_en_cours := false
 
 
 func configurer(t: String, r: float, rec: Recharge = null) -> void:
@@ -40,8 +42,14 @@ func contient(point: Vector2) -> bool:
 ## Ne redessine que si l'affichage change : pendant une recharge, ou quand l'état bascule.
 func _process(_delta: float) -> void:
 	var en_recharge := recharge != null and not recharge.prete()
-	if en_recharge or en_recharge != _etait_en_recharge or appuye != _etait_appuye:
+	var charge_en_cours := recharge != null and recharge.charges_max > 1 and recharge.restant > 0.0
+	if recharge != null and recharge.charges_max > 1 and compteur != recharge.charges:
+		compteur = recharge.charges
 		queue_redraw()
+	if en_recharge or charge_en_cours or charge_en_cours != _charge_en_cours or en_recharge != _etait_en_recharge \
+			or appuye != _etait_appuye:
+		queue_redraw()
+	_charge_en_cours = charge_en_cours
 	_etait_en_recharge = en_recharge
 	_etait_appuye = appuye
 
@@ -83,6 +91,10 @@ func _draw() -> void:
 		draw_string_outline(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), texte, HORIZONTAL_ALIGNMENT_LEFT, -1, taille_police, 5, Color.BLACK)
 		draw_string(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), texte, HORIZONTAL_ALIGNMENT_LEFT, -1, taille_police, COULEUR_TEXTE)
 	draw_arc(c, rayon - 2.0, 0, TAU, 48, COULEUR_BORD, 4.0, true)
+	if recharge != null and recharge.charges_max > 1 and not en_recharge and recharge.restant > 0.0:
+		# une charge revient : un liseré clair fait le tour du bouton
+		var f := 1.0 - recharge.fraction()
+		draw_arc(c, rayon - 3.0, -PI / 2.0, -PI / 2.0 + TAU * f, 40, Color(0.95, 0.85, 0.55), 6.0, true)
 	if compteur >= 0:   # pastille en haut à droite : combien il en reste
 		var p := c + Vector2(rayon * 0.72, -rayon * 0.72)
 		var r := rayon * 0.34

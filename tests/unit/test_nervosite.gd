@@ -159,8 +159,8 @@ func test_le_joystick_ne_coupe_pas_le_coup_lourd() -> void:
 	heros._combo = 1
 	heros._fin_dernier_coup = heros.horloge
 	heros._commencer_coup(2)
-	var impact: float = EQ.combo_instant_impact[2] / EQ.combo_vitesse_animation
-	await _secondes(impact + EQ.combo_annulation + 0.05)
+	var impact: float = EQ.combo_instant_impact[2] / heros._vitesse_coup(2)
+	await _secondes(impact + EQ.combo_annulation + 0.02)
 	assert_eq(heros.etat, Heros.Etat.ATTAQUE)
 	heros.commandes.deplacement = Vector3(1, 0, 0)
 	await wait_physics_frames(2)

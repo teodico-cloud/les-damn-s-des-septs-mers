@@ -162,7 +162,7 @@ func test_teleportation_saute_a_4_m_et_rend_intouchable() -> void:
 	assert_almost_eq(occ.global_position.z, EQ.occ_tele_distance, 0.35, "Réapparu 4 m plus loin")
 	assert_true(occ.visuel.visible, "Il est revenu")
 	assert_eq(occ.etat, Heros.Etat.LIBRE)
-	assert_false(occ.recharge_esquive.prete(), "En recharge")
+	assert_eq(occ.recharge_esquive.charges, EQ.occ_tele_charges - 1, "Une charge de moins (choix de Téo du 05/11)")
 
 
 func test_teleportation_traverse_un_squelette_mais_pas_un_mur() -> void:

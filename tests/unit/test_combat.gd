@@ -284,9 +284,8 @@ func test_la_riposte_laisse_le_temps_de_punir() -> void:
 	Combat.porter_coup(e, heros, 15.0, false)   # son coup, paré de face
 	await _secondes(EQ.riposte_instant_impact / EQ.riposte_vitesse_animation + EQ.squelette_duree_touche_lourd)
 	assert_eq(e.etat, Ennemi.Etat.ETOURDI)
-	var portee_combo := EQ.combo_portee + EQ.combo_pas_en_avant + EQ.combo_rayon + 0.45
-	assert_lt(heros.global_position.distance_to(e.global_position), portee_combo,
-		"Le squelette sonné n'est pas repoussé hors de portée")
+	assert_lt(heros.global_position.distance_to(e.global_position), EQ.combo_aimant_portee,
+		"Le squelette sonné n'est pas repoussé hors de portée du bond du combo")
 
 
 func test_le_squelette_meurt_une_seule_fois() -> void:

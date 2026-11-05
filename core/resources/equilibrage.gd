@@ -15,16 +15,25 @@ extends Resource
 @export var heros_duree_recul := 0.2           ## secondes pour parcourir ce recul
 @export var heros_duree_touche := 0.4          ## secondes sans pouvoir agir après un coup reçu
 
-@export_group("Attaque du Bretteur (combo de 3 coups)")
-@export var combo_animations: PackedStringArray = ["1H_Melee_Attack_Slice_Diagonal", "1H_Melee_Attack_Slice_Horizontal", "1H_Melee_Attack_Chop"]
-@export var combo_instant_impact: PackedFloat32Array = [0.40, 0.26, 0.57]  ## secondes dans l'animation
+@export_group("Attaque du Bretteur (combo de 3 coups ; façon Diablo, choix de Téo du 05/11)")
+## coups 1 et 2 : deux taillades en arc ; coup 3 : le moulinet (un tour complet, il touche tout autour)
+@export var combo_animations: PackedStringArray = ["1H_Melee_Attack_Slice_Diagonal", "1H_Melee_Attack_Slice_Horizontal", "2H_Melee_Attack_Spin"]
+@export var combo_instant_impact: PackedFloat32Array = [0.40, 0.26, 0.90]  ## secondes dans l'animation (moulinet : à mi-tour)
+## fin du geste dans l'animation (0 : toute l'animation) ; le moulinet se termine à 1,71 s (la suite est immobile)
+@export var combo_fin_geste: PackedFloat32Array = [0.0, 0.0, 1.71]
 @export var combo_degats: PackedFloat32Array = [10.0, 12.0, 22.0]
 @export var combo_lourd: Array[bool] = [false, false, true]  ## un coup lourd interrompt l'ennemi
 @export var combo_vitesse_animation := 1.65   ## coups 25 % plus rapides qu'au jalon 1 (1,3)
+## le moulinet va au bout (choix de Téo du 30/10) mais plus vite (05/11) : 0,45 s au lieu de 0,63 s
+@export var combo_vitesse_moulinet := 2.3
 @export var combo_annulation := 0.05      ## secondes après l'impact où le joystick peut couper la fin du coup (pas le 3e)
-@export var combo_portee := 1.5         ## distance du centre de la zone de coup devant le héros
-@export var combo_rayon := 1.15
-@export var combo_pas_en_avant := 0.35  ## petit pas en avant à chaque coup
+@export var combo_arc_portee := 2.3       ## mètres : jusqu'où une taillade touche, devant le héros…
+@export var combo_arc_angle := 150.0      ## … dans cet arc (degrés, en tout)
+@export var combo_moulinet_rayon := 2.4   ## mètres : le moulinet touche tout ce qui est à cette distance, tout autour
+@export var combo_aimant_portee := 4.0    ## un squelette visé à cette distance ou moins : le héros bondit sur lui
+@export var combo_aimant_contact := 1.1   ## … et s'arrête à cette distance de lui (mètres, centre à centre)
+@export var combo_aimant_vitesse_max := 20.0  ## m/s
+@export var combo_pas_en_avant := 0.35  ## sans squelette à portée : petit pas en avant à chaque coup
 @export var combo_fenetre := 0.45       ## secondes après la fin du coup pour enchaîner le suivant
 
 @export_group("Visée assistée")
@@ -72,10 +81,15 @@ extends Resource
 @export var occ_tir_portee := 9.0              ## mètres (aussi la portée de la visée assistée)
 @export var occ_tir_vitesse := 14.0            ## m/s
 @export var occ_tir_rayon := 0.35              ## taille de la zone qui touche
+@export var occ_tir_guidage := 180.0           ## degrés par seconde : le projectile s'incurve vers sa cible (05/11)…
+@export var occ_tir_guidage_angle := 35.0      ## … choisie au départ dans ce cône (degrés de chaque côté)
+@export var occ_tir_explosion_rayon := 1.2     ## mètres : à l'impact, il blesse aussi ce qui est autour (choix de Téo du 05/11)
+@export var occ_tir_explosion_degats := 9.0    ## dégâts de l'explosion aux voisins de la cible
 @export var occ_tele_distance := 4.0
 @export var occ_tele_duree := 0.12             ## secondes « disparu » pendant le saut
 @export var occ_tele_invulnerabilite := 0.3
-@export var occ_tele_recharge := 0.9
+@export var occ_tele_recharge := 3.0           ## par charge (choix de Téo du 05/11 : 0,9 s, c'était une fuite permanente)…
+@export var occ_tele_charges := 2              ## … deux sauts d'affilée, puis attendre
 @export var occ_marque_duree := 6.0
 @export var occ_marque_bonus_partenaire := 0.4 ## +40 % de dégâts du partenaire sur la cible
 @export var occ_marque_bonus_soi := 0.15       ## +15 % pour l'Occultiste lui-même

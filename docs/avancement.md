@@ -271,6 +271,28 @@ Matelots squelettes qui reviennent sans fin.
 - Tests : 304 (16 nouveaux dans `test_bateau.gd` ; 29 sabotages, tous vus) ; essai coop de l'expédition étendu : les
   voiles de l'invité comptent chez les deux (35 s), sa bordée est tirée par l'hôte et ses 5 boulets tombent chez lui.
 
+## Attaque de base façon Diablo (05/11, demande et choix de Téo)
+Téo : « le gameplay pas assez proche de Diablo, c'est peut-être l'attaque de base ». Ce qui le gênait : frapper dans le
+vide, se sentir planté, pas assez de squelettes touchés ; modèle Diablo 3/4 ; les deux héros ; nerf de la téléportation.
+- **Bretteur** :
+  - **Bond** : chaque coup bondit sur le squelette visé s'il est à 4 m ou moins (il arrive au contact pile pour
+    l'impact) ; plus loin, un petit pas comme avant. Le joystick choisit la cible (comme la visée).
+  - **Taillades en arc** : les coups 1 et 2 touchent tout un arc de 150° jusqu'à 2,3 m devant lui.
+  - **Moulinet** (3e coup, animation « 2H_Melee_Attack_Spin ») : un tour complet qui touche tout à 2,4 m autour ; il va
+    au bout (choix du 30/10) mais plus vite (choix du 05/11) : 0,45 s au lieu de 0,63 s.
+  - Dégâts et PV des squelettes inchangés : la horde tombe plus vite parce que chaque coup en touche plusieurs.
+- **Occultiste** :
+  - **Tir guidé** : le projectile s'incurve vers le squelette le plus près de sa direction (cône de 35°), jusqu'à
+    180° par seconde.
+  - **Explosion** (choix de Téo) : à l'impact, il blesse aussi les squelettes à 1,2 m autour (9 dégâts, coups
+    « discrets » : ni arrêt sur image ni secousse de plus) ; gerbe verte et disque au sol.
+  - **Téléportation à 2 charges de 3 s** (choix de Téo ; avant : toutes les 0,9 s) : deux sauts d'affilée puis attendre ;
+    pastille du nombre de charges sur le bouton, liseré qui fait le tour quand une charge revient.
+- Réseau version 14 (l'invité prédit son héros avec les mêmes règles). Captures : `tools/capture_attaque.gd`.
+- Petits choix faits sans Téo, à lui signaler : portée du bond 4 m ; l'explosion fait autant de dégâts aux voisins
+  que le tir à sa cible (9) ; elle part aussi quand le tir touche un mur ; la jauge façon Diablo 3/4 (l'attaque remplit,
+  les compétences dépensent) gardée pour une étape suivante.
+
 ## Forge et niveaux 2 du repaire (jalon 5, étape 3 — choix de Téo du 04-05/11)
 - **Forge** (lieu du repaire), trois onglets :
   - **Améliorer** : une arme Commune ou Rare monte d'une rareté ; son effet de base grandit (×1,25 puis ×1,5) et elle
@@ -383,6 +405,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 30/10/2026 | Combat « nerveux » : héros plus vif, hordes, coups qui claquent, coups critiques (choix de Téo, voir plus haut). Ennemis plus agressifs : non retenu. |
 | 30/10/2026 | Parade : elle coupe le coup en cours ; parade parfaite en bonus (0,25 s), zone dorée avant le coup + étincelles, « PARFAIT ! » et ralenti, Parade rendue. Onde de choc : non retenue. |
 | 31/10/2026 | Jalon 3, étape 3 (choix de Téo) : Bosco « brute à la hache » (tourbillon, charge qui le laisse sonné 2 s contre un mur, coup au sol ; rage à mi-vie + 3 matelots) ; coups mi-parables (seul le coup au sol se pare, les gros coups rouge sombre sont imparables) ; ~1 min 30 en solo ; malédiction 0–5 choisie au départ avec l'échelle proposée (+20 % de butin par niveau) ; chaloupe : tenir 45 s à bord, le compte s'arrête si personne n'y est ; annexe retenue : écran de fin enrichi. |
+| 05/11/2026 | Attaque façon Diablo (demande de Téo, modèle Diablo 3/4) : Bretteur qui bondit sur sa cible (4 m), taillades en arc, moulinet 360° qui va au bout mais ~30 % plus vite ; tir de l'Occultiste guidé qui **explose** (1,2 m) ; téléportation **2 charges de 3 s**. Remplace directement l'ancienne attaque. Jauge façon Diablo 3/4 : plus tard. |
 | 05/11/2026 | Jalon 5, étape 3 (choix de Téo) : forge et niveaux 2 avec les prix proposés ; « Relancer un effet » : **on choisit l'effet** à relancer (remplacé au hasard). Étape 3 lancée après l'APK 0.5.20. Après la relecture : recycler avec l'entrepôt presque plein **rend ce qui entre, le reste est perdu** (écrit avant d'appuyer ; sans aucune place, grisé) — pas de revente en doublons. |
 | 04/11/2026 | Combats navals et abordages : gardés pour après le MVP, comme prévu (Téo, après explication de la bordée). |
 | 04/11/2026 | Jalon 5, étape 2 (choix de Téo) : bordée **visée au joystick** (bouton maintenu, la zone suit le pouce, relâcher pour tirer). Étape 2 lancée après l'APK 0.5.19. |

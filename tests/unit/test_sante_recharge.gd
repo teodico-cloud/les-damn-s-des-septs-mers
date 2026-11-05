@@ -67,3 +67,27 @@ func test_recharge() -> void:
 	r.avancer(1.5)
 	assert_true(r.prete())
 	assert_eq(r.restant, 0.0)
+
+
+## Recharge à charges (téléportation de l'Occultiste, choix de Téo du 05/11) : les charges reviennent une à une.
+func test_recharge_a_charges() -> void:
+	var r := Recharge.new(3.0, 2)
+	assert_eq(r.charges, 2)
+	r.declencher()
+	assert_true(r.prete(), "Encore une charge")
+	assert_almost_eq(r.restant, 3.0, 0.001, "La recharge démarre")
+	r.avancer(1.0)
+	r.declencher()
+	assert_false(r.prete(), "Plus de charge")
+	assert_almost_eq(r.restant, 2.0, 0.001, "La recharge en cours continue (pas remise à zéro)")
+	assert_almost_eq(r.fraction(), 2.0 / 3.0, 0.001)
+	r.avancer(2.5)
+	assert_eq(r.charges, 1, "Une charge revenue…")
+	assert_almost_eq(r.restant, 2.5, 0.001, "… et la suivante est en route")
+	r.avancer(10.0)
+	assert_eq(r.charges, 2, "Jamais plus que le maximum")
+	assert_eq(r.restant, 0.0)
+	var simple := Recharge.new(2.0)
+	simple.declencher()
+	simple.restant = 0.0   # (comme la Parade rendue par une parade parfaite)
+	assert_true(simple.prete(), "Sans charges : comme avant")
