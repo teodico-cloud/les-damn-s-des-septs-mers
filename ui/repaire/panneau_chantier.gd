@@ -70,6 +70,8 @@ static func _crans(n: int) -> String:
 
 
 func acheter(a: String, niveau: int) -> void:
+	if not appui_accepte():
+		return
 	if Sauvegarde.ameliorer_bateau(a, niveau):
 		achete.emit(a)
 	rafraichir()

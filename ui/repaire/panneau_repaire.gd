@@ -2,13 +2,19 @@ class_name PanneauRepaire
 extends Control
 ## Un lieu du repaire ouvert par-dessus la grotte : un grand cadre avec son titre et « Fermer ». Chaque
 ## lieu remplit `contenu` dans `_remplir()` (et le refait dans `rafraichir()`).
+## Toute action (achat, recyclage, relance…) commence par `appui_accepte()` : après une action, le panneau se
+## refait et un autre bouton peut apparaître sous le doigt (le niveau suivant, « Sûr ? Recycler ») ; un double
+## appui nerveux ne doit pas le toucher (relecture du jalon 5 : la cale achetée deux fois d'un double appui).
 
 signal ferme
+
+const DELAI_ENTRE_ACTIONS := 0.4   ## secondes pendant lesquelles un nouvel appui est ignoré après une action
 
 var titre := "Lieu"
 var cadre: PanelContainer
 var contenu: VBoxContainer
 var bouton_fermer: Button
+var _derniere_action := -1000000   ## en ms, temps réel (le repaire n'a ni ralenti ni arrêt sur image)
 
 
 func _ready() -> void:
@@ -46,6 +52,16 @@ func _ready() -> void:
 
 func fermer() -> void:
 	ferme.emit()
+
+
+## Faux pendant DELAI_ENTRE_ACTIONS après l'action précédente (l'appui est alors ignoré) ; sinon, l'action
+## est notée et l'appui accepté.
+func appui_accepte() -> bool:
+	var t := Time.get_ticks_msec()
+	if t - _derniere_action < int(DELAI_ENTRE_ACTIONS * 1000.0):
+		return false
+	_derniere_action = t
+	return true
 
 
 ## Refait le contenu (après un achat, un changement…).

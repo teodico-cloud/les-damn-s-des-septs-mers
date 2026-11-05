@@ -22,6 +22,11 @@ func _images(n: int) -> void:
 		await physics_frame
 
 
+## Entre deux actions dans un panneau, le doigt se lève (un double appui y est ignoré : PanneauRepaire).
+func _doigt_leve() -> void:
+	await create_timer(0.5).timeout
+
+
 func _capture(nom: String) -> void:
 	await process_frame
 	await process_frame
@@ -222,12 +227,12 @@ func _chantier() -> void:
 	repaire.hud.visible = true
 	# riche : on achète, le panneau suit
 	sauvegarde.donnees["doublons"] = 600
-	for m in ["bois", "fer", "essence"]:
-		sauvegarde.donnees["ressources"][m] = 80
+	sauvegarde.donnees["ressources"] = {"bois": 80, "fer": 80, "essence": 40}   # (sous les plafonds 150 / 80 / 40)
 	repaire.navire.appliquer(load("res://game/repaire/bateau.gd").niveaux())
 	repaire.ouvrir(&"chantier")
 	await _images(4)
 	repaire.hud.panneau.acheter("bordee", 1)
+	await _doigt_leve()
 	repaire.hud.panneau.acheter("voiles", 1)
 	await _images(6)
 	await _capture("chantier_achete.png")
@@ -306,18 +311,22 @@ func _forge() -> void:
 	await _images(4)
 	await _capture("forge_amelioree.png")
 	p.choisir_onglet("recycler")
+	await _doigt_leve()
 	p.recycler("k1")
 	await _images(4)
 	await _capture("forge_recycler_confirmer.png")
+	await _doigt_leve()
 	p.recycler("k1")
 	await _images(4)
 	await _capture("forge_recycle.png")
 	p.choisir_onglet("relancer")
 	await _images(4)
 	await _capture("forge_relancer_verrou.png")
+	await _doigt_leve()
 	p.agrandir()
 	await _images(4)
 	await _capture("forge_relancer.png")
+	await _doigt_leve()
 	p.relancer("c1", "epines")
 	await _images(4)
 	await _capture("forge_relance.png")

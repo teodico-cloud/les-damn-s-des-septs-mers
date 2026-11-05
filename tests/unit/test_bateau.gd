@@ -6,6 +6,14 @@ extends GutTest
 const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 
 
+## Une synchro qui note ce que l'hôte enverrait à l'invité.
+class FausseSynchro extends SynchroArene:
+	var envois := []   ## les messages « bordee » seulement
+	func envoyer_lieu(type: String, donnees: Array) -> void:
+		if type == "bordee":
+			envois.append([type, donnees])
+
+
 func before_all() -> void:
 	Combat.chance_critique = 0.0
 
@@ -339,13 +347,49 @@ func test_visee_au_joystick() -> void:
 	assert_eq(e.tirs_bordee[String(e.heros.name)], 2)
 
 
+## Relecture du jalon 5 : à deux, l'invité décompte son tir dès l'appui ; l'hôte lui redit le vrai compte, même
+## quand il refuse le tir (changement de salle…) ; et rien ne part avant la première salle (écran noir de l'invité).
+func test_l_hote_redit_les_tirs_a_l_invite() -> void:
+	var e := await _expedition()
+	var invite := Heros.creer(&"occultiste")
+	invite.name = "HerosInvite"
+	invite.position = e.heros.position + Vector3(1, 0, 0)
+	e.add_child(invite)
+	e.tirs_bordee["HerosInvite"] = 2
+	var fausse := FausseSynchro.new()
+	e.synchro = fausse
+	e.en_transition = true
+	e.tirer_bordee(invite, invite.global_position)
+	assert_eq(fausse.envois, [["bordee", [2]]], "Refusé pendant un changement de salle : l'invité garde son tir")
+	e.en_transition = false
+	e.tirer_bordee(invite, invite.global_position)
+	assert_eq(fausse.envois.back(), ["bordee", [1]], "Tiré : un de moins")
+	e.tirer_bordee(e.heros, e.heros.global_position)
+	assert_eq(fausse.envois.size(), 2, "La bordée de l'hôte ne concerne pas l'invité")
+	e.synchro = null
+	fausse.free()
+	e.evenement_lieu("bordee", [2])   # (chez l'invité : le compte que redit l'hôte)
+	assert_eq(e.tirs_bordee[String(e.heros.name)], 2)
+	assert_eq(e.hud.bouton_bordee.compteur, 2)
+	assert_false(e.hud.bouton_bordee.inactif)
+	var s := e.salle
+	e.salle = null
+	var boulets := get_tree().get_nodes_in_group("boulets").size()
+	Reseau.role = Reseau.Role.INVITE   # (le temps d'un appui : l'invité sous l'écran noir de l'arrivée)
+	e.demander_bordee(e.heros.global_position + Vector3(2, 0, 0))
+	Reseau.role = Reseau.Role.AUCUN
+	e.salle = s
+	assert_eq(e.tirs_bordee[String(e.heros.name)], 2, "Pas de tir avant la première salle")
+	assert_eq(get_tree().get_nodes_in_group("boulets").size(), boulets)
+
+
 func test_l_invite_voit_les_boulets() -> void:
 	var monde := Node3D.new()
 	add_child_autofree(monde)
 	var h := Heros.creer(&"occultiste")
 	h.name = "HerosInvite"
 	monde.add_child(h)
-	var s := SynchroArene.new()
+	var s: SynchroArene = autofree(SynchroArene.new())
 	s.arene = monde
 	s.heros_local = h
 	await wait_physics_frames(1)

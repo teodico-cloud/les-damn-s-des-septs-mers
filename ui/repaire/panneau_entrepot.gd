@@ -85,6 +85,8 @@ func _ligne_matiere(m: String) -> Control:
 
 
 func agrandir() -> void:
+	if not appui_accepte():
+		return
 	if Sauvegarde.agrandir("entrepot"):
 		agrandi.emit()
 	rafraichir()

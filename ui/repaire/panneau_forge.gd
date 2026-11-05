@@ -82,6 +82,8 @@ func _ameliorer() -> void:
 
 
 func ameliorer(id: String, rarete: int) -> void:
+	if not appui_accepte():
+		return
 	if Sauvegarde.ameliorer_objet(id, rarete):
 		var o := Sauvegarde.objet(id)
 		dernier = "%s : maintenant %s" % [Butin.nom(o), Butin.NOMS_RARETES[int(o["rarete"])]]
@@ -109,8 +111,11 @@ func _recycler() -> void:
 		contenu.add_child(_ligne(o, lignes, [StyleRepaire.COULEUR_OS, StyleRepaire.ROUGE], b))
 
 
-## Premier appui : on demande confirmation ; second appui sur le même objet : recyclé.
+## Premier appui : on demande confirmation ; second appui sur le même objet (pas un double appui : au moins
+## DELAI_ENTRE_ACTIONS après) : recyclé.
 func recycler(id: String) -> void:
+	if not appui_accepte():
+		return
 	if a_confirmer != id:
 		a_confirmer = id
 		rafraichir()
@@ -170,6 +175,8 @@ func _relancer() -> void:
 
 
 func relancer(id: String, effet: String) -> void:
+	if not appui_accepte():
+		return
 	var o := Sauvegarde.objet(id)
 	var avant := Equipement.texte(effet, float(o.get("effets", {}).get(effet, 0.0)))
 	var nouveau := Sauvegarde.relancer_effet(id, effet)
@@ -180,6 +187,8 @@ func relancer(id: String, effet: String) -> void:
 
 
 func agrandir() -> void:
+	if not appui_accepte():
+		return
 	if Sauvegarde.agrandir("forge"):
 		dernier = "La forge est agrandie : on peut relancer un effet."
 		change.emit()

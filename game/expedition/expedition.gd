@@ -775,11 +775,11 @@ func _mettre_au_sac(proprietaire: String, objet: Dictionary, quantite: int, mati
 # ---------------------------------------------------------------- bordée (jalon 5, visée au joystick)
 ## Le joueur a visé et relâché le bouton Bordée : seul ou hôte, on tire ; invité, l'hôte décide.
 func demander_bordee(cible: Vector3) -> void:
-	if finie or en_transition or not heros.est_vivant() or int(tirs_bordee.get(String(heros.name), 0)) <= 0:
-		return
+	if finie or en_transition or salle == null or not heros.est_vivant() or int(tirs_bordee.get(String(heros.name), 0)) <= 0:
+		return   # (salle == null : l'invité attend encore la première salle de l'hôte, sous l'écran noir)
 	if Reseau.est_invite():
 		Reseau.envoyer_bordee(cible)
-		tirs_bordee[String(heros.name)] -= 1   # (l'affichage ; l'hôte compte de son côté)
+		tirs_bordee[String(heros.name)] -= 1   # (tout de suite à l'écran ; l'hôte redit le vrai compte : _redire_tirs)
 		hud.configurer_bordee(tirs_bordee[String(heros.name)])
 		return
 	tirer_bordee(heros, cible)
@@ -790,10 +790,13 @@ func demander_bordee(cible: Vector3) -> void:
 func tirer_bordee(h: Heros, cible: Vector3) -> void:
 	var nom := String(h.name)
 	if finie or en_transition or salle == null or not h.est_vivant() or int(tirs_bordee.get(nom, 0)) <= 0:
+		_redire_tirs(h)   # (refusé : l'invité, qui l'avait déjà décompté, retrouve son tir)
 		return
 	tirs_bordee[nom] -= 1
 	if h == heros:
 		hud.configurer_bordee(tirs_bordee[nom])
+	else:
+		_redire_tirs(h)
 	var depuis := Vector3(h.global_position.x, 0, h.global_position.z)
 	var vers := Vector3(cible.x, 0, cible.z) - depuis
 	if vers.length() > EQ.bordee_portee:   # (un invité ne vise pas plus loin que la portée)
@@ -810,6 +813,13 @@ func tirer_bordee(h: Heros, cible: Vector3) -> void:
 		Boulet.creer(salle, p, h, delai)
 		EventBus.effet_visuel.emit(h, "boulet_%d" % roundi(delai * 1000.0), p)
 	_message("Bordée !", 1.2)
+
+
+## Hôte : redit à l'invité combien de tirs de bordée il lui reste (relecture du jalon 5 : un tir refusé par
+## l'hôte, pendant un changement de salle par exemple, restait perdu chez l'invité).
+func _redire_tirs(h: Heros) -> void:
+	if synchro and h != heros:
+		synchro.envoyer_lieu("bordee", [int(tirs_bordee.get(String(h.name), 0))])
 
 
 # ---------------------------------------------------------------- coop
@@ -852,6 +862,9 @@ func evenement_lieu(type: String, donnees: Array) -> void:
 			if o:
 				o.queue_free()
 			_mettre_au_sac(String(heros.name), donnees[1], donnees[2], String(donnees[3]) if donnees.size() > 3 else "doublons")
+		"bordee":   # [tirs restants] : l'hôte a tiré (ou refusé) notre bordée
+			tirs_bordee[String(heros.name)] = int(donnees[0])
+			hud.configurer_bordee(int(donnees[0]))
 		"vague":
 			if salle and numero == donnees[0]:
 				for p in donnees[1]:
