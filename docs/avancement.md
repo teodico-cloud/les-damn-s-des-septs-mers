@@ -24,7 +24,7 @@ Dernière mise à jour : 4 novembre 2026.
 - **Jalon 5, étape 1 (matériaux, sauvegarde v2, repaire, salle des cartes, entrepôt) : faite**, APK 0.5.19 (voir plus bas).
 - **Jalon 5, étape 2 (chantier naval, améliorations du bateau, bordée visée au joystick) : faite**, APK 0.5.20 (voir plus bas).
 - **Jalon 5, étape 3 (forge : améliorer, recycler, relancer ; forge et entrepôt niveau 2) : faite** (voir plus bas) ;
-  relecture de fin de jalon puis APK.
+  relecture de fin de jalon corrigée ; **APK 0.5.21 (fin du jalon 5)**, envoyé à Téo le 05/11.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -538,6 +538,9 @@ forge, objets uniques vérifiés). Corrigé (chaque correction a un test qui éc
 - Tests : 256 en tout ; 18 nouveaux pour la relecture (`test_relecture_j4.gd`), vérifiés par sabotage.
 
 ## Prochaines étapes
+0. Essai de Téo de l'APK 0.5.21 (fin du jalon 5 : repaire, chantier, bordée, forge) ; jalon 6 seulement après son feu
+   vert. Proposé, pas fait : un bandeau sombre derrière les ressources en haut du repaire (l'enseigne « Salle des
+   cartes » passe dessous quand le héros est près de la forge).
 1. Essai de Téo du jalon 4 complet (butin, équipement, objets uniques grâce aux « Coffres de test », tri de la
    cale, sauvegarde : fermer l'appli, rien n'est perdu ; à deux : extraction d'urgence).
 2. Jalon 5 : repaire et bateau (le butin dépensé change la suite) — plan validé le 04/11 ; étape 1 faite ; étape 2 :
