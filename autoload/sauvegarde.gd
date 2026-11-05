@@ -358,11 +358,12 @@ func ameliorer_objet(id: String, rarete_vue: int) -> bool:
 
 
 ## Forge : l'objet `id` est recyclé (retiré de l'équipement s'il était porté) ; il rend des matériaux, rangés à
-## l'entrepôt (au-delà du plafond : revendus). Renvoie ce rangement ({} si l'objet n'existe plus : un double
-## appui ne recycle rien de plus).
+## l'entrepôt. Choix de Téo (05/11) : ce qui dépasse le plafond est **perdu** (pas revendu : ce serait vendre depuis
+## les coffres) ; sans aucune place, on ne recycle pas. Renvoie {"gardees", "perdues"} ({} si l'objet n'existe plus
+## — un double appui ne recycle rien de plus — ou si l'entrepôt n'a plus de place).
 func recycler(id: String) -> Dictionary:
 	var o := objet(id)
-	if o.is_empty():
+	if o.is_empty() or not Forge.recyclable(o):
 		return {}
 	var ou := ou_est_porte(id)
 	if not ou.is_empty():
@@ -371,11 +372,10 @@ func recycler(id: String) -> Dictionary:
 	var rangement := ranger(Forge.recyclage(o))
 	for m in Butin.MATIERES:
 		donnees["ressources"][m] = ressource(m) + int(rangement["gardees"][m])
-	donnees["doublons"] = doublons() + int(rangement["doublons"])
 	_noter_achat("recyclage_%s" % id)
 	enregistrer()
 	changee.emit()
-	return rangement
+	return {"gardees": rangement["gardees"], "perdues": rangement["surplus"]}
 
 
 ## Forge niveau 2 : l'effet en plus `effet` de l'objet `id` (choisi par le joueur) est remplacé au hasard par un

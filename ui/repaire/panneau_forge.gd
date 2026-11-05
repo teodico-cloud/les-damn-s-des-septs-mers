@@ -2,7 +2,8 @@ class_name PanneauForge
 extends PanneauRepaire
 ## La forge (jalon 5, étape 3 : choix de Téo) en trois onglets :
 ## - Améliorer : une arme Commune ou Rare monte d'une rareté (effet de base plus fort, un effet en plus au hasard).
-## - Recycler : un objet devient des matériaux (deux appuis pour confirmer ; porté, il est retiré).
+## - Recycler : un objet devient des matériaux (deux appuis pour confirmer ; porté, il est retiré). Au-delà du
+##   plafond de l'entrepôt, le reste est perdu (écrit avant d'appuyer) ; sans aucune place, bouton grisé.
 ## - Relancer (forge niveau 2) : on touche l'effet en plus qu'on n'aime pas, il est remplacé au hasard.
 ## Sans le niveau 2, l'onglet Relancer propose d'agrandir la forge.
 
@@ -104,11 +105,20 @@ func _recycler() -> void:
 				StyleRepaire.ROUGE if confirmer else StyleRepaire.COULEUR_OS)
 		b.pressed.connect(recycler.bind(o["id"]))
 		boutons[o["id"]] = b
-		var lignes := ["Rend : " + Butin.texte_matieres(Forge.recyclage(o))]
+		var r := Forge.recyclage_range(o)
+		var lignes := []
+		if not Forge.recyclable(o):
+			b.disabled = true
+			lignes.append("Rendrait %s : entrepôt plein" % Butin.texte_matieres(Forge.recyclage(o)))
+		else:
+			lignes.append("Rend : " + Butin.texte_matieres(r["gardees"]))
+			if Butin.texte_matieres(r["perdues"]) != "":
+				lignes.append(_texte_perdues(r["perdues"]) + " : entrepôt presque plein")
 		var ou := Sauvegarde.ou_est_porte(o["id"])
 		if not ou.is_empty():
 			lignes.append("Porté par %s : il sera retiré" % NOMS_HEROS.get(ou[0], "un héros"))
-		contenu.add_child(_ligne(o, lignes, [StyleRepaire.COULEUR_OS, StyleRepaire.ROUGE], b))
+		var couleurs := [StyleRepaire.ROUGE if b.disabled else StyleRepaire.COULEUR_OS, StyleRepaire.ROUGE]
+		contenu.add_child(_ligne(o, lignes, couleurs, b))
 
 
 ## Premier appui : on demande confirmation ; second appui sur le même objet (pas un double appui : au moins
@@ -124,10 +134,9 @@ func recycler(id: String) -> void:
 	var o := Sauvegarde.objet(id)
 	var r := Sauvegarde.recycler(id)
 	if not r.is_empty():
-		dernier = "%s recyclé : +%s" % [Butin.nom(o), Butin.texte_matieres(r["gardees"])] if Butin.texte_matieres(r["gardees"]) != "" \
-				else "%s recyclé" % Butin.nom(o)
-		if int(r["doublons"]) > 0:
-			dernier += " (entrepôt plein : +%d doublons)" % int(r["doublons"])
+		dernier = "%s recyclé : +%s" % [Butin.nom(o), Butin.texte_matieres(r["gardees"])]
+		if Butin.texte_matieres(r["perdues"]) != "":
+			dernier += " (%s : entrepôt plein)" % _texte_perdues(r["perdues"])
 		change.emit()
 	rafraichir()
 
@@ -220,6 +229,14 @@ func _ligne(o: Dictionary, lignes: Array, couleurs: Array, b: Button) -> Control
 	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	ligne.add_child(b)
 	return cadre
+
+
+## « 2 fer noir perdus »
+static func _texte_perdues(perdues: Dictionary) -> String:
+	var n := 0
+	for m in perdues:
+		n += int(perdues[m])
+	return Butin.texte_matieres(perdues) + (" perdus" if n > 1 else " perdu")
 
 
 static func _texte_prix(p: Dictionary, manque: Dictionary) -> String:

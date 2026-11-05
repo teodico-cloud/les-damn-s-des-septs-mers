@@ -367,8 +367,14 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Repaire : tout nouveau lieu s'ajoute à `Repaire.LIEUX` / `ORDRE_LIEUX` (enseigne, raccourci et bouton « Ouvrir »
   suivent) et à `Repaire.ouvrir` ; ce qui mérite une pastille « ! » à `Repaire.lieux_a_signaler`.
 - Forge : les tirages au hasard (effet en plus, relance) passent par `Sauvegarde.rng` (un test fixe sa graine). Chaque
-  achat vérifie l'état vu par le bouton (rareté, niveau, effet encore présent) : un double appui ne paie jamais deux
-  fois. Les panneaux ne gardent jamais un objet en mémoire : ils relisent la sauvegarde à chaque `rafraichir()`.
+  achat vérifie l'état vu par le bouton (rareté, niveau, effet encore présent). Les panneaux ne gardent jamais un objet
+  en mémoire : ils relisent la sauvegarde à chaque `rafraichir()`.
+- Panneaux du repaire : après une action, le panneau se refait **tout de suite** et un autre bouton apparaît sous le
+  doigt (niveau suivant, « Sûr ? Recycler ») ; le second toucher d'un vrai double appui le touchait (relecture : cale
+  achetée deux fois). Toute action commence donc par `appui_accepte()` (ignorée 0,4 s après la précédente). Dans un
+  test, entre deux actions d'un même panneau : `await _doigt_leve()` (attente réelle de 0,5 s).
+- Recyclage à la forge (choix de Téo du 05/11) : ce qui dépasse le plafond de l'entrepôt est **perdu** (jamais revendu :
+  ce serait vendre depuis les coffres), écrit sur la ligne avant l'appui ; sans aucune place, bouton grisé.
 - Bateau en expédition : la cale, la durée de la chaloupe et les tirs de bordée sont fixés au départ (`Expedition._pret`) ;
   à deux, le bateau de l'autre arrive à la connexion (`Reseau.bateau_partenaire`, `_bonjour` / `_bienvenue`).
 - Bordée : chaque boulet est un `Boulet` posé dans la salle (retiré au changement de salle) ; l'invité le reçoit par
@@ -377,4 +383,5 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Nœuds créés puis déplacés (`reparent`) sous un même parent : nommer **après** le `reparent` (sinon Godot renomme
   « @Canon@12 » et une recherche par nom ne les trouve plus).
 - Sac d'expédition : toujours partir de `Expedition._sac_vide()` (objets, doublons et les trois matériaux) ; les messages
-  réseau « butin » et « ramasse » portent la matière (`VERSION_RESEAU` 11 ; 12 : bateau et bordée).
+  réseau « butin » et « ramasse » portent la matière (`VERSION_RESEAU` 11 ; 12 : bateau et bordée ; 13 : l'hôte redit
+  à l'invité ses tirs de bordée, message « bordee », même quand il refuse le tir).

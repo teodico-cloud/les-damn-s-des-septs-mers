@@ -3,7 +3,8 @@ extends RefCounted
 ## La forge (jalon 5, étape 3 : choix de Téo du 04-05/11) et les niveaux 2 du repaire.
 ## - Améliorer une arme : elle monte d'une rareté (Commun → Rare → Épique) ; son effet de base grandit et
 ##   elle gagne un effet en plus tiré au hasard. Armes seulement, jamais les objets uniques.
-## - Recycler un objet : il disparaît et rend des matériaux (arme : fer noir, relique : essence maudite).
+## - Recycler un objet : il disparaît et rend des matériaux (arme : fer noir, relique : essence maudite) ;
+##   au-delà du plafond de l'entrepôt, perdus ; sans aucune place, impossible (choix de Téo du 05/11).
 ## - Forge niveau 2 : relancer un effet en plus choisi par le joueur (remplacé au hasard par un autre).
 ## - Entrepôt niveau 2 : plafonds plus hauts (Sauvegarde.plafond).
 ## Les achats eux-mêmes sont dans la sauvegarde (`Sauvegarde.ameliorer_objet`, `recycler`, `relancer_effet`,
@@ -35,6 +36,18 @@ static func recyclage(objet: Dictionary) -> Dictionary:
 	if def.get("type") == "arme":
 		return {"fer": EQ.forge_recyclage_arme[r]}
 	return {"essence": EQ.forge_recyclage_relique[r]}
+
+
+## Ce qu'un objet recyclé maintenant laisserait à l'entrepôt ({"gardees", "perdues"} : au-delà du plafond, perdu).
+static func recyclage_range(objet: Dictionary) -> Dictionary:
+	var r := Sauvegarde.ranger(recyclage(objet))
+	return {"gardees": r["gardees"], "perdues": r["surplus"]}
+
+
+## Peut-on le recycler ? Il faut qu'au moins une partie de ce qu'il rend entre à l'entrepôt (choix de Téo).
+static func recyclable(objet: Dictionary) -> bool:
+	var g: Dictionary = recyclage_range(objet)["gardees"]
+	return g.values().any(func(n): return int(n) > 0)
 
 
 ## Les effets en plus d'un objet qu'on peut relancer (ceux tirés quand il est tombé ou qu'il a été forgé).

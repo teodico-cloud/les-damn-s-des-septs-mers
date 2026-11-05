@@ -334,6 +334,15 @@ func _forge() -> void:
 	repaire.ouvrir(&"entrepot")
 	await _images(6)
 	await _capture("entrepot_agrandir.png")
+	# entrepôt presque plein (choix de Téo du 05/11) : ce qui n'entre pas est perdu, écrit avant ; plein : grisé
+	repaire.hud.fermer_panneau()
+	sauvegarde.donnees["ressources"]["fer"] = sauvegarde.plafond("fer") - 3
+	sauvegarde.donnees["ressources"]["essence"] = sauvegarde.plafond("essence")
+	repaire.ouvrir(&"forge")
+	await _images(4)
+	repaire.hud.panneau.choisir_onglet("recycler")
+	await _images(6)
+	await _capture("forge_recycler_plein.png")
 
 
 func _aller(p: Vector3) -> void:

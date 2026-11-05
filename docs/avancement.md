@@ -279,7 +279,9 @@ Matelots squelettes qui reviennent sans fin.
     objets uniques ; Épique est le plus haut.
   - **Recycler** : n'importe quel objet des coffres disparaît et rend des matériaux (arme : fer noir 2 / 4 / 8 / 12 pour
     Commun / Rare / Épique / unique ; relique : essence maudite 1 / 2 / 4 / 6). Deux appuis (« Sûr ? Recycler » en rouge) ; un objet porté est
-    retiré au héros (écrit en rouge sur sa ligne). Entrepôt plein : le surplus est revendu, comme au retour d'expédition.
+    retiré au héros (écrit en rouge sur sa ligne). Entrepôt presque plein (choix de Téo du 05/11) : il rend ce qui
+    entre, **le reste est perdu** (« 1 fer noir perdu : entrepôt presque plein », écrit avant d'appuyer) ; sans aucune
+    place, « Recycler » est grisé (« Rendrait 2 essence maudite : entrepôt plein »). Jamais revendu en doublons.
   - **Relancer** (forge niveau 2, choix de Téo : **on choisit l'effet**) : chaque effet en plus d'un objet Rare ou Épique
     a son bouton « Relancer : +6 % de coups critiques » ; il est remplacé au hasard par un effet que l'objet n'a pas.
     40 doublons + 4 essence maudite. Sans le niveau 2, l'onglet propose « Agrandir la forge ».
@@ -287,8 +289,8 @@ Matelots squelettes qui reviennent sans fin.
   150 / 80 / 40 → 400 / 200 / 100), bouton « Agrandir » dans l'entrepôt. Une seule fois chacun.
 - **Pastille « ! »** : sur la forge et l'entrepôt quand leur niveau 2 est payable (pas pour chaque arme améliorable :
   la pastille brillerait presque tout le temps).
-- Tous les achats sont notés au journal de la sauvegarde ; chaque bouton redit ce qu'il a vu (rareté, effet) : un
-  double appui ne paie jamais deux fois.
+- Tous les achats sont notés au journal de la sauvegarde ; chaque bouton redit ce qu'il a vu (rareté, effet), et dans
+  les lieux du repaire un appui est ignoré pendant 0,4 s après une action (voir la relecture ci-dessous).
 - Petits choix faits sans Téo, à lui signaler : les valeurs du recyclage ; un objet unique se recycle (12 fer pour une
   arme Légendaire) mais ne s'améliore pas ; la pastille de la forge ne signale que son agrandissement.
 - Corrigé en relisant : l'arme recyclée restait dans la main du héros qui marche dans le repaire (jusqu'à en sortir).
@@ -379,7 +381,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 30/10/2026 | Combat « nerveux » : héros plus vif, hordes, coups qui claquent, coups critiques (choix de Téo, voir plus haut). Ennemis plus agressifs : non retenu. |
 | 30/10/2026 | Parade : elle coupe le coup en cours ; parade parfaite en bonus (0,25 s), zone dorée avant le coup + étincelles, « PARFAIT ! » et ralenti, Parade rendue. Onde de choc : non retenue. |
 | 31/10/2026 | Jalon 3, étape 3 (choix de Téo) : Bosco « brute à la hache » (tourbillon, charge qui le laisse sonné 2 s contre un mur, coup au sol ; rage à mi-vie + 3 matelots) ; coups mi-parables (seul le coup au sol se pare, les gros coups rouge sombre sont imparables) ; ~1 min 30 en solo ; malédiction 0–5 choisie au départ avec l'échelle proposée (+20 % de butin par niveau) ; chaloupe : tenir 45 s à bord, le compte s'arrête si personne n'y est ; annexe retenue : écran de fin enrichi. |
-| 05/11/2026 | Jalon 5, étape 3 (choix de Téo) : forge et niveaux 2 avec les prix proposés ; « Relancer un effet » : **on choisit l'effet** à relancer (remplacé au hasard). Étape 3 lancée après l'APK 0.5.20. |
+| 05/11/2026 | Jalon 5, étape 3 (choix de Téo) : forge et niveaux 2 avec les prix proposés ; « Relancer un effet » : **on choisit l'effet** à relancer (remplacé au hasard). Étape 3 lancée après l'APK 0.5.20. Après la relecture : recycler avec l'entrepôt presque plein **rend ce qui entre, le reste est perdu** (écrit avant d'appuyer ; sans aucune place, grisé) — pas de revente en doublons. |
 | 04/11/2026 | Combats navals et abordages : gardés pour après le MVP, comme prévu (Téo, après explication de la bordée). |
 | 04/11/2026 | Jalon 5, étape 2 (choix de Téo) : bordée **visée au joystick** (bouton maintenu, la zone suit le pouce, relâcher pour tirer). Étape 2 lancée après l'APK 0.5.19. |
 | 04/11/2026 | Jalon 5 (choix de Téo) : plan validé (matériaux bois de coque / fer noir / essence maudite lâchés par matelots / arbalétriers / prêtres ; repaire 3D où l'on marche avec 4 lieux et raccourcis ; bateau : cale 8→10/12/15, voiles 45→40/35/30 s, coque = malédiction de départ 0–2 puis 3/4/5, bordée 0→1/2/3 tirs ; une quinzaine d'expéditions réussies pour finir le bateau ; à deux : chacun sa cale et sa bordée, les meilleures voiles des deux, malédiction limitée par la coque de l'hôte). Forge : « améliorer » = **monter d'une rareté** (armes seulement, pas les uniques). Coque : **comme la conception** (le Mode test débloque tout). Entrepôt : **plafond des ressources seulement** (surplus revendu en doublons, coffres sans limite). Annexes retenues : bateau qui change d'aspect, pastille « ! » sur les lieux. Non retenues : vendre à l'entrepôt, prochain achat en vue. Ordre : 1) ressources, sauvegarde v2, repaire, salle des cartes, entrepôt ; 2) chantier naval et 4 améliorations (bordée comprise) ; 3) forge, niveaux 2, prix, relecture, APK. |
@@ -495,6 +497,20 @@ Aucun plantage ni blocage trouvé. Corrigé (chaque correction a un test qui éc
 - Restés en l'état, à signaler à Téo : à la malédiction 5, le Bosco enragé dès le début pousse quand même son
   cri à mi-vie (et appelle son équipage) ; « Os durcis » s'applique aussi au Bosco (combat plus long) ; à deux,
   un seul héros debout à bord suffit pour partir ; l'équipage qui s'effondre peut lâcher des orbes.
+
+## Relecture de fin du jalon 5 (agent relecteur) et corrections — 05/11
+Aucune perte de sauvegarde ni coop cassée trouvée (conversion depuis l'APK 0.4.18, matériaux à deux, bateau, repaire,
+forge, objets uniques vérifiés). Corrigé (chaque correction a un test qui échoue sans elle) :
+- **Double appui dans le repaire** (vrais touchers simulés par le relecteur) : après un achat, le panneau se refait tout
+  de suite et le bouton suivant apparaît sous le doigt ; un double appui achetait la cale niveaux 1 et 2, montait un sabre
+  de Commun à Épique, relançait deux fois (l'effet obtenu perdu) ou recyclait sans vraie confirmation (même l'arme
+  portée). Un appui est maintenant ignoré pendant 0,4 s après une action, dans tous les lieux.
+- **Bordée de l'invité** : il décomptait son tir dès l'appui sans que l'hôte lui redise le vrai compte ; un tir refusé
+  par l'hôte (changement de salle, chaloupe qui part, héros vu à terre) restait perdu chez l'invité. L'hôte redit
+  maintenant le compte (réseau version 13) ; et rien ne part sous l'écran noir de l'arrivée.
+- **Recycler, entrepôt plein** revenait à vendre depuis les coffres (refusé par Téo le 03/11) : Téo a choisi le 05/11
+  « rend ce qui entre, le reste perdu » (voir la forge).
+- Trouvé en relisant avant la relecture : l'arme recyclée restait dans la main du héros qui marche dans le repaire.
 
 ## Relecture de fin du jalon 4 (agent relecteur) et corrections — 03/11
 - Geste ou bouton « retour » d'Android : il abandonnait l'expédition d'un seul geste (tout le sac perdu). Il fait

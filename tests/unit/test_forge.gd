@@ -26,7 +26,7 @@ func _o(id: String, base: String, rarete := 0, effets := {}) -> Dictionary:
 func _riche() -> void:
 	Sauvegarde.donnees["doublons"] = 5000
 	for m in Butin.MATIERES:
-		Sauvegarde.donnees["ressources"][m] = 1000
+		Sauvegarde.donnees["ressources"][m] = Sauvegarde.plafond(m) - 15   # (de quoi payer, et de la place pour recycler)
 
 
 func _repaire() -> Repaire:
@@ -58,7 +58,7 @@ func test_monter_une_arme_d_une_rarete() -> void:
 	assert_eq(int(s["rarete"]), Butin.Rarete.RARE)
 	assert_eq(s["effets"].size(), 1, "Un effet en plus")
 	assert_eq(Sauvegarde.doublons(), 5000 - int(p["doublons"]))
-	assert_eq(Sauvegarde.ressource("fer"), 1000 - int(p["fer"]))
+	assert_eq(Sauvegarde.ressource("fer"), Sauvegarde.plafond("fer") - 15 - int(p["fer"]))
 	assert_eq(Sauvegarde.porte(&"bretteur", "arme")["id"], "s", "Toujours portée")
 	assert_false(Sauvegarde.ameliorer_objet("s", 0), "Un double appui ne la fait pas monter deux fois")
 	assert_true(Sauvegarde.ameliorer_objet("s", 1))
@@ -119,11 +119,19 @@ func test_recycler() -> void:
 	assert_eq(Sauvegarde.recycler("s"), {}, "Un double appui ne recycle rien de plus")
 	Sauvegarde.recycler("f")
 	assert_eq(Sauvegarde.ressource("essence"), EQ.forge_recyclage_relique[2], "Une relique rend de l'essence")
+	# entrepôt plein (choix de Téo du 05/11) : ce qui n'entre pas est perdu, jamais revendu ; sans place, pas de recyclage
 	Sauvegarde.donnees["ressources"]["essence"] = Sauvegarde.plafond("essence")
 	var avant := Sauvegarde.doublons()
+	assert_false(Forge.recyclable(Sauvegarde.objet("t")), "Plus aucune place pour l'essence")
+	assert_eq(Sauvegarde.recycler("t"), {}, "Pas de recyclage")
+	assert_false(Sauvegarde.objet("t").is_empty(), "L'objet reste au coffre")
+	Sauvegarde.donnees["ressources"]["essence"] = Sauvegarde.plafond("essence") - 2
+	assert_true(Forge.recyclable(Sauvegarde.objet("t")))
 	r = Sauvegarde.recycler("t")
-	assert_eq(int(r["surplus"]["essence"]), EQ.forge_recyclage_relique[4], "Entrepôt plein")
-	assert_eq(Sauvegarde.doublons(), avant + EQ.forge_recyclage_relique[4] * int(EQ.mat_prix_surplus["essence"]), "Le surplus revendu")
+	assert_eq(int(r["gardees"]["essence"]), 2, "Ce qui entre")
+	assert_eq(int(r["perdues"]["essence"]), EQ.forge_recyclage_relique[4] - 2, "Le reste perdu")
+	assert_eq(Sauvegarde.ressource("essence"), Sauvegarde.plafond("essence"))
+	assert_eq(Sauvegarde.doublons(), avant, "Rien n'est revendu")
 
 
 func test_relancer_un_effet_choisi() -> void:
@@ -211,6 +219,30 @@ func test_le_panneau_de_la_forge() -> void:
 	assert_true(e.has("pv"), "Le premier effet ne bouge pas")
 
 
+## Choix de Téo (05/11) : le panneau dit avant l'appui ce qui sera perdu, et grise « Recycler » sans aucune place.
+func test_recycler_entrepot_plein() -> void:
+	Sauvegarde.encaisser("e", [_o("h", "hache", 2, {"pv": 10.0, "critique": 0.06}), _o("s", "sabre")], 0)
+	Sauvegarde.donnees["ressources"]["fer"] = Sauvegarde.plafond("fer") - 3   # (la place pour 3 fer noir)
+	var r := await _repaire()
+	r.ouvrir(&"forge")
+	var p := r.hud.panneau as PanneauForge
+	await wait_process_frames(2)
+	p.choisir_onglet("recycler")
+	await wait_process_frames(1)
+	var perdus: int = EQ.forge_recyclage_arme[2] - 3
+	assert_has(_textes(p), "Rend : 3 fer noir")
+	assert_has(_textes(p), "%d fer noir perdus : entrepôt presque plein" % perdus)
+	assert_false(p.boutons["h"].disabled)
+	p.boutons["h"].pressed.emit()
+	await _doigt_leve()
+	p.boutons["h"].pressed.emit()
+	assert_true(Sauvegarde.objet("h").is_empty())
+	await wait_process_frames(1)
+	assert_has(_textes(p), "Hache d'abordage recyclé : +3 fer noir (%d fer noir perdus : entrepôt plein)" % perdus)
+	assert_true(p.boutons["s"].disabled, "Plus aucune place : grisé")
+	assert_has(_textes(p), "Rendrait %d fer noir : entrepôt plein" % EQ.forge_recyclage_arme[0])
+
+
 func test_l_arme_en_main_suit_la_forge() -> void:
 	Sauvegarde.encaisser("e", [_o("s", "sabre")], 0)
 	Sauvegarde.equiper(&"bretteur", "arme", "s")
@@ -296,4 +328,5 @@ func test_pastilles_de_la_forge_et_de_l_entrepot() -> void:
 	assert_false(r.pastilles[&"entrepot"].visible, "Agrandi : plus de pastille")
 	await wait_process_frames(1)
 	assert_null(p.bouton_agrandir, "Plus rien à agrandir")
-	assert_has(_textes(p), "%d / %d" % [1000 - int(EQ.repaire_prix_niveau_2["entrepot"]["bois"]), int(EQ.mat_plafonds_niveau_2["bois"])])
+	assert_has(_textes(p), "%d / %d" % [int(EQ.mat_plafonds["bois"]) - 15 - int(EQ.repaire_prix_niveau_2["entrepot"]["bois"]),
+			int(EQ.mat_plafonds_niveau_2["bois"])])
