@@ -35,6 +35,10 @@ var _actions := {}   ## BoutonAction -> nom d'action
 var _doigt_menu := -1      ## doigt posé sur le bouton Menu
 var _menu_demande := false
 var mode_expedition := false
+var _pv_retard := 0.0              ## (refonte) la part de vie perdue reste visible un instant, puis fond
+var _retard_depuis := 0.0
+static var _police_grasse: Font
+static var _police_titre: Font
 ## Bordée (jalon 5, choix de Téo : visée au joystick) : bouton maintenu, une zone rouge au sol suit le pouce
 ## (glissé depuis le bouton) ; relâché, le navire tire. Sans glisser : devant le héros.
 const BORDEE: Equilibrage = preload("res://data/equilibrage.tres")
@@ -87,27 +91,20 @@ func _ready() -> void:
 
 	barre_vie = Control.new()
 	barre_vie.position = Vector2(24, 20)
-	barre_vie.size = Vector2(380, 38)
+	barre_vie.size = Vector2(400, 40)
 	barre_vie.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	barre_vie.draw.connect(_dessiner_vie)
 	racine.add_child(barre_vie)
-	heros.sante.change.connect(func(_pv, _max): barre_vie.queue_redraw())
+	_pv_retard = heros.sante.pv
+	heros.sante.change.connect(_sur_change_vie)
 
 	bouton_menu = Button.new()
 	bouton_menu.text = "Menu"
-	bouton_menu.custom_minimum_size = Vector2(170, 76)
-	bouton_menu.add_theme_font_size_override("font_size", 28)
+	bouton_menu.theme_type_variation = &"BoutonPetit"   # (refonte : une planche cerclée de fer)
+	bouton_menu.custom_minimum_size = Vector2(150, 60)
 	bouton_menu.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	bouton_menu.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	bouton_menu.position = Vector2(-194, 18)
-	for etat in ["normal", "hover", "pressed", "focus"]:
-		var st := StyleBoxFlat.new()
-		st.bg_color = Color(0.16, 0.11, 0.08, 0.8) if etat != "pressed" else Color(0.1, 0.07, 0.05, 0.9)
-		st.border_color = Color("ac8036")
-		st.set_border_width_all(3)
-		st.set_corner_radius_all(10)
-		bouton_menu.add_theme_stylebox_override(etat, st)
-	bouton_menu.add_theme_color_override("font_color", COULEUR_OS)
+	bouton_menu.position = Vector2(-172, 18)
 	bouton_menu.pressed.connect(_demander_menu)   # clic souris (ordinateur) ou 1er doigt
 	racine.add_child(bouton_menu)
 
@@ -124,8 +121,9 @@ func _ready() -> void:
 	racine.add_child(label_ips)
 
 	label_mort = Label.new()
-	label_mort.add_theme_font_size_override("font_size", 46)
-	label_mort.add_theme_color_override("font_color", Color(1.0, 0.45, 0.4))
+	label_mort.theme_type_variation = &"LabelTitre"
+	label_mort.add_theme_font_size_override("font_size", 48)
+	label_mort.add_theme_color_override("font_color", Color("e0603f"))
 	label_mort.add_theme_color_override("font_outline_color", Color.BLACK)
 	label_mort.add_theme_constant_override("outline_size", 12)
 	label_mort.set_anchors_preset(Control.PRESET_CENTER)
@@ -136,7 +134,8 @@ func _ready() -> void:
 	racine.add_child(label_mort)
 
 	label_partenaire = label_mort.duplicate() as Label
-	label_partenaire.add_theme_color_override("font_color", Color("6cffa0"))
+	label_partenaire.theme_type_variation = &"LabelGras"
+	label_partenaire.add_theme_color_override("font_color", Color("8fc9bc"))
 	label_partenaire.add_theme_font_size_override("font_size", 30)
 	label_partenaire.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	label_partenaire.grow_horizontal = Control.GROW_DIRECTION_BOTH
@@ -145,20 +144,21 @@ func _ready() -> void:
 	racine.add_child(label_partenaire)
 
 	label_alerte = label_partenaire.duplicate() as Label
-	label_alerte.add_theme_color_override("font_color", Color(1.0, 0.75, 0.3))
+	label_alerte.add_theme_color_override("font_color", Color("deba70"))
 	label_alerte.position.y = 130
 	label_alerte.visible = false
 	racine.add_child(label_alerte)
 
 	label_message = label_mort.duplicate() as Label
-	label_message.add_theme_color_override("font_color", Color("e2d6ba"))
+	label_message.add_theme_color_override("font_color", Color("d9c79f"))
 	label_message.add_theme_font_size_override("font_size", 36)
 	label_message.position.y -= 160
 	racine.add_child(label_message)
 
 	label_salle = Label.new()
-	label_salle.add_theme_font_size_override("font_size", 30)
-	label_salle.add_theme_color_override("font_color", Color("e0b04a"))
+	label_salle.theme_type_variation = &"LabelSousTitre"
+	label_salle.add_theme_font_size_override("font_size", 32)
+	label_salle.add_theme_color_override("font_color", Color("deba70"))
 	label_salle.add_theme_color_override("font_outline_color", Color.BLACK)
 	label_salle.add_theme_constant_override("outline_size", 8)
 	label_salle.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -178,8 +178,9 @@ func _ready() -> void:
 	racine.add_child(barre_boss)
 
 	label_malediction = Label.new()
+	label_malediction.theme_type_variation = &"LabelGras"
 	label_malediction.add_theme_font_size_override("font_size", 22)
-	label_malediction.add_theme_color_override("font_color", Color("b48cff"))
+	label_malediction.add_theme_color_override("font_color", Color("8fc9bc"))
 	label_malediction.add_theme_color_override("font_outline_color", Color.BLACK)
 	label_malediction.add_theme_constant_override("outline_size", 6)
 	label_malediction.position = Vector2(28, 64)
@@ -188,12 +189,12 @@ func _ready() -> void:
 	racine.add_child(label_malediction)
 
 	label_sac = label_malediction.duplicate() as Label
-	label_sac.add_theme_color_override("font_color", Color("e0b04a"))
+	label_sac.add_theme_color_override("font_color", Color("deba70"))
 	label_sac.position = Vector2(28, 94)
 	label_sac.visible = false
 	racine.add_child(label_sac)
 	label_matieres = label_malediction.duplicate() as Label
-	label_matieres.add_theme_color_override("font_color", Color("c8935a"))
+	label_matieres.add_theme_color_override("font_color", Color("d9c79f"))
 	label_matieres.position = Vector2(28, 122)
 	label_matieres.visible = false
 	racine.add_child(label_matieres)
@@ -401,9 +402,9 @@ func _demander_menu() -> void:
 func afficher_ramasse(texte: String, couleur: Color) -> void:
 	var l := Label.new()
 	l.text = texte
+	l.theme_type_variation = &"LabelGras"
 	l.add_theme_font_size_override("font_size", 26)
 	l.add_theme_color_override("font_color", couleur)
-	l.add_theme_color_override("font_outline_color", Color.BLACK)
 	l.add_theme_constant_override("outline_size", 7)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fil_butin.add_child(l)
@@ -422,7 +423,7 @@ func afficher_ramasse(texte: String, couleur: Color) -> void:
 func afficher_sac(objets: int, doublons: int, places: int, sac := {}) -> void:
 	label_sac.visible = true
 	label_sac.text = "Sac : %d objet%s / cale %d · %d doublons" % [objets, "s" if objets > 1 else "", places, doublons]
-	label_sac.add_theme_color_override("font_color", Color(1.0, 0.55, 0.15) if objets > places else Color("e0b04a"))
+	label_sac.add_theme_color_override("font_color", Color(1.0, 0.55, 0.15) if objets > places else Color("deba70"))
 	label_matieres.text = Butin.texte_matieres(sac)
 	label_matieres.visible = label_matieres.text != ""
 
@@ -451,78 +452,90 @@ func afficher_resultats(reussite: bool, lignes: Array, objets: Array = [], titre
 	label_matieres.visible = false
 	fil_butin.visible = false
 	var fond := ColorRect.new()
-	fond.color = Color(0.02, 0.03, 0.04, 0.0)
+	fond.color = Color(0.02, 0.015, 0.01, 0.0)
 	fond.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(fond)
 	panneau_fin = fond
+	# refonte de l'interface : le bilan sur un parchemin cloué, scellé de cire (réussite) ; à l'encre
+	var feuille := PanelContainer.new()
+	feuille.theme_type_variation = &"PanelParchemin"
+	feuille.set_anchors_preset(Control.PRESET_CENTER)
+	feuille.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	feuille.grow_vertical = Control.GROW_DIRECTION_BOTH
+	feuille.custom_minimum_size = Vector2(900, 0)
+	fond.add_child(feuille)
 	var colonne := VBoxContainer.new()
-	colonne.set_anchors_preset(Control.PRESET_CENTER)
-	colonne.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	colonne.grow_vertical = Control.GROW_DIRECTION_BOTH
 	colonne.alignment = BoxContainer.ALIGNMENT_CENTER
-	colonne.add_theme_constant_override("separation", 14 if objets.is_empty() else 8)
-	fond.add_child(colonne)
+	colonne.add_theme_constant_override("separation", 10 if objets.is_empty() else 6)
+	feuille.add_child(colonne)
 	var titre := Label.new()
 	titre.text = titre_force if titre_force != "" else ("Expédition réussie !" if reussite else "Expédition perdue…")
 	titre.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	titre.add_theme_font_size_override("font_size", 64)
-	titre.add_theme_color_override("font_color", Color("6cffa0") if reussite else Color(1.0, 0.45, 0.4))
-	titre.add_theme_color_override("font_outline_color", Color.BLACK)
-	titre.add_theme_constant_override("outline_size", 12)
+	titre.theme_type_variation = &"LabelEncreTitre"
+	titre.add_theme_font_size_override("font_size", 58)
+	titre.add_theme_color_override("font_color", Color("2f6b3a") if reussite else Color("8b1e1a"))
 	colonne.add_child(titre)
+	colonne.add_child(StyleRepaire.separateur(380.0))
 	for l in lignes:
 		var ligne := Label.new()
 		ligne.text = String(l)
 		ligne.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		ligne.add_theme_font_size_override("font_size", 26 if not objets.is_empty() else 30)
-		ligne.add_theme_color_override("font_color", COULEUR_OS)
+		ligne.theme_type_variation = &"LabelEncre"
+		ligne.add_theme_font_size_override("font_size", 25 if not objets.is_empty() else 28)
 		colonne.add_child(ligne)
 	if not objets.is_empty():
 		var flot := HFlowContainer.new()
 		flot.alignment = FlowContainer.ALIGNMENT_CENTER
-		flot.custom_minimum_size = Vector2(1100, 0)
-		flot.add_theme_constant_override("h_separation", 26)
+		flot.custom_minimum_size = Vector2(760, 0)
+		flot.add_theme_constant_override("h_separation", 24)
 		var tries := objets.duplicate()
 		tries.sort_custom(func(x, y): return int(x.get("rarete", 0)) > int(y.get("rarete", 0)))   # les plus rares d'abord
 		for o in tries.slice(0, 10):
 			var n := Label.new()
 			n.text = Butin.nom(o)
+			n.theme_type_variation = &"LabelEncreGras"
 			n.add_theme_font_size_override("font_size", 24)
-			n.add_theme_color_override("font_color", Butin.couleur(o))
-			n.add_theme_color_override("font_outline_color", Color.BLACK)
-			n.add_theme_constant_override("outline_size", 6)
+			n.add_theme_color_override("font_color", StyleRepaire.encre(Butin.couleur(o)))
 			flot.add_child(n)
 		if tries.size() > 10:
 			var reste := Label.new()
 			reste.text = "… et %d autres" % (tries.size() - 10)
+			reste.theme_type_variation = &"LabelEncre"
 			reste.add_theme_font_size_override("font_size", 24)
-			reste.add_theme_color_override("font_color", COULEUR_OS)
 			flot.add_child(reste)
 		colonne.add_child(flot)
 	var espace := Control.new()
-	espace.custom_minimum_size = Vector2(0, 16)
+	espace.custom_minimum_size = Vector2(0, 10)
 	colonne.add_child(espace)
 	var b := Button.new()
 	b.text = "Retour au repaire"   # (jalon 5 : après une expédition, on rentre au repaire)
-	b.custom_minimum_size = Vector2(420, 90)
-	b.add_theme_font_size_override("font_size", 34)
-	b.add_theme_color_override("font_color", COULEUR_OS)
-	for etat in ["normal", "hover", "pressed", "focus"]:
-		var st := StyleBoxFlat.new()
-		st.bg_color = Color("3a2a20") if etat != "pressed" else Color("24190f")
-		st.border_color = Color("ac8036")
-		st.set_border_width_all(4)
-		st.set_corner_radius_all(14)
-		b.add_theme_stylebox_override(etat, st)
+	b.theme_type_variation = &"BoutonPrincipal"
+	b.custom_minimum_size = Vector2(440, 92)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	b.pressed.connect(func():
 		_menu_demande = true
 		menu_demande.emit())
-	var centre := CenterContainer.new()
-	centre.add_child(b)
-	colonne.add_child(centre)
+	EffetsUI.animer_bouton(b)
+	colonne.add_child(b)
+	if reussite:   # un sceau de cire dans le coin du parchemin
+		var deco := Control.new()
+		deco.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		feuille.add_child(deco)
+		var cachet := TextureRect.new()
+		cachet.texture = load("res://assets/ui/matieres/sceau.png")
+		cachet.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		cachet.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cachet.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		cachet.offset_left = -96
+		cachet.offset_top = -96
+		cachet.offset_right = 14
+		cachet.offset_bottom = 14
+		deco.add_child(cachet)
+	feuille.modulate.a = 0.0
 	var t := fond.create_tween()
 	t.set_ignore_time_scale(true)
-	t.tween_property(fond, "color:a", 0.82, 0.6)
+	t.tween_property(fond, "color:a", 0.78, 0.6)
+	t.parallel().tween_property(feuille, "modulate:a", 1.0, 0.5).set_delay(0.2)
 
 
 # ---------------------------------------------------------------- tri de la cale (jalon 4, choix de Téo)
@@ -544,24 +557,29 @@ func afficher_tri(objets: Array, places: int) -> void:
 	for i in _tri_objets.size():
 		_tri_gardes[_tri_objets[i]["id"]] = i < places
 	var fond := ColorRect.new()
-	fond.color = Color(0.02, 0.03, 0.04, 0.88)
+	fond.color = Color(0.02, 0.015, 0.01, 0.82)
 	fond.set_anchors_preset(Control.PRESET_FULL_RECT)
 	fond.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(fond)
 	panneau_tri = fond
+	# refonte de l'interface : le manifeste de la cale, sur un parchemin cloué ; gardé = une planche, revendu = du cuir
+	var feuille := PanelContainer.new()
+	feuille.theme_type_variation = &"PanelParchemin"
+	feuille.set_anchors_preset(Control.PRESET_FULL_RECT)
+	feuille.offset_left = 60
+	feuille.offset_right = -60
+	feuille.offset_top = 14
+	feuille.offset_bottom = -10
+	fond.add_child(feuille)
 	var colonne := VBoxContainer.new()
-	colonne.set_anchors_preset(Control.PRESET_FULL_RECT)
-	colonne.offset_left = 40
-	colonne.offset_right = -40
-	colonne.offset_top = 22
-	colonne.offset_bottom = -18
-	colonne.add_theme_constant_override("separation", 10)
-	fond.add_child(colonne)
-	var titre := _ligne_tri("Charger la cale", 52, Color("e0b04a"))
-	titre.add_theme_constant_override("outline_size", 10)
+	colonne.add_theme_constant_override("separation", 8)
+	feuille.add_child(colonne)
+	var titre := _ligne_tri("Charger la cale", 46, Color("2b1d13"))
+	titre.theme_type_variation = &"LabelEncreTitre"
+	titre.add_theme_font_size_override("font_size", 46)
 	colonne.add_child(titre)
 	colonne.add_child(_ligne_tri("La cale ne prend que %d objets : touchez-les pour choisir. Les autres sont revendus." % places,
-			26, COULEUR_OS))
+			24, Color("2b1d13")))
 	var defile := ScrollContainer.new()
 	defile.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	defile.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -574,25 +592,25 @@ func afficher_tri(objets: Array, places: int) -> void:
 	defile.add_child(grille)
 	for o in _tri_objets:
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(0, 86)
+		b.custom_minimum_size = Vector2(0, 82)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.clip_text = true
+		b.add_theme_font_override("font", load("res://assets/ui/polices/AlegreyaSans-Bold.ttf"))
 		b.add_theme_font_size_override("font_size", 22)
 		for etat in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
 			b.add_theme_color_override(etat, Butin.couleur(o))
 		b.pressed.connect(basculer_tri.bind(String(o["id"])))
 		grille.add_child(b)
 		_tri_boutons[String(o["id"])] = b
-	_label_tri = _ligne_tri("", 26, COULEUR_OS)
+	_label_tri = _ligne_tri("", 24, Color("2b1d13"))
 	colonne.add_child(_label_tri)
 	var valider := Button.new()
 	valider.text = "Charger la cale"
+	valider.theme_type_variation = &"BoutonPrincipal"
 	valider.custom_minimum_size = Vector2(420, 84)
 	valider.add_theme_font_size_override("font_size", 32)
-	valider.add_theme_color_override("font_color", Color("6cffa0"))
-	for etat in ["normal", "hover", "pressed", "focus"]:
-		valider.add_theme_stylebox_override(etat, _style_tri(etat == "pressed", false))
 	valider.pressed.connect(valider_tri)
+	EffetsUI.animer_bouton(valider)
 	var centre := CenterContainer.new()
 	centre.add_child(valider)
 	colonne.add_child(centre)
@@ -632,19 +650,19 @@ func _rafraichir_tri(alerte_tri := "") -> void:
 		var b: Button = _tri_boutons[id]
 		b.text = ("✓  " if garde else "") + Butin.nom(o) + "\n" + \
 				(Butin.NOMS_RARETES[clampi(int(o.get("rarete", 0)), 0, 4)] if garde else "revendu : +%d doublons" % Butin.prix_revente(o))
-		for etat in ["normal", "hover", "pressed", "focus"]:
-			b.add_theme_stylebox_override(etat, _style_tri(etat == "pressed", garde))
-		b.modulate.a = 1.0 if garde else 0.6
+		# gardé : une planche (dans la cale) ; revendu : une lanière de cuir, pâlie
+		b.theme_type_variation = &"BoutonOngletActif" if garde else &"BoutonOnglet"
+		b.modulate.a = 1.0 if garde else 0.7
 		if not garde:
 			revente += Butin.prix_revente(o)
 	var n := gardes_tri().size()
 	if alerte_tri != "":
 		_label_tri.text = alerte_tri
-		_label_tri.add_theme_color_override("font_color", Color(1.0, 0.45, 0.4))
+		_label_tri.add_theme_color_override("font_color", Color("8b1e1a"))
 	else:
 		_label_tri.text = "Dans la cale : %d / %d · revendus : %d objet%s, +%d doublons" % [n, _tri_places,
 				_tri_objets.size() - n, "s" if _tri_objets.size() - n > 1 else "", revente]
-		_label_tri.add_theme_color_override("font_color", COULEUR_OS)
+		_label_tri.add_theme_color_override("font_color", Color("2b1d13"))
 
 
 func _ligne_tri(texte: String, taille: int, couleur: Color) -> Label:
@@ -652,10 +670,9 @@ func _ligne_tri(texte: String, taille: int, couleur: Color) -> Label:
 	l.text = texte
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.theme_type_variation = &"LabelEncre"
 	l.add_theme_font_size_override("font_size", taille)
 	l.add_theme_color_override("font_color", couleur)
-	l.add_theme_color_override("font_outline_color", Color.BLACK)
-	l.add_theme_constant_override("outline_size", 6)
 	return l
 
 
@@ -705,6 +722,7 @@ func _process(delta: float) -> void:
 	# garder l'attaque enfoncée enchaîne le combo
 	if bouton_attaque.appuye:
 		_demander(&"attaque")
+	_faire_fondre_le_retard(delta)
 	for action in [&"attaque", &"esquive", &"competence_1", &"competence_2"]:
 		if Input.is_action_just_pressed(action):
 			_demander(action)
@@ -747,24 +765,14 @@ func _dessiner_boss() -> void:
 		return
 	var s: Sante = _boss.sante
 	var enrage: bool = _boss.get("enrage") == true
-	var police := ThemeDB.fallback_font
 	var nom := "Le Bosco Maudit — enragé" if enrage else "Le Bosco Maudit"
 	var largeur := barre_boss.size.x
-	barre_boss.draw_string_outline(police, Vector2(0, 20), nom, HORIZONTAL_ALIGNMENT_CENTER, largeur, 24, 6, Color.BLACK)
-	barre_boss.draw_string(police, Vector2(0, 20), nom, HORIZONTAL_ALIGNMENT_CENTER, largeur, 24, Color(1.0, 0.55, 0.45) if enrage else COULEUR_OS)
-	var r := Rect2(Vector2(0, 28), Vector2(largeur, 26))
-	var fond := StyleBoxFlat.new()
-	fond.bg_color = Color(0.05, 0.03, 0.03, 0.75)
-	fond.border_color = Color("ac8036")
-	fond.set_border_width_all(3)
-	fond.set_corner_radius_all(8)
-	barre_boss.draw_style_box(fond, r)
-	var f: float = clampf(s.pv / s.pv_max, 0.0, 1.0)
-	if f > 0.0:
-		var plein := StyleBoxFlat.new()
-		plein.bg_color = Color(0.85, 0.12, 0.08) if enrage else Color(0.55, 0.06, 0.08)
-		plein.set_corner_radius_all(6)
-		barre_boss.draw_style_box(plein, Rect2(r.position + Vector2(4, 4), Vector2((r.size.x - 8) * f, r.size.y - 8)))
+	var titre := HudCombat.police_titre()
+	barre_boss.draw_string_outline(titre, Vector2(0, 22), nom, HORIZONTAL_ALIGNMENT_CENTER, largeur, 28, 7, Color(0.04, 0.025, 0.015))
+	barre_boss.draw_string(titre, Vector2(0, 22), nom, HORIZONTAL_ALIGNMENT_CENTER, largeur, 28, Color("e0603f") if enrage else Color("deba70"))
+	var rect := Rect2(Vector2(0, 30), Vector2(largeur, 26))
+	HudCombat.dessiner_jauge(barre_boss, rect, clampf(s.pv / s.pv_max, 0.0, 1.0), -1.0,
+			Color(0.62, 0.08, 0.05) if enrage else Color(0.38, 0.04, 0.05), Color(0.9, 0.22, 0.12) if enrage else Color(0.66, 0.12, 0.1))
 
 
 ## Textes quand un héros est à terre (solo : compte à rebours ; coop : réanimation ou retour au départ).
@@ -801,20 +809,69 @@ func _textes_a_terre() -> void:
 
 func _dessiner_vie() -> void:
 	var s := heros.sante
-	var r := Rect2(Vector2.ZERO, barre_vie.size)
-	var fond := StyleBoxFlat.new()
-	fond.bg_color = Color(0.05, 0.05, 0.06, 0.7)
-	fond.border_color = Color("ac8036")
-	fond.set_border_width_all(3)
-	fond.set_corner_radius_all(8)
-	barre_vie.draw_style_box(fond, r)
-	var f: float = clampf(s.pv / s.pv_max, 0.0, 1.0)
-	if f > 0.0:
-		var plein := StyleBoxFlat.new()
-		plein.bg_color = Color(0.72, 0.12, 0.12).lerp(Color(0.85, 0.25, 0.2), f)
-		plein.set_corner_radius_all(6)
-		barre_vie.draw_style_box(plein, Rect2(Vector2(4, 4), Vector2((r.size.x - 8) * f, r.size.y - 8)))
-	var police := ThemeDB.fallback_font
+	var rect := Rect2(Vector2.ZERO, barre_vie.size)
+	var dedans := HudCombat.dessiner_jauge(barre_vie, rect, clampf(s.pv / s.pv_max, 0.0, 1.0),
+			clampf(_pv_retard / s.pv_max, 0.0, 1.0), Color(0.42, 0.05, 0.05), Color(0.74, 0.15, 0.12))
 	var txt := "PV %d / %d" % [ceili(s.pv), int(s.pv_max)]
-	barre_vie.draw_string_outline(police, Vector2(14, 27), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, 6, Color.BLACK)
-	barre_vie.draw_string(police, Vector2(14, 27), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, COULEUR_OS)
+	var police := HudCombat.police_grasse()
+	var y := dedans.position.y + dedans.size.y / 2.0 + 8.0
+	barre_vie.draw_string_outline(police, Vector2(dedans.position.x + 12, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 23, 6, Color(0.04, 0.025, 0.015))
+	barre_vie.draw_string(police, Vector2(dedans.position.x + 12, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 23, Color("ecdcb8"))
+
+
+## La vie change : une perte reste visible (une bande claire qui fond après un instant) ; un soin, tout de suite.
+func _sur_change_vie(pv: float, _max: float) -> void:
+	if pv >= _pv_retard:
+		_pv_retard = pv
+	else:
+		_retard_depuis = 0.0
+	barre_vie.queue_redraw()
+
+
+func _faire_fondre_le_retard(delta: float) -> void:
+	if heros == null or _pv_retard <= heros.sante.pv:
+		_pv_retard = heros.sante.pv if heros else 0.0
+		return
+	_retard_depuis += delta
+	if _retard_depuis > 0.35:
+		_pv_retard = move_toward(_pv_retard, heros.sante.pv, heros.sante.pv_max * 0.7 * delta)
+	barre_vie.queue_redraw()
+
+
+## Une jauge du jeu (vie du héros, du Bosco) : un fourreau de cuir sombre cerclé d'or vieilli, deux embouts de fer
+## rivetés, le plein en deux tons (un reflet en haut), des crans tous les 10 % ; `retard` (si > plein) : la part
+## qui vient d'être perdue, plus claire. Renvoie le rectangle intérieur.
+static func dessiner_jauge(c: CanvasItem, r: Rect2, plein: float, retard: float, fonce: Color, clair: Color) -> Rect2:
+	c.draw_rect(Rect2(r.position + Vector2(0, 3), r.size), Color(0, 0, 0, 0.35))
+	c.draw_rect(r, Color(0.07, 0.045, 0.03, 0.92))
+	var embout := 14.0
+	var dedans := Rect2(r.position + Vector2(embout + 3, 5), r.size - Vector2(2 * embout + 6, 10))
+	if retard > plein:
+		c.draw_rect(Rect2(dedans.position, Vector2(dedans.size.x * retard, dedans.size.y)), Color(0.96, 0.8, 0.5, 0.85))
+	if plein > 0.0:
+		var p := Rect2(dedans.position, Vector2(dedans.size.x * plein, dedans.size.y))
+		c.draw_rect(p, fonce)
+		c.draw_rect(Rect2(p.position, Vector2(p.size.x, p.size.y * 0.45)), clair)
+		c.draw_rect(Rect2(p.position, Vector2(p.size.x, 2)), Color(1, 0.85, 0.7, 0.35))
+	for i in range(1, 10):
+		var x := dedans.position.x + dedans.size.x * i / 10.0
+		c.draw_line(Vector2(x, dedans.position.y), Vector2(x, dedans.end.y), Color(0.03, 0.01, 0.0, 0.45), 1.0)
+	c.draw_rect(dedans.grow(1), Color("b08a42"), false, 2.0)
+	for x0 in [r.position.x, r.end.x - embout]:   # embouts de fer rivetés
+		c.draw_rect(Rect2(Vector2(x0, r.position.y), Vector2(embout, r.size.y)), Color(0.22, 0.21, 0.2))
+		c.draw_rect(Rect2(Vector2(x0, r.position.y), Vector2(embout, 3)), Color(0.4, 0.38, 0.35))
+		c.draw_circle(Vector2(x0 + embout / 2.0, r.position.y + r.size.y / 2.0), 3.2, Color(0.55, 0.52, 0.47))
+	c.draw_rect(r, Color(0.03, 0.02, 0.01), false, 2.0)
+	return dedans
+
+
+static func police_grasse() -> Font:
+	if _police_grasse == null:
+		_police_grasse = load("res://assets/ui/polices/AlegreyaSans-Bold.ttf")
+	return _police_grasse
+
+
+static func police_titre() -> Font:
+	if _police_titre == null:
+		_police_titre = load("res://assets/ui/polices/IMFellEnglishSC-Regular.ttf")
+	return _police_titre

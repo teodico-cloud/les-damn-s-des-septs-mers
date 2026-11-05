@@ -3,13 +3,16 @@ extends Node3D
 ## gauche avec l'arme qu'il porte en main ; ses 3 emplacements (arme, deux reliques) ; les objets des
 ## coffres qui vont à l'emplacement choisi ; la fiche de l'objet touché, avec la comparaison ▲▼ avec
 ## ce qu'il porte (annexe retenue par Téo) et le bouton Équiper. Tout est enregistré aussitôt.
+## Refonte de l'interface (05/11) : les emplacements et ce que donne l'équipement sur une laniere de cuir ; les
+## coffres sur un parchemin (noms à l'encre, couleur de leur rareté) ; la fiche de l'objet sur un cuir cousu,
+## comme dans la planche de direction artistique ; onglets des héros en cuir (choisi : une planche).
 
 const SCENE_MENU := "res://game/repaire/repaire.tscn"   ## (jalon 5 : ouvert depuis l'entrepôt du repaire)
 const DECOR := "res://assets/models/decor/"
-const COULEUR_OS := Color("e2d6ba")
-const COULEUR_OR := Color("ac8036")
-const VERT := Color("6cffa0")
-const ROUGE := Color(1.0, 0.45, 0.4)
+const COULEUR_OS := Color("d9c79f")    ## parchemin (texte clair, sur le cuir)
+const COULEUR_OR := Color("deba70")
+const VERT := Color("9fd49a")
+const ROUGE := Color("ff8f74")
 const NOMS_HEROS := {&"bretteur": "Le Bretteur", &"occultiste": "L'Occultiste"}
 
 var heros_affiche: StringName = &"bretteur"
@@ -53,6 +56,7 @@ func montrer_heros(h: StringName) -> void:
 	heros_affiche = h
 	for cle in onglets:
 		onglets[cle].button_pressed = cle == h
+		onglets[cle].theme_type_variation = &"BoutonOngletActif" if cle == h else &"BoutonOnglet"
 	choisir_emplacement("arme")
 	_poser_modele()
 
@@ -100,15 +104,17 @@ func _rafraichir() -> void:
 		var b: Button = boutons_emplacements[e]
 		var o: Dictionary = portes[e]
 		b.text = Butin.nom(o) if not o.is_empty() else "— vide —"
-		b.add_theme_color_override("font_color", Butin.couleur(o) if not o.is_empty() else Color(COULEUR_OS, 0.5))
-		b.add_theme_color_override("font_hover_color", Butin.couleur(o) if not o.is_empty() else Color(COULEUR_OS, 0.5))
-		b.add_theme_color_override("font_pressed_color", Butin.couleur(o) if not o.is_empty() else Color(COULEUR_OS, 0.5))
+		var couleur := Butin.couleur(o) if not o.is_empty() else Color(COULEUR_OS, 0.5)
+		for etat in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+			b.add_theme_color_override(etat, couleur)
 		b.button_pressed = e == emplacement
+		# l'emplacement choisi : une planche ; les autres : une laniere de cuir
+		b.theme_type_variation = &"BoutonOngletActif" if e == emplacement else &"BoutonOnglet"
 	# ce que donne tout l'équipement porté
 	var lignes := []
 	var total := Equipement.bonus(portes.values())
 	for cle in Equipement._ordonner(total.keys()):
-		lignes.append("· " + Equipement.texte(cle, total[cle]))
+		lignes.append("◆  " + Equipement.texte(cle, total[cle]))
 	label_resume.text = "\n".join(lignes) if not lignes.is_empty() else "Aucun objet porté."
 	# la liste
 	for c in liste.get_children():
@@ -137,12 +143,15 @@ func _ligne_objet(o: Dictionary) -> Button:
 			etiquette = "   (porté par %s)" % NOMS_HEROS[ou[0]].to_lower()
 	elif Sauvegarde.emplacement_du_meme_unique(heros_affiche, o, emplacement) != "":
 		etiquette = "   (en double)"
-	b.text = "  " + Butin.nom(o) + etiquette
-	b.add_theme_font_size_override("font_size", 24)
+	b.text = Butin.nom(o) + etiquette
+	b.add_theme_font_override("font", load("res://assets/ui/polices/AlegreyaSans-Bold.ttf"))
+	b.add_theme_font_size_override("font_size", 25)
 	for etat in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-		b.add_theme_color_override(etat, Butin.couleur(o))
+		b.add_theme_color_override(etat, StyleRepaire.encre(Butin.couleur(o)))
+	b.add_theme_constant_override("outline_size", 0)
+	var choisi: bool = o.get("id") == selection.get("id", "")
 	for etat in ["normal", "hover", "pressed", "focus"]:
-		b.add_theme_stylebox_override(etat, _style(etat == "pressed" or o.get("id") == selection.get("id", "")))
+		b.add_theme_stylebox_override(etat, _ligne_style(choisi or etat == "pressed"))
 	b.pressed.connect(choisir_objet.bind(o))
 	return b
 
@@ -158,7 +167,8 @@ func _remplir_fiche() -> void:
 		bouton_retirer.visible = not porte.is_empty()
 		return
 	var def := Butin.definition(selection)
-	_texte(fiche, Butin.nom(selection), 32, Butin.couleur(selection))
+	var nom := _texte(fiche, Butin.nom(selection), 34, Butin.couleur(selection))
+	nom.add_theme_font_override("font", load("res://assets/ui/polices/IMFellEnglishSC-Regular.ttf"))
 	var genre := "Arme" if def.get("type") == "arme" else "Relique"
 	_texte(fiche, "%s · %s" % [genre, Butin.NOMS_RARETES[clampi(int(selection.get("rarete", 0)), 0, 4)]], 20, Color(COULEUR_OS, 0.7))
 	for l in Equipement.textes(selection):
@@ -191,8 +201,6 @@ func _texte(parent: Control, texte: String, taille: int, couleur: Color) -> Labe
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.add_theme_font_size_override("font_size", taille)
 	l.add_theme_color_override("font_color", couleur)
-	l.add_theme_color_override("font_outline_color", Color.BLACK)
-	l.add_theme_constant_override("outline_size", 4)
 	parent.add_child(l)
 	return l
 
@@ -268,103 +276,143 @@ func _interface() -> void:
 	racine.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	couche.add_child(racine)
 
-	var retour := _bouton("Retour", Vector2(170, 70), 28)
-	retour.position = Vector2(24, 18)
+	var retour := _bouton("Retour", Vector2(150, 60), 24)
+	retour.theme_type_variation = &"BoutonPetit"
+	retour.position = Vector2(22, 18)
 	retour.pressed.connect(retour_menu)
 	racine.add_child(retour)
 
-	var titre := _texte(racine, "Équipement", 46, COULEUR_OS)
-	titre.autowrap_mode = TextServer.AUTOWRAP_OFF
-	titre.add_theme_constant_override("outline_size", 10)
-	titre.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	titre.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_KEEP_SIZE)
-	titre.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	titre.offset_left = -200
-	titre.offset_right = 200
-	titre.offset_top = 18
+	var plaque := PanelContainer.new()
+	plaque.theme_type_variation = &"PanelPlaque"
+	plaque.position = Vector2(186, 16)
+	plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var titre := Label.new()
+	titre.text = "Équipement"
+	titre.theme_type_variation = &"LabelTitre"
+	titre.add_theme_font_size_override("font_size", 34)
+	plaque.add_child(titre)
+	racine.add_child(plaque)
 
-	label_doublons = _texte(racine, "", 30, Color("e0b04a"))
-	label_doublons.autowrap_mode = TextServer.AUTOWRAP_OFF
-	label_doublons.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	label_doublons.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	label_doublons.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	label_doublons.offset_left = -400
-	label_doublons.offset_right = -24
-	label_doublons.offset_top = 30
+	# la bourse, en haut à droite
+	var bourse := PanelContainer.new()
+	bourse.theme_type_variation = &"PanelCuir"
+	bourse.anchor_left = 1.0
+	bourse.anchor_right = 1.0
+	bourse.offset_left = -22
+	bourse.offset_right = -22
+	bourse.offset_top = 16
+	bourse.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	bourse.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	racine.add_child(bourse)
+	var ligne_bourse := HBoxContainer.new()
+	ligne_bourse.add_theme_constant_override("separation", 8)
+	bourse.add_child(ligne_bourse)
+	var piece := TextureRect.new()
+	piece.texture = load("res://assets/ui/icones/doublon.svg")
+	piece.custom_minimum_size = Vector2(34, 34)
+	piece.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	piece.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ligne_bourse.add_child(piece)
+	label_doublons = Label.new()
+	label_doublons.theme_type_variation = &"LabelGras"
+	label_doublons.add_theme_font_size_override("font_size", 26)
+	label_doublons.add_theme_color_override("font_color", COULEUR_OR)
+	ligne_bourse.add_child(label_doublons)
 
 	# onglets des héros (sous ses pieds)
 	var rangee := HBoxContainer.new()
 	rangee.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	rangee.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	rangee.offset_left = 24
-	rangee.offset_top = -80
+	rangee.offset_left = 22
+	rangee.offset_top = -78
 	rangee.offset_bottom = -16
 	rangee.add_theme_constant_override("separation", 10)
 	racine.add_child(rangee)
 	var groupe := ButtonGroup.new()
 	for h in NOMS_HEROS:
 		var b := _bouton(NOMS_HEROS[h], Vector2(190, 60), 24)
+		b.theme_type_variation = &"BoutonOnglet"
 		b.toggle_mode = true
 		b.button_group = groupe
 		b.pressed.connect(montrer_heros.bind(h))
 		rangee.add_child(b)
 		onglets[h] = b
 
-	# emplacements
+	# emplacements et ce que donne l'équipement : une laniere de cuir, au milieu
+	var laniere := PanelContainer.new()
+	laniere.theme_type_variation = &"PanelCuir"
+	laniere.position = Vector2(400, 96)
+	laniere.custom_minimum_size = Vector2(372, 0)
+	racine.add_child(laniere)
 	var colonne := VBoxContainer.new()
-	colonne.position = Vector2(430, 104)
-	colonne.custom_minimum_size = Vector2(330, 0)
-	colonne.add_theme_constant_override("separation", 8)
-	racine.add_child(colonne)
+	colonne.add_theme_constant_override("separation", 6)
+	laniere.add_child(colonne)
 	var groupe_e := ButtonGroup.new()
 	for e in Equipement.EMPLACEMENTS:
 		if e != "relique_2":
-			_texte(colonne, "ARME" if e == "arme" else "RELIQUES", 20, Color(COULEUR_OS, 0.7))
-		var b := _bouton("", Vector2(330, 64), 24)
+			_section(colonne, "Arme" if e == "arme" else "Reliques")
+		var b := _bouton("", Vector2(320, 60), 24)
+		b.theme_type_variation = &"BoutonOnglet"
 		b.toggle_mode = true
 		b.button_group = groupe_e
 		b.clip_text = true
+		b.add_theme_font_override("font", load("res://assets/ui/polices/AlegreyaSans-Bold.ttf"))
 		b.pressed.connect(choisir_emplacement.bind(e))
 		colonne.add_child(b)
 		boutons_emplacements[e] = b
 	var espace := Control.new()
-	espace.custom_minimum_size = Vector2(0, 6)
+	espace.custom_minimum_size = Vector2(0, 4)
 	colonne.add_child(espace)
-	_texte(colonne, "CE QUE DONNE L'ÉQUIPEMENT", 20, Color(COULEUR_OS, 0.7))
-	label_resume = _texte(colonne, "", 20, COULEUR_OS)
-	label_resume.custom_minimum_size = Vector2(330, 0)
+	_section(colonne, "Ce que donne l'équipement")
+	label_resume = _texte(colonne, "", 21, COULEUR_OS)
+	label_resume.custom_minimum_size = Vector2(320, 0)
 
-	# objets des coffres (à droite, en haut) et fiche (en dessous)
+	# objets des coffres (à droite, en haut, sur parchemin) et fiche (en dessous, sur cuir)
 	var droite := Control.new()
 	droite.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
 	droite.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	droite.offset_left = -486
-	droite.offset_right = -24
-	droite.offset_top = 104
-	droite.offset_bottom = -16
+	droite.offset_right = -22
+	droite.offset_top = 96
+	droite.offset_bottom = -14
 	droite.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	racine.add_child(droite)
 	var cadre_liste := PanelContainer.new()
-	cadre_liste.add_theme_stylebox_override("panel", _style(false))
+	cadre_liste.theme_type_variation = &"PanelParchemin"
+	cadre_liste.add_theme_stylebox_override("panel", _parchemin_serre())
 	cadre_liste.position = Vector2(0, 0)
-	cadre_liste.size = Vector2(462, 250)
+	cadre_liste.size = Vector2(464, 300)
 	droite.add_child(cadre_liste)
+	var dans_liste := VBoxContainer.new()
+	dans_liste.add_theme_constant_override("separation", 2)
+	cadre_liste.add_child(dans_liste)
+	var titre_coffres := Label.new()
+	titre_coffres.text = "Vos coffres"
+	titre_coffres.theme_type_variation = &"LabelEncreTitre"
+	titre_coffres.add_theme_font_size_override("font_size", 26)
+	dans_liste.add_child(titre_coffres)
 	var defile := ScrollContainer.new()
 	defile.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	cadre_liste.add_child(defile)
+	defile.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	dans_liste.add_child(defile)
 	liste = VBoxContainer.new()
 	liste.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	liste.add_theme_constant_override("separation", 6)
+	liste.add_theme_constant_override("separation", 2)
 	defile.add_child(liste)
-	label_vide = _texte(droite, "Rien dans vos coffres pour cette place.\nRapportez du butin d'une expédition !", 22, Color(COULEUR_OS, 0.75))
-	label_vide.position = Vector2(20, 70)
-	label_vide.size = Vector2(422, 120)
+	label_vide = Label.new()
+	label_vide.text = "Rien dans vos coffres pour cette place.\nRapportez du butin d'une expédition !"
+	label_vide.theme_type_variation = &"LabelEncre"
+	label_vide.add_theme_font_size_override("font_size", 22)
+	label_vide.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label_vide.position = Vector2(30, 92)
+	label_vide.size = Vector2(404, 120)
 	label_vide.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	droite.add_child(label_vide)
 
 	var cadre_fiche := PanelContainer.new()
-	cadre_fiche.add_theme_stylebox_override("panel", _style(false))
-	cadre_fiche.position = Vector2(0, 262)
-	cadre_fiche.size = Vector2(462, 338)
+	cadre_fiche.theme_type_variation = &"PanelCuir"
+	cadre_fiche.position = Vector2(0, 310)
+	cadre_fiche.size = Vector2(464, 300)
 	droite.add_child(cadre_fiche)
 	var dans_fiche := VBoxContainer.new()
 	dans_fiche.add_theme_constant_override("separation", 4)
@@ -381,13 +429,23 @@ func _interface() -> void:
 	boutons.alignment = BoxContainer.ALIGNMENT_END
 	boutons.add_theme_constant_override("separation", 10)
 	dans_fiche.add_child(boutons)
-	bouton_retirer = _bouton("Retirer", Vector2(160, 62), 26)
+	bouton_retirer = _bouton("Retirer", Vector2(160, 60), 24)
+	bouton_retirer.theme_type_variation = &"BoutonPetit"
 	bouton_retirer.pressed.connect(retirer)
 	boutons.add_child(bouton_retirer)
-	bouton_equiper = _bouton("Équiper", Vector2(190, 62), 28)
-	bouton_equiper.add_theme_color_override("font_color", VERT)
+	bouton_equiper = _bouton("Équiper", Vector2(200, 64), 30)
 	bouton_equiper.pressed.connect(equiper_selection)
 	boutons.add_child(bouton_equiper)
+	EffetsUI.voile(racine)
+
+
+## Petit titre de section, gravé à l'or (sur le cuir).
+func _section(parent: Control, texte: String) -> void:
+	var l := Label.new()
+	l.text = texte
+	l.theme_type_variation = &"LabelSousTitre"
+	l.add_theme_font_size_override("font_size", 22)
+	parent.add_child(l)
 
 
 func _bouton(texte: String, taille: Vector2, police: int) -> Button:
@@ -395,20 +453,30 @@ func _bouton(texte: String, taille: Vector2, police: int) -> Button:
 	b.text = texte
 	b.custom_minimum_size = taille
 	b.add_theme_font_size_override("font_size", police)
-	b.add_theme_color_override("font_color", COULEUR_OS)
-	for etat in ["normal", "hover", "pressed", "focus"]:
-		b.add_theme_stylebox_override(etat, _style(etat == "pressed"))
+	EffetsUI.animer_bouton(b)
 	return b
 
 
-func _style(enfonce: bool) -> StyleBoxFlat:
+## Une ligne des coffres sur le parchemin : rien autour ; choisie, un lavis et un filet d'encre.
+func _ligne_style(choisi: bool) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
-	s.bg_color = Color(0.3, 0.2, 0.12, 0.95) if enfonce else Color(0.16, 0.11, 0.08, 0.85)
-	s.border_color = Color("e0b04a") if enfonce else COULEUR_OR
-	s.set_border_width_all(3)
-	s.set_corner_radius_all(12)
-	s.content_margin_left = 10
-	s.content_margin_right = 10
-	s.content_margin_top = 6
-	s.content_margin_bottom = 6
+	s.bg_color = Color(0.35, 0.22, 0.1, 0.18) if choisi else Color(0, 0, 0, 0)
+	s.border_color = Color("6e5326", 0.8)
+	s.border_width_left = 4 if choisi else 0
+	s.content_margin_left = 12
+	s.content_margin_right = 8
+	s.content_margin_top = 4
+	s.content_margin_bottom = 4
+	return s
+
+
+## Le parchemin des coffres : une feuille clouée, sans cadre de bois (la place est comptée).
+func _parchemin_serre() -> StyleBoxTexture:
+	var s := StyleBoxTexture.new()
+	s.texture = load("res://assets/ui/matieres/affiche.png")
+	s.set_texture_margin_all(48)
+	s.content_margin_left = 30
+	s.content_margin_right = 26
+	s.content_margin_top = 40
+	s.content_margin_bottom = 22
 	return s

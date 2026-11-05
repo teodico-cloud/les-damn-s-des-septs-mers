@@ -107,6 +107,12 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   `forge.gd` (`Forge`, étape 3) : ce qui est possible et ce que ça coûte (monter une arme d'une rareté, recycler, relancer
   un effet, agrandir la forge ou l'entrepôt) ; les achats eux-mêmes : `Sauvegarde.ameliorer_objet`, `recycler`,
   `relancer_effet`, `agrandir` (journal `achats`).
+- Interface (refonte du 05/11) : `assets/ui/theme_damnes.tres` (thème du projet, `gui/theme/custom`) fabriqué par
+  `tools/ui/fabriquer_theme.gd` ; matières `assets/ui/matieres/*.png` fabriquées par `tools/ui/matieres.py textures`
+  (et `planches` : planches de direction artistique) ; polices `assets/ui/polices/` (OFL) ; `ui/commun/effets_ui.gd`
+  (`EffetsUI` : bouton qui s'enfonce, arrivées, fondus) ; `ui/screens/decor_menu.gd` (`DecorMenu` : navire au ponton,
+  fond de l'écran titre et de « Jouer à deux ») ; `StyleRepaire` : l'encre sur parchemin (`encre()`, `texte()`,
+  `titre()`, `cadre()`, `separateur()`).
 - `tests/unit/` : tests GUT (`test_*.gd`) ; `addons/gut/` : GUT 9.7.1 (exclu de l'APK) ; `tests/pre_run.gd` :
   avant les tests, la sauvegarde passe dans `user://sauvegarde_tests.json` (jamais celle du jeu).
   `test_scripts.gd` charge tous les scripts du jeu (remplace `--check-only`, voir pièges).
@@ -379,6 +385,13 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   ne rend une charge qu'à une recharge simple (Parade rendue). La pastille du bouton suit seule les charges.
 - Tir de l'Occultiste : sa cible est choisie au départ par `Projectile.cible_devant` (chez l'invité aussi, pour l'image :
   même règle, aucun message) ; l'explosion passe par `porter_coup_discret` (pas d'arrêt sur image par voisin).
+- Interface : ne pas régler couleurs et boîtes une à une ; passer par le thème (`theme_type_variation` : BoutonPetit,
+  BoutonOnglet/BoutonOngletActif, LabelEncre, PanelParchemin…). Sur un parchemin on écrit à l'encre (`StyleRepaire`) ;
+  une couleur pensée pour le noir (rareté, matériau) passe par `StyleRepaire.encre()`. Changer une matière : modifier
+  `tools/ui/matieres.py`, relancer `textures`, puis `--import` (sinon Godot garde l'ancienne image) ; changer le thème :
+  `tools/ui/fabriquer_theme.gd`. `trait` est un mot réservé en GDScript 4.7 (variable « trait » : erreur de lecture).
+- Ne pas modifier un script du jeu pendant que la suite de tests tourne : GUT charge les scripts au fil des tests et
+  prend la version modifiée (vu : une erreur d'écriture en cours de route a fait échouer deux tests).
 - Panneaux du repaire : après une action, le panneau se refait **tout de suite** et un autre bouton apparaît sous le
   doigt (niveau suivant, « Sûr ? Recycler ») ; le second toucher d'un vrai double appui le touchait (relecture : cale
   achetée deux fois). Toute action commence donc par `appui_accepte()` (ignorée 0,4 s après la précédente). Dans un

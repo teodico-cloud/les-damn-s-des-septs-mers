@@ -273,6 +273,26 @@ Matelots squelettes qui reviennent sans fin.
 - Tests : 304 (16 nouveaux dans `test_bateau.gd` ; 29 sabotages, tous vus) ; essai coop de l'expédition étendu : les
   voiles de l'invité comptent chez les deux (35 s), sa bordée est tirée par l'hôte et ses 5 boulets tombent chez lui.
 
+## Refonte de l'interface (05/11, demande de Téo : « une direction artistique professionnelle »)
+Jalon 6 réordonné par Téo : la refonte d'abord (elle remplace « écrans restants »), les sons ensuite.
+- **Choix de Téo** : matières créées sur mesure (pas de pack) ; police « gravure marine » (IM Fell English SC pour les
+  titres, Alegreya Sans pour le jeu, licence OFL) ; direction validée sur les planches (`tools/ui/matieres.py planches`) ;
+  pas de chambre des reliques (reportée après le MVP) ; l'inventaire = les coffres de l'écran Équipement.
+- **Thème commun** (`assets/ui/theme_damnes.tres`, thème du projet) fabriqué par `tools/ui/fabriquer_theme.gd` ; matières
+  (`assets/ui/matieres/*.png`) fabriquées par `tools/ui/matieres.py textures` : bouton en planche cerclée de fer (normal,
+  appuyé, grisé), parchemin cloué sur bois, cuir cousu, plaque de fer oxydé, affiche, cordage, trait d'encre, rose des
+  vents, sceaux de cire, volutes. Variantes : BoutonPrincipal, BoutonPetit, BoutonOnglet (cuir) / BoutonOngletActif
+  (planche), BoutonAffiche, LabelTitre, LabelSousTitre, LabelGras, LabelEncre (et Gras, Titre, Discret), PanelParchemin,
+  PanelCuir, PanelPlaque. `EffetsUI` : bouton qui s'enfonce, arrivées, fondus au noir.
+- **Écrans refaits** : écran titre (navire 3D au ponton de nuit, `DecorMenu` ; titre gravé, planches clouées le long d'une
+  corde) ; repaire (plaque, bourse en cuir avec icônes — annexe « bandeau » de Téo —, raccourcis en planches, sceaux
+  « ! » qui battent, aussi en 3D, enseignes en police des titres qui s'effacent sous l'interface, joystick en boussole) ;
+  les quatre lieux (parchemin cloué, plaque qui déborde, encre) ; choix du héros (avis de recrutement) ; « Jouer à deux »
+  (le navire en fond, rôle d'équipage sur parchemin) ; Équipement (cuir, coffres sur parchemin, fiche sur cuir) ; HUD de
+  combat (jauge de vie en fourreau de cuir avec la perte qui fond, médaillons cerclés de fer, Menu en planche, textes en
+  police des titres, chiffres en Alegreya ExtraBold) ; barre du Bosco ; tri de la cale et écran de fin (parchemins).
+- Reste : l'écran Paramètres (nouveau), puis les sons.
+
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)
 Téo : « le gameplay pas assez proche de Diablo, c'est peut-être l'attaque de base ». Ce qui le gênait : frapper dans le
 vide, se sentir planté, pas assez de squelettes touchés ; modèle Diablo 3/4 ; les deux héros ; nerf de la téléportation.
@@ -409,6 +429,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 30/10/2026 | Combat « nerveux » : héros plus vif, hordes, coups qui claquent, coups critiques (choix de Téo, voir plus haut). Ennemis plus agressifs : non retenu. |
 | 30/10/2026 | Parade : elle coupe le coup en cours ; parade parfaite en bonus (0,25 s), zone dorée avant le coup + étincelles, « PARFAIT ! » et ralenti, Parade rendue. Onde de choc : non retenue. |
 | 31/10/2026 | Jalon 3, étape 3 (choix de Téo) : Bosco « brute à la hache » (tourbillon, charge qui le laisse sonné 2 s contre un mur, coup au sol ; rage à mi-vie + 3 matelots) ; coups mi-parables (seul le coup au sol se pare, les gros coups rouge sombre sont imparables) ; ~1 min 30 en solo ; malédiction 0–5 choisie au départ avec l'échelle proposée (+20 % de butin par niveau) ; chaloupe : tenir 45 s à bord, le compte s'arrête si personne n'y est ; annexe retenue : écran de fin enrichi. |
+| 05/11/2026 | Refonte de l'interface (demande de Téo) avant les sons ; matières créées sur mesure ; police « gravure marine » (IM Fell English SC + Alegreya Sans) ; direction validée sur planches ; pas de chambre des reliques ; inventaire = coffres. Annexes retenues pour le jalon 6 : jauge façon Diablo 3/4, bandeau derrière les ressources (fait). |
 | 05/11/2026 | Attaque façon Diablo (demande de Téo, modèle Diablo 3/4) : Bretteur qui bondit sur sa cible (4 m), taillades en arc, moulinet 360° qui va au bout mais ~30 % plus vite ; tir de l'Occultiste guidé qui **explose** (1,2 m) ; téléportation **2 charges de 3 s**. Remplace directement l'ancienne attaque. Jauge façon Diablo 3/4 : plus tard. |
 | 05/11/2026 | Jalon 5, étape 3 (choix de Téo) : forge et niveaux 2 avec les prix proposés ; « Relancer un effet » : **on choisit l'effet** à relancer (remplacé au hasard). Étape 3 lancée après l'APK 0.5.20. Après la relecture : recycler avec l'entrepôt presque plein **rend ce qui entre, le reste est perdu** (écrit avant d'appuyer ; sans aucune place, grisé) — pas de revente en doublons. |
 | 04/11/2026 | Combats navals et abordages : gardés pour après le MVP, comme prévu (Téo, après explication de la bordée). |

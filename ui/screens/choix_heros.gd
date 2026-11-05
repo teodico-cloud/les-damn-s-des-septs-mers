@@ -5,8 +5,6 @@ extends Node3D
 const SCENE_MENU := "res://ui/screens/demarrage.tscn"
 const SCENE_COOP := "res://ui/screens/coop.tscn"
 const DECOR := "res://assets/models/decor/"
-const COULEUR_OS := Color("e2d6ba")
-const COULEUR_OR := Color("ac8036")
 const HEROS := {
 	&"bretteur": {
 		"modele": "res://assets/models/heroes/Bretteur.glb",
@@ -116,6 +114,9 @@ func _objet(nom: String, pos: Vector3) -> void:
 
 
 # ---------------------------------------------------------------- interface
+## Refonte de l'interface (05/11) : deux avis de recrutement cloués sous les héros (parchemin brûlé, nom gravé,
+## rôle à l'encre rouge, compétences), un peu de travers ; « Retour » et la plaque du titre en haut à gauche ;
+## la malédiction (expédition en solo) sur son cuir, en haut au milieu ; une ombre sur les bords de l'écran.
 func _interface() -> void:
 	var couche := CanvasLayer.new()
 	add_child(couche)
@@ -123,76 +124,105 @@ func _interface() -> void:
 	racine.set_anchors_preset(Control.PRESET_FULL_RECT)
 	racine.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	couche.add_child(racine)
+	racine.add_child(_vignette())
 
+	var retour := Button.new()
+	retour.text = "Retour"
+	retour.theme_type_variation = &"BoutonPetit"
+	retour.custom_minimum_size = Vector2(150, 60)
+	retour.position = Vector2(22, 18)
+	retour.pressed.connect(retour_menu)
+	racine.add_child(retour)
+	EffetsUI.animer_bouton(retour)
+
+	var plaque := PanelContainer.new()
+	plaque.theme_type_variation = &"PanelPlaque"
+	plaque.position = Vector2(186, 16)
+	plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var titre := Label.new()
 	titre.text = "Choisis ton héros"
-	titre.add_theme_font_size_override("font_size", 46)
-	titre.add_theme_color_override("font_color", COULEUR_OS)
-	titre.add_theme_color_override("font_outline_color", Color.BLACK)
-	titre.add_theme_constant_override("outline_size", 10)
-	titre.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	titre.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	titre.position.y = 18
-	racine.add_child(titre)
+	titre.theme_type_variation = &"LabelTitre"
+	titre.add_theme_font_size_override("font_size", 34)
+	plaque.add_child(titre)
+	racine.add_child(plaque)
 
 	var rangee := HBoxContainer.new()
 	rangee.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	rangee.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	rangee.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	rangee.position.y = -24
-	rangee.add_theme_constant_override("separation", 120)
+	rangee.position.y = -22
+	rangee.add_theme_constant_override("separation", 110)
 	racine.add_child(rangee)
+	var penche := {&"bretteur": -1.4, &"occultiste": 1.1}
+	var i := 0
 	for cle in HEROS:
 		var carte := _carte(HEROS[cle])
+		carte.rotation_degrees = penche.get(cle, 0.0)
 		carte.pressed.connect(choisir.bind(cle))
 		rangee.add_child(carte)
 		cartes[cle] = carte
-
-	var retour := Button.new()
-	retour.text = "Retour"
-	retour.custom_minimum_size = Vector2(170, 76)
-	retour.add_theme_font_size_override("font_size", 28)
-	retour.add_theme_color_override("font_color", COULEUR_OS)
-	for etat in ["normal", "hover", "pressed", "focus"]:
-		retour.add_theme_stylebox_override(etat, _style(etat == "pressed"))
-	retour.position = Vector2(24, 18)
-	retour.pressed.connect(retour_menu)
-	racine.add_child(retour)
+		EffetsUI.animer_bouton(carte)
+		EffetsUI.apparition(carte, 0.15 + 0.12 * i)
+		i += 1
 
 	# expédition en solo : la malédiction se choisit ici (à deux, l'hôte la choisit sur l'écran de coop)
 	if Partie.destination == &"expedition" and Partie.mode == Partie.Mode.SOLO:
 		choix_malediction = ChoixMalediction.new()
 		choix_malediction.set_anchors_preset(Control.PRESET_CENTER_TOP)
 		choix_malediction.grow_horizontal = Control.GROW_DIRECTION_BOTH
-		choix_malediction.position.y = 84
+		choix_malediction.position.y = 92
 		racine.add_child(choix_malediction)
+	EffetsUI.voile(racine)
 
 
+## Un avis de recrutement : nom gravé, rôle à l'encre rouge, un filet, les compétences.
 func _carte(info: Dictionary) -> Button:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(470, 210)
-	for etat in ["normal", "hover", "pressed", "focus"]:
-		b.add_theme_stylebox_override(etat, _style(etat == "pressed"))
+	b.theme_type_variation = &"BoutonAffiche"
+	b.custom_minimum_size = Vector2(450, 214)
 	var colonne := VBoxContainer.new()
 	colonne.set_anchors_preset(Control.PRESET_FULL_RECT)
+	colonne.offset_top = 26
+	colonne.offset_bottom = -14
 	colonne.alignment = BoxContainer.ALIGNMENT_CENTER
+	colonne.add_theme_constant_override("separation", 2)
 	colonne.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(colonne)
-	for ligne in [[info["nom"], 40, COULEUR_OS], [info["role"], 26, Color("6cffa0")], [info["competences"], 24, Color(COULEUR_OS, 0.85)]]:
-		var l := Label.new()
-		l.text = ligne[0]
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.add_theme_font_size_override("font_size", ligne[1])
-		l.add_theme_color_override("font_color", ligne[2])
-		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		colonne.add_child(l)
+	var nom := _ligne(info["nom"], &"LabelEncreTitre", 40)
+	colonne.add_child(nom)
+	var role := _ligne(info["role"], &"LabelEncreGras", 24)
+	role.add_theme_color_override("font_color", Color("8b1e1a"))
+	colonne.add_child(role)
+	var filet := StyleRepaire.separateur(260.0)
+	filet.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	colonne.add_child(filet)
+	colonne.add_child(_ligne(info["competences"], &"LabelEncre", 23))
 	return b
 
 
-func _style(enfonce: bool) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = Color(0.1, 0.07, 0.05, 0.92) if enfonce else Color(0.16, 0.11, 0.08, 0.82)
-	s.border_color = COULEUR_OR
-	s.set_border_width_all(3)
-	s.set_corner_radius_all(12)
-	return s
+func _ligne(texte: String, variation: StringName, taille: int) -> Label:
+	var l := Label.new()
+	l.text = texte
+	l.theme_type_variation = variation
+	l.add_theme_font_size_override("font_size", taille)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+
+## Les bords de l'écran dans l'ombre (le regard va aux héros).
+func _vignette() -> TextureRect:
+	var g := Gradient.new()
+	g.colors = PackedColorArray([Color(0, 0, 0, 0), Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.75)])
+	g.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
+	var tex := GradientTexture2D.new()
+	tex.gradient = g
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.45)
+	tex.fill_to = Vector2(1.15, 1.0)
+	var r := TextureRect.new()
+	r.texture = tex
+	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return r

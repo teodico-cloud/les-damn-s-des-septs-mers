@@ -112,6 +112,7 @@ func _on_soin(heros: Node3D, montant: float) -> void:
 		return
 	var l := Label3D.new()
 	l.text = "+%d" % roundi(montant)
+	l.font = _police_chiffres()
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.no_depth_test = true
 	l.fixed_size = true
@@ -129,10 +130,16 @@ func _on_soin(heros: Node3D, montant: float) -> void:
 	t.chain().tween_callback(l.queue_free)
 
 
+## Refonte de l'interface (05/11) : les chiffres dans une police grasse et nette (Alegreya Sans ExtraBold).
+static func _police_chiffres() -> Font:
+	return load("res://assets/ui/polices/AlegreyaSans-ExtraBold.ttf")
+
+
 ## Gros mot doré qui saute à l'écran puis monte en s'effaçant.
 func _mot(texte: String, pos: Vector3) -> void:
 	var l := Label3D.new()
 	l.text = texte
+	l.font = load("res://assets/ui/polices/IMFellEnglishSC-Regular.ttf")   # (refonte : la police des titres)
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.no_depth_test = true
 	l.fixed_size = true
@@ -156,6 +163,7 @@ func _mot(texte: String, pos: Vector3) -> void:
 func _chiffre(pos: Vector3, degats: float, lourd: bool, cible_est_heros: bool, critique := false) -> void:
 	var l := Label3D.new()
 	l.text = str(roundi(degats)) + ("!" if critique else "")
+	l.font = _police_chiffres()
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.no_depth_test = true
 	l.fixed_size = true

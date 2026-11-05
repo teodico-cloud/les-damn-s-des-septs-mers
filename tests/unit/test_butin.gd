@@ -300,7 +300,11 @@ func test_victoire_le_butin_est_rapporte() -> void:
 	var lame := textes.filter(func(l): return l.text == "Lame du Noyé")
 	assert_true(textes.any(func(l): return l.text == "Butin rapporté : 1 objet et 30 doublons"), "Le résumé du butin")
 	assert_eq(lame.size(), 1, "L'objet rapporté, sur l'écran de fin")
-	assert_eq(lame[0].get_theme_color("font_color"), Butin.COULEURS[Butin.Rarete.LEGENDAIRE], "À la couleur de sa rareté")
+	# (refonte de l'interface : l'écran de fin est un parchemin, la couleur de rareté y est passée à l'encre)
+	assert_eq(lame[0].get_theme_color("font_color"), StyleRepaire.encre(Butin.COULEURS[Butin.Rarete.LEGENDAIRE]),
+			"À la couleur de sa rareté (à l'encre)")
+	assert_ne(StyleRepaire.encre(Butin.COULEURS[Butin.Rarete.LEGENDAIRE]), StyleRepaire.encre(Butin.COULEURS[Butin.Rarete.COMMUN]),
+			"Les raretés restent distinctes à l'encre")
 	assert_false(e.hud.label_sac.visible, "Le sac s'efface derrière l'écran de fin")
 
 

@@ -77,7 +77,7 @@ func test_cale_visible_en_route() -> void:
 	assert_eq(e.hud.label_sac.text, "Sac : %d objets / cale %d · 40 doublons" % [objets.size(), EQ.cale_places])
 	assert_eq(e.hud.label_sac.get_theme_color("font_color"), Color(1.0, 0.55, 0.15), "En orange : il faudra trier")
 	e.hud.afficher_sac(3, 0, 8)
-	assert_eq(e.hud.label_sac.get_theme_color("font_color"), Color("e0b04a"))
+	assert_eq(e.hud.label_sac.get_theme_color("font_color"), Color("deba70"), "En or (refonte de l'interface)")
 
 
 func test_sans_tri_quand_tout_tient() -> void:

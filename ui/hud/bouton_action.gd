@@ -6,7 +6,7 @@ extends Control
 
 const COULEUR_FOND := Color(0.16, 0.11, 0.08, 0.72)
 const COULEUR_BORD := Color("ac8036")
-const COULEUR_TEXTE := Color("e2d6ba")
+const COULEUR_TEXTE := Color("ecdcb8")
 
 var texte := ""
 var icone: Texture2D
@@ -20,6 +20,7 @@ var inactif := false    ## plus rien à faire (bordée vide) : icône grisée
 var _etait_appuye := false
 var _etait_en_recharge := false
 var _charge_en_cours := false
+static var _sceau: Texture2D
 
 
 func configurer(t: String, r: float, rec: Recharge = null) -> void:
@@ -54,23 +55,27 @@ func _process(_delta: float) -> void:
 	_etait_appuye = appuye
 
 
+## Refonte de l'interface (05/11) : un médaillon — fond de cuir sombre, anneau de fer et d'or vieilli, quatre
+## rivets, un reflet en haut à gauche ; appuyé, il s'assombrit et l'anneau s'éclaire ; en recharge, une part
+## d'ombre qui se vide et les secondes ; la pastille (tirs de bordée, charges) est un petit sceau de cire.
 func _draw() -> void:
 	var c := size / 2.0
-	var fond := COULEUR_FOND.lightened(0.15) if appuye else COULEUR_FOND
-	draw_circle(c, rayon, fond)
-	var police := ThemeDB.fallback_font
-	var taille_police := int(rayon * 0.34)
+	var police: Font = HudCombat.police_grasse()
 	var en_recharge := recharge != null and not recharge.prete()
+	var or_vieilli := Color("b08a42")
+	draw_circle(c + Vector2(0, 4), rayon, Color(0, 0, 0, 0.35))   # ombre portée
+	draw_circle(c, rayon, Color(0.11, 0.075, 0.05, 0.9) if not appuye else Color(0.06, 0.04, 0.03, 0.95))
+	draw_circle(c - Vector2(rayon, rayon) * 0.12, rayon * 0.78, Color(0.2, 0.14, 0.09, 0.35 if not appuye else 0.15))
 	if icone:
 		# icône au centre, un peu haute pour laisser la place au nom
-		var cote := rayon * 1.22
+		var cote := rayon * 1.2
 		var rect := Rect2(c - Vector2(cote, cote) / 2.0 - Vector2(0, rayon * 0.13), Vector2(cote, cote))
 		draw_texture_rect(icone, rect, false, Color(0.45, 0.45, 0.45) if en_recharge or inactif else Color.WHITE)
 		if not en_recharge:
-			var tp := int(rayon * 0.24)
+			var tp := int(rayon * 0.25)
 			var tn := police.get_string_size(texte, HORIZONTAL_ALIGNMENT_CENTER, -1, tp)
-			var pos := c + Vector2(-tn.x / 2.0, rayon * 0.72)
-			draw_string_outline(police, pos, texte, HORIZONTAL_ALIGNMENT_LEFT, -1, tp, 5, Color.BLACK)
+			var pos := c + Vector2(-tn.x / 2.0, rayon * 0.74)
+			draw_string_outline(police, pos, texte, HORIZONTAL_ALIGNMENT_LEFT, -1, tp, 5, Color(0.04, 0.025, 0.015))
 			draw_string(police, pos, texte, HORIZONTAL_ALIGNMENT_LEFT, -1, tp, COULEUR_TEXTE)
 	if en_recharge:
 		# part sombre proportionnelle au temps restant, comme une horloge qui se vide
@@ -79,28 +84,41 @@ func _draw() -> void:
 		var pas := 32
 		for i in pas + 1:
 			var a := -PI / 2.0 + TAU * f * i / pas
-			points.append(c + Vector2(cos(a), sin(a)) * rayon)
+			points.append(c + Vector2(cos(a), sin(a)) * (rayon - 3.0))
 		draw_colored_polygon(points, Color(0, 0, 0, 0.55))
 		# arrondi au dixième supérieur : jamais « 0.0 » tant que ce n'est pas prêt
 		var s := "%.1f" % (ceilf(recharge.restant * 10.0) / 10.0) if recharge.restant < 10.0 else str(ceili(recharge.restant))
-		var ts := police.get_string_size(s, HORIZONTAL_ALIGNMENT_CENTER, -1, taille_police + 6)
-		draw_string_outline(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, taille_police + 6, 6, Color.BLACK)
-		draw_string(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, taille_police + 6, Color.WHITE)
+		var taille := int(rayon * 0.42)
+		var ts := police.get_string_size(s, HORIZONTAL_ALIGNMENT_CENTER, -1, taille)
+		draw_string_outline(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, taille, 6, Color.BLACK)
+		draw_string(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, taille, COULEUR_TEXTE)
 	elif icone == null:
-		var ts := police.get_string_size(texte, HORIZONTAL_ALIGNMENT_CENTER, -1, taille_police)
-		draw_string_outline(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), texte, HORIZONTAL_ALIGNMENT_LEFT, -1, taille_police, 5, Color.BLACK)
-		draw_string(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), texte, HORIZONTAL_ALIGNMENT_LEFT, -1, taille_police, COULEUR_TEXTE)
-	draw_arc(c, rayon - 2.0, 0, TAU, 48, COULEUR_BORD, 4.0, true)
+		var taille := int(rayon * 0.34)
+		var ts := police.get_string_size(texte, HORIZONTAL_ALIGNMENT_CENTER, -1, taille)
+		draw_string_outline(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), texte, HORIZONTAL_ALIGNMENT_LEFT, -1, taille, 5, Color.BLACK)
+		draw_string(police, c + Vector2(-ts.x / 2.0, ts.y / 3.0), texte, HORIZONTAL_ALIGNMENT_LEFT, -1, taille, COULEUR_TEXTE)
+	# l'anneau : fer sombre, or vieilli, un reflet ; quatre rivets
+	draw_arc(c, rayon - 3.0, 0, TAU, 56, Color(0.05, 0.035, 0.02), 7.0, true)
+	draw_arc(c, rayon - 3.0, 0, TAU, 56, or_vieilli if not appuye else Color("deba70"), 3.5, true)
+	draw_arc(c, rayon - 3.0, PI * 1.05, PI * 1.45, 16, Color(1.0, 0.92, 0.7, 0.55), 2.0, true)
+	for i in 4:
+		var a := PI / 4.0 + i * PI / 2.0
+		var p := c + Vector2(cos(a), sin(a)) * (rayon - 3.0)
+		draw_circle(p, 3.6, Color(0.05, 0.035, 0.02))
+		draw_circle(p - Vector2(0.6, 0.6), 2.6, Color(0.62, 0.58, 0.5))
 	if recharge != null and recharge.charges_max > 1 and not en_recharge and recharge.restant > 0.0:
 		# une charge revient : un liseré clair fait le tour du bouton
 		var f := 1.0 - recharge.fraction()
 		draw_arc(c, rayon - 3.0, -PI / 2.0, -PI / 2.0 + TAU * f, 40, Color(0.95, 0.85, 0.55), 6.0, true)
-	if compteur >= 0:   # pastille en haut à droite : combien il en reste
+	if compteur >= 0:   # pastille en haut à droite : un petit sceau de cire avec le nombre
 		var p := c + Vector2(rayon * 0.72, -rayon * 0.72)
-		var r := rayon * 0.34
-		draw_circle(p, r, Color(0.55, 0.12, 0.08) if compteur > 0 else Color(0.25, 0.22, 0.2))
-		draw_arc(p, r, 0, TAU, 24, COULEUR_BORD, 3.0, true)
+		var r := rayon * 0.36
+		if _sceau == null:
+			_sceau = load("res://assets/ui/matieres/sceau_lisse.png")
+		draw_texture_rect(_sceau, Rect2(p - Vector2(r, r) * 1.25, Vector2(r, r) * 2.5), false,
+				Color.WHITE if compteur > 0 else Color(0.5, 0.45, 0.42))
 		var t := str(compteur)
 		var tp := int(r * 1.3)
 		var ts := police.get_string_size(t, HORIZONTAL_ALIGNMENT_CENTER, -1, tp)
-		draw_string(police, p + Vector2(-ts.x / 2.0, ts.y / 3.0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, tp, COULEUR_TEXTE)
+		draw_string_outline(police, p + Vector2(-ts.x / 2.0, ts.y / 3.0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, tp, 4, Color(0.25, 0.03, 0.02))
+		draw_string(police, p + Vector2(-ts.x / 2.0, ts.y / 3.0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, tp, Color("f1d9b0"))

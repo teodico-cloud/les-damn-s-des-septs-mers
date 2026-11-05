@@ -532,7 +532,7 @@ def planche_matieres(chemin):
 ## Marges des textures « 9 cases » : à reprendre telles quelles dans tools/ui/fabriquer_theme.gd.
 MARGES = {
     "bouton": (34, 12), "bouton_appuye": (34, 12), "bouton_desactive": (34, 12),
-    "plaque": (28, 22), "panneau": (72, 72), "cuir": (24, 24), "onglet": (20, 16),
+    "plaque": (28, 22), "panneau": (72, 72), "cuir": (24, 24), "onglet": (20, 16), "affiche": (48, 48),
 }
 
 
@@ -637,6 +637,18 @@ def fond_ecran(w=640, h=360, graine=97):
     return image(degrade(lum, (8, 7, 6), (52, 42, 33)))
 
 
+def affiche(w, h, graine=19, appuye=False):
+    """Une affiche (avis de recrutement) : parchemin brûlé, deux clous en haut ; appuyée, plus sombre."""
+    im = parchemin(w, h, graine)
+    if appuye:
+        a = np.asarray(im).astype(float)
+        a[..., :3] *= 0.82
+        im = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA")
+    for x in (34, w - 35):
+        dessiner_rivet(im, x, 30, 6)
+    return im
+
+
 def textures(dossier):
     dossier = Path(dossier)
     dossier.mkdir(parents=True, exist_ok=True)
@@ -656,6 +668,8 @@ def textures(dossier):
         "sceau_lisse": sceau_lisse(96),
         "sceau_marque": sceau_marque(72),
         "coin": coin_ornement(96),
+        "affiche": affiche(400, 300),
+        "affiche_appuye": affiche(400, 300, appuye=True),
     }
     for nom, im in sorties.items():
         im.save(dossier / f"{nom}.png")

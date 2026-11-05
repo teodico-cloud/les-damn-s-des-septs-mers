@@ -102,6 +102,14 @@ func _initialize() -> void:
 	_variation(t, "PanelPlaque", "PanelContainer")
 	t.set_stylebox("panel", "PanelPlaque", _boite("plaque", 28, 22, 40, 8))
 
+	# affiches (avis de recrutement : le choix du héros), boutons de parchemin écrits à l'encre
+	_variation(t, "BoutonAffiche", "Button")
+	for etat in ["normal", "hover", "focus"]:
+		t.set_stylebox(etat, "BoutonAffiche", _boite("affiche", 48, 48, 40, 34))
+	t.set_stylebox("pressed", "BoutonAffiche", _boite("affiche_appuye", 48, 48, 40, 34, 3))
+	t.set_stylebox("focus", "BoutonAffiche", StyleBoxEmpty.new())
+	t.set_color("font_color", "BoutonAffiche", ENCRE)
+
 	# ---------------------------------------------------------------- barres de défilement : une lanière de cuir
 	var poignee := StyleBoxFlat.new()
 	poignee.bg_color = OR_SOMBRE

@@ -2,11 +2,11 @@ extends Control
 ## Écran « Jouer à deux » (même Wi-Fi). Héberger : on choisit son héros, l'écran montre un code et
 ## attend le partenaire, puis l'hôte lance le combat. Rejoindre : les parties trouvées sur le Wi-Fi
 ## s'affichent ; sinon on tape le code de l'hôte. L'invité prend l'autre héros (héros différents).
+## Refonte de l'interface (05/11) : derrière, le navire au ponton de l'écran titre, dans l'ombre ; au milieu, le
+## rôle d'équipage sur un parchemin, sa plaque de titre qui déborde ; les choix en planches, le code sur cuir.
 
 const SCENE_MENU := "res://ui/screens/demarrage.tscn"
 const SCENE_CHOIX := "res://ui/screens/choix_heros.tscn"
-const COULEUR_OS := Color("e2d6ba")
-const COULEUR_OR := Color("ac8036")
 const NOMS := {&"bretteur": "le Bretteur", &"occultiste": "l'Occultiste"}
 
 enum Vue { ACCUEIL, ATTENTE_HOTE, RECHERCHE, CONNEXION, PRET_INVITE }
@@ -182,18 +182,10 @@ func _afficher(v: Vue) -> void:
 			champ_code = LineEdit.new()
 			champ_code.placeholder_text = "Code"
 			champ_code.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER_DECIMAL   # chiffres et point
-			champ_code.custom_minimum_size = Vector2(260, 90)
+			champ_code.custom_minimum_size = Vector2(240, 88)
 			champ_code.add_theme_font_size_override("font_size", 40)
 			champ_code.alignment = HORIZONTAL_ALIGNMENT_CENTER
-			champ_code.max_length = 15
-			for etat in ["normal", "focus"]:
-				var st := StyleBoxFlat.new()
-				st.bg_color = Color("1a120d")
-				st.border_color = COULEUR_OR
-				st.set_border_width_all(3 if etat == "normal" else 5)
-				st.set_corner_radius_all(14)
-				champ_code.add_theme_stylebox_override(etat, st)
-			champ_code.add_theme_color_override("font_color", COULEUR_OS)
+			champ_code.max_length = 15   # (cuir cousu : le thème commun)
 			ligne.add_child(champ_code)
 			var ok := _bouton("Rejoindre", 300)
 			ok.pressed.connect(rejoindre_par_code)
@@ -207,30 +199,58 @@ func _afficher(v: Vue) -> void:
 
 
 func _construire() -> void:
-	var fond := ColorRect.new()
-	fond.color = Color("0b1418")
-	fond.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(fond)
+	add_child(DecorMenu.new())
+	var ombre := ColorRect.new()
+	ombre.color = Color(0.02, 0.015, 0.01, 0.6)
+	ombre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ombre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(ombre)
+	# la plaque du titre déborde sur le haut du parchemin (séparation négative ; dessinée par-dessus)
+	var bloc := VBoxContainer.new()
+	bloc.set_anchors_preset(Control.PRESET_CENTER)
+	bloc.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	bloc.grow_vertical = Control.GROW_DIRECTION_BOTH
+	bloc.add_theme_constant_override("separation", -22)
+	add_child(bloc)
+	var plaque := PanelContainer.new()
+	plaque.theme_type_variation = &"PanelPlaque"
+	plaque.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	plaque.z_index = 1
+	bloc.add_child(plaque)
+	titre = Label.new()
+	titre.theme_type_variation = &"LabelTitre"
+	titre.add_theme_font_size_override("font_size", 40)
+	plaque.add_child(titre)
+	var feuille := PanelContainer.new()
+	feuille.theme_type_variation = &"PanelParchemin"
+	feuille.custom_minimum_size = Vector2(880, 0)
+	bloc.add_child(feuille)
 	var colonne := VBoxContainer.new()
-	colonne.set_anchors_preset(Control.PRESET_FULL_RECT)
 	colonne.alignment = BoxContainer.ALIGNMENT_CENTER
-	colonne.add_theme_constant_override("separation", 26)
-	add_child(colonne)
-	titre = _label(54, COULEUR_OS)
-	colonne.add_child(titre)
-	message = _label(28, Color("6cffa0"))
+	colonne.add_theme_constant_override("separation", 18)
+	feuille.add_child(colonne)
+	message = Label.new()
+	message.theme_type_variation = &"LabelEncre"
+	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	message.add_theme_font_size_override("font_size", 26)
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	message.custom_minimum_size = Vector2(740, 0)
 	colonne.add_child(message)
+	colonne.add_child(StyleRepaire.separateur(320.0))
 	var centre := CenterContainer.new()
 	colonne.add_child(centre)
 	zone = VBoxContainer.new()
-	zone.add_theme_constant_override("separation", 18)
+	zone.add_theme_constant_override("separation", 14)
 	centre.add_child(zone)
-	var retour_b := _bouton("Retour", 170)
-	retour_b.custom_minimum_size.y = 76
-	retour_b.position = Vector2(24, 18)
+	var retour_b := Button.new()
+	retour_b.text = "Retour"
+	retour_b.theme_type_variation = &"BoutonPetit"
+	retour_b.custom_minimum_size = Vector2(150, 60)
+	retour_b.position = Vector2(22, 18)
 	retour_b.pressed.connect(retour)
 	add_child(retour_b)
+	EffetsUI.animer_bouton(retour_b)
+	EffetsUI.voile(self)
 
 
 func _label(taille: int, couleur: Color) -> Label:
@@ -244,15 +264,7 @@ func _label(taille: int, couleur: Color) -> Label:
 func _bouton(texte: String, largeur: float) -> Button:
 	var b := Button.new()
 	b.text = texte
-	b.custom_minimum_size = Vector2(largeur, 100)
-	b.add_theme_font_size_override("font_size", 34)
-	b.add_theme_color_override("font_color", COULEUR_OS)
-	for etat in ["normal", "hover", "pressed", "focus", "disabled"]:
-		var s := StyleBoxFlat.new()
-		s.bg_color = {"normal": Color("3a2a20"), "hover": Color("4a3628"), "pressed": Color("24190f"),
-				"focus": Color("3a2a20"), "disabled": Color("231a14")}[etat]
-		s.border_color = COULEUR_OR if etat != "disabled" else Color(COULEUR_OR, 0.35)
-		s.set_border_width_all(4)
-		s.set_corner_radius_all(14)
-		b.add_theme_stylebox_override(etat, s)
+	b.custom_minimum_size = Vector2(largeur, 86)
+	b.add_theme_font_size_override("font_size", 32)
+	EffetsUI.animer_bouton(b)
 	return b

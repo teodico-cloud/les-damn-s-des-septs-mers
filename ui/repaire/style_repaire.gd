@@ -17,6 +17,8 @@ const ROUGE_BOUTON := Color("ff8f74")   ## texte d'un bouton « attention » (su
 static func encre(c: Color) -> Color:
 	if c.get_luminance() < 0.4:
 		return c
+	if c.s < 0.2:   # (un gris clair, objet Commun : l'encre ordinaire)
+		return Color(COULEUR_OS, c.a * 0.85)
 	return Color(c.darkened(0.55), c.a)
 
 
