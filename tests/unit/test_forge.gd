@@ -87,6 +87,7 @@ func test_ni_les_uniques_ni_les_reliques() -> void:
 	Sauvegarde.encaisser("e", [_o("l", "lame_du_noye", 3), _o("f", "fiole"), _o("h", "hache", 2)], 0)
 	_riche()
 	assert_false(Forge.ameliorable(Sauvegarde.objet("l")), "Objet unique")
+	assert_false(Forge.ameliorable(_o("l0", "lame_du_noye", 0)), "Un objet unique, même d'une rareté basse (sauvegarde abîmée)")
 	assert_false(Forge.ameliorable(Sauvegarde.objet("f")), "Relique")
 	assert_false(Forge.ameliorable(Sauvegarde.objet("h")), "Déjà Épique")
 	assert_false(Sauvegarde.ameliorer_objet("l", 3))
@@ -109,6 +110,7 @@ func test_recycler() -> void:
 	assert_eq(Sauvegarde.ressource("fer"), EQ.forge_recyclage_arme[1])
 	assert_true(Sauvegarde.objet("s").is_empty(), "Disparue des coffres")
 	assert_eq(Sauvegarde.porte(&"bretteur", "arme"), {}, "Et de la main du héros")
+	assert_eq(Sauvegarde.donnees["equipement"]["bretteur"]["arme"], "", "Son identifiant ne reste pas dans l'équipement")
 	assert_eq(Sauvegarde.recycler("s"), {}, "Un double appui ne recycle rien de plus")
 	Sauvegarde.recycler("f")
 	assert_eq(Sauvegarde.ressource("essence"), EQ.forge_recyclage_relique[2], "Une relique rend de l'essence")
@@ -155,7 +157,8 @@ func test_agrandir_l_entrepot() -> void:
 
 # ---------------------------------------------------------------- panneau de la forge
 func test_le_panneau_de_la_forge() -> void:
-	Sauvegarde.encaisser("e", [_o("s", "sabre"), _o("f", "fiole", 1, {"vitesse": 0.06})], 0)
+	Sauvegarde.encaisser("e", [_o("s", "sabre"), _o("f", "fiole", 1, {"vitesse": 0.06}),
+			_o("c", "coutelas", 2, {"pv": 10.0, "critique": 0.06})], 0)
 	_riche()
 	var r := await _repaire()
 	r.ouvrir(&"forge")
@@ -170,7 +173,7 @@ func test_le_panneau_de_la_forge() -> void:
 	# recycler : deux appuis
 	p.boutons_onglets["recycler"].pressed.emit()
 	await wait_process_frames(1)
-	assert_eq(p.boutons.size(), 2, "Recycler : tous les objets")
+	assert_eq(p.boutons.size(), 3, "Recycler : tous les objets")
 	p.boutons["f"].pressed.emit()
 	await wait_process_frames(1)
 	assert_false(Sauvegarde.objet("f").is_empty(), "Premier appui : on demande confirmation")
@@ -186,10 +189,16 @@ func test_le_panneau_de_la_forge() -> void:
 	p.bouton_agrandir.pressed.emit()
 	assert_eq(Sauvegarde.niveau_repaire("forge"), 2)
 	await wait_process_frames(1)
-	var cle: String = p.boutons_relance.keys()[0]
+	var cle: String = p.boutons_relance.keys().filter(func(k): return k.begins_with("s|"))[0]
 	var effet := cle.split("|")[1]
 	p.boutons_relance[cle].pressed.emit()
 	assert_false(Sauvegarde.objet("s")["effets"].has(effet), "L'effet touché est remplacé")
+	await wait_process_frames(1)
+	assert_has(p.boutons_relance.keys(), "c|critique")
+	p.boutons_relance["c|critique"].pressed.emit()   # le second effet de l'objet : c'est lui qui change
+	var e: Dictionary = Sauvegarde.objet("c")["effets"]
+	assert_false(e.has("critique"), str(e))
+	assert_true(e.has("pv"), "Le premier effet ne bouge pas")
 
 
 func test_pastilles_de_la_forge_et_de_l_entrepot() -> void:

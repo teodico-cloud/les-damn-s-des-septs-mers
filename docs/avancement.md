@@ -23,6 +23,8 @@ Dernière mise à jour : 4 novembre 2026.
 - **Jalon 4, étape 3 (tri de la cale, revente, extraction d'urgence) : faite** ; relecture de fin de jalon corrigée ; APK 0.4.18.
 - **Jalon 5, étape 1 (matériaux, sauvegarde v2, repaire, salle des cartes, entrepôt) : faite**, APK 0.5.19 (voir plus bas).
 - **Jalon 5, étape 2 (chantier naval, améliorations du bateau, bordée visée au joystick) : faite**, APK 0.5.20 (voir plus bas).
+- **Jalon 5, étape 3 (forge : améliorer, recycler, relancer ; forge et entrepôt niveau 2) : faite** (voir plus bas) ;
+  relecture de fin de jalon puis APK.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -289,6 +291,8 @@ Matelots squelettes qui reviennent sans fin.
   double appui ne paie jamais deux fois.
 - Petits choix faits sans Téo, à lui signaler : les valeurs du recyclage ; un objet unique se recycle (12 fer pour une
   arme Légendaire) mais ne s'améliore pas ; la pastille de la forge ne signale que son agrandissement.
+- Tests : 313 (9 nouveaux dans `test_forge.gd` ; 29 sabotages, tous vus après 3 tests renforcés : un unique mal rangé,
+  l'identifiant d'un objet recyclé qui restait dans l'équipement, le second effet d'un objet à relancer).
 
 ## Objets uniques : une fois par héros (04/11, choix de Téo)
 - Un même objet unique (Légendaire ou Maudit) ne se porte qu'une fois par héros ; l'autre héros peut porter l'autre

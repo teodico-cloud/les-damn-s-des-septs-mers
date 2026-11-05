@@ -147,7 +147,7 @@ func test_la_pastille_du_chantier() -> void:
 	r.mettre_a_jour_pastilles()
 	assert_true(r.pastilles[&"chantier"].visible, "« ! » au-dessus du chantier")
 	assert_true(r.hud.raccourcis[&"chantier"].get_node("Pastille").visible, "… et sur son raccourci")
-	assert_false(r.pastilles[&"forge"].visible)
+	assert_false(r.pastilles[&"cartes"].visible, "La salle des cartes n'a rien à vendre")
 	for a in Bateau.AMELIORATIONS:
 		for n in 3:
 			Sauvegarde.ameliorer_bateau(a, n + 1)
