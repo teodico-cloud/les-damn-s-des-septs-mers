@@ -46,11 +46,30 @@ func relacher() -> void:
 	queue_redraw()
 
 
+## Refonte de l'interface (05/11) : un anneau d'or vieilli gravé de huit crans (une boussole), une poignée de
+## laiton ; au repos, l'anneau seul, très discret.
 func _draw() -> void:
+	var or_vieilli := Color("b08a42")
+	var sombre := Color(0.06, 0.04, 0.02)
 	if actif:
-		draw_circle(origine, RAYON_BASE, Color(0.05, 0.08, 0.1, 0.35))
-		draw_arc(origine, RAYON_BASE, 0, TAU, 48, Color(0.89, 0.84, 0.73, 0.55), 3.0, true)
-		draw_circle(poignee, RAYON_POIGNEE, Color(0.89, 0.84, 0.73, 0.75))
+		draw_circle(origine, RAYON_BASE, Color(0.03, 0.025, 0.02, 0.4))
+		draw_arc(origine, RAYON_BASE, 0, TAU, 64, Color(sombre, 0.7), 7.0, true)
+		draw_arc(origine, RAYON_BASE, 0, TAU, 64, Color(or_vieilli, 0.75), 3.0, true)
+		draw_arc(origine, RAYON_BASE - 10, 0, TAU, 64, Color(or_vieilli, 0.3), 1.5, true)
+		for i in 8:
+			var a := TAU * i / 8.0
+			var long := 16.0 if i % 2 == 0 else 9.0
+			var d := Vector2(cos(a), sin(a))
+			draw_line(origine + d * (RAYON_BASE - long), origine + d * RAYON_BASE, Color(or_vieilli, 0.8), 2.5, true)
+		draw_circle(poignee + Vector2(0, 4), RAYON_POIGNEE, Color(0, 0, 0, 0.35))
+		draw_circle(poignee, RAYON_POIGNEE, Color("6e5326"))
+		draw_circle(poignee - Vector2(6, 6), RAYON_POIGNEE * 0.72, Color("b08a42"))
+		draw_circle(poignee - Vector2(10, 10), RAYON_POIGNEE * 0.3, Color("deba70", 0.6))
+		draw_arc(poignee, RAYON_POIGNEE, 0, TAU, 40, sombre, 3.0, true)
 	else:
-		draw_arc(position_repos, RAYON_BASE * 0.8, 0, TAU, 48, Color(0.89, 0.84, 0.73, 0.18), 3.0, true)
-		draw_circle(position_repos, RAYON_POIGNEE * 0.8, Color(0.89, 0.84, 0.73, 0.12))
+		draw_arc(position_repos, RAYON_BASE * 0.8, 0, TAU, 64, Color(or_vieilli, 0.22), 3.0, true)
+		for i in 4:
+			var a := TAU * i / 4.0
+			var d := Vector2(cos(a), sin(a))
+			draw_line(position_repos + d * (RAYON_BASE * 0.8 - 12), position_repos + d * RAYON_BASE * 0.8, Color(or_vieilli, 0.3), 2.0, true)
+		draw_circle(position_repos, RAYON_POIGNEE * 0.8, Color(or_vieilli, 0.12))

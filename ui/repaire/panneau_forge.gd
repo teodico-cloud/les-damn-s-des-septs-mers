@@ -39,14 +39,13 @@ func _remplir() -> void:
 	var parts := ["%d doublons" % Sauvegarde.doublons()]
 	for m in Butin.MATIERES:
 		parts.append(Butin.texte_tas(m, Sauvegarde.ressource(m)))
-	contenu.add_child(StyleRepaire.texte(" · ".join(parts), 24, Butin.COULEURS_TAS["doublons"]))
+	contenu.add_child(StyleRepaire.texte(" · ".join(parts), 24, StyleRepaire.OR_VIF))
 	var rangee := HBoxContainer.new()
 	rangee.add_theme_constant_override("separation", 12)
 	contenu.add_child(rangee)
 	for o in ONGLETS:
-		var b := StyleRepaire.bouton(ONGLETS[o], Vector2(220, 60), 26, StyleRepaire.OR_VIF if o == onglet else StyleRepaire.COULEUR_OS)
-		b.add_theme_stylebox_override("normal", StyleRepaire.style(false, Color(0.16, 0.11, 0.08, 0.92),
-				StyleRepaire.OR_VIF if o == onglet else Color(StyleRepaire.COULEUR_OR, 0.45)))
+		var b := StyleRepaire.bouton(ONGLETS[o], Vector2(220, 60), 26)
+		b.theme_type_variation = &"BoutonOngletActif" if o == onglet else &"BoutonOnglet"
 		b.pressed.connect(choisir_onglet.bind(o))
 		rangee.add_child(b)
 		boutons_onglets[o] = b
@@ -74,7 +73,7 @@ func _ameliorer() -> void:
 		var p := Forge.prix_amelioration(o)
 		var manque := Bateau.manque(p)
 		var suivante: String = Butin.NOMS_RARETES[int(o["rarete"]) + 1]
-		var b := StyleRepaire.bouton("Améliorer", Vector2(210, 60), 26, StyleRepaire.OR_VIF)
+		var b := StyleRepaire.bouton("Améliorer", Vector2(210, 60), 26)
 		b.disabled = not manque.is_empty()
 		b.pressed.connect(ameliorer.bind(o["id"], int(o["rarete"])))
 		boutons[o["id"]] = b
@@ -148,7 +147,7 @@ func _relancer() -> void:
 		var manque := Bateau.manque(p)
 		contenu.add_child(StyleRepaire.texte("Agrandir la forge (niveau 2) : on pourra relancer un effet en plus d'un objet.", 22))
 		contenu.add_child(StyleRepaire.texte(_texte_prix(p, manque), 22, StyleRepaire.COULEUR_OS if manque.is_empty() else StyleRepaire.ROUGE))
-		bouton_agrandir = StyleRepaire.bouton("Agrandir la forge", Vector2(320, 70), 28, StyleRepaire.OR_VIF)
+		bouton_agrandir = StyleRepaire.bouton("Agrandir la forge", Vector2(320, 70), 28)
 		bouton_agrandir.disabled = not manque.is_empty()
 		bouton_agrandir.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		bouton_agrandir.pressed.connect(agrandir)
@@ -206,11 +205,7 @@ func agrandir() -> void:
 
 # ---------------------------------------------------------------- mise en page
 func _cadre() -> PanelContainer:
-	var cadre := PanelContainer.new()
-	var style := StyleRepaire.style(false, Color(0.2, 0.14, 0.09, 0.95), Color(StyleRepaire.COULEUR_OR, 0.7))
-	style.set_content_margin_all(8)
-	cadre.add_theme_stylebox_override("panel", style)
-	return cadre
+	return StyleRepaire.cadre()
 
 
 ## Un objet : son nom (à la couleur de sa rareté), des lignes, un bouton à droite.

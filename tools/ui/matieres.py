@@ -599,7 +599,7 @@ def trait_encre(w, h=14, graine=16):
 
 def sceau_marque(taille, texte="!", graine=17):
     """Petit sceau de cire avec une marque (pastille « ! » des lieux du repaire)."""
-    im = sceau(taille, graine)
+    im = sceau_lisse(taille, graine)
     s = 4
     T = taille * s
     grand = im.resize((T, T), Image.LANCZOS)

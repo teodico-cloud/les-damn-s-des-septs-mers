@@ -47,10 +47,11 @@ func test_le_repaire_se_construit() -> void:
 	var enseignes := r.find_children("*", "Label3D", false, false).map(func(l): return l.text)
 	for l in Repaire.ORDRE_LIEUX:
 		assert_has(enseignes, Repaire.LIEUX[l]["nom"])
-	assert_eq(r.hud.labels_ressources["doublons"].text, "57 doublons")
-	assert_eq(r.hud.labels_ressources["bois"].text, "12 bois de coque")
-	assert_eq(r.hud.labels_ressources["fer"].text, "3 fer noir")
-	assert_eq(r.hud.labels_ressources["essence"].text, "0 essence maudite")
+	# (refonte de l'interface : sur la lanière de cuir, l'icône dit lequel, le texte donne le nombre)
+	assert_eq(r.hud.labels_ressources["doublons"].text, "57")
+	assert_eq(r.hud.labels_ressources["bois"].text, "12")
+	assert_eq(r.hud.labels_ressources["fer"].text, "3")
+	assert_eq(r.hud.labels_ressources["essence"].text, "0")
 
 
 func test_on_arrive_au_quai_apres_l_expedition() -> void:
@@ -164,7 +165,7 @@ func test_l_entrepot_montre_les_materiaux() -> void:
 	assert_has(textes, "0 / %d" % Sauvegarde.plafond("fer"))
 	assert_has(textes, "Coffres : 1 objet, dont 1 porté")
 	var plein: Label = p.find_children("Compte", "Label", true, false)[2]
-	assert_eq(plein.get_theme_color("font_color"), StyleRepaire.ROUGE, "Plein : en rouge")
+	assert_eq(plein.get_theme_color("font_color"), StyleRepaire.encre(StyleRepaire.ROUGE), "Plein : à l'encre rouge")
 	p.bouton_equipement.pressed.emit()
 	assert_eq(r.scene_demandee, Repaire.SCENE_EQUIPEMENT)
 	assert_eq(Partie.lieu_repaire, &"entrepot", "On reviendra devant l'entrepôt")

@@ -40,7 +40,7 @@ var changer_de_scene := true     ## faux dans les tests : le changement de scèn
 var scene_demandee := ""         ## (tests) la scène qu'on aurait ouverte
 var _torches: Array[OmniLight3D] = []
 var enseignes := {}               ## lieu -> Label3D (son nom)
-var pastilles := {}               ## lieu -> Label3D « ! » (achat possible)
+var pastilles := {}               ## lieu -> Sprite3D (sceau de cire « ! » : un achat y est possible)
 var _braises: OmniLight3D
 var _temps := 0.0
 
@@ -79,6 +79,21 @@ func _process(delta: float) -> void:
 		_torches[i].light_energy = 2.2 + 0.35 * sin(_temps * 9.0 + i * 2.1) + 0.2 * sin(_temps * 23.0 + i)
 	if _braises:
 		_braises.light_energy = 2.6 + 0.6 * sin(_temps * 6.0) + 0.3 * sin(_temps * 17.0)
+	_estomper_enseignes(delta)
+
+
+## Refonte de l'interface (05/11) : une enseigne qui passe sous la bande du haut (Menu, plaque, bourse) ou sous
+## les raccourcis de droite s'efface presque, pour ne pas brouiller l'interface.
+func _estomper_enseignes(delta: float) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var ecran := get_viewport().get_visible_rect().size
+	for l in enseignes:
+		var e: Label3D = enseignes[l]
+		var p := cam.unproject_position(e.global_position)
+		var cache := p.y < 110.0 or p.x > ecran.x - 300.0
+		e.modulate.a = move_toward(e.modulate.a, 0.15 if cache else 1.0, delta * 3.0)
 
 
 func _physics_process(_delta: float) -> void:
@@ -191,7 +206,10 @@ func retour_menu() -> void:
 func _changer_de_scene(chemin: String) -> void:
 	scene_demandee = chemin
 	if changer_de_scene and is_inside_tree():
-		get_tree().change_scene_to_file(chemin)
+		if hud:   # (refonte de l'interface : un fondu au noir avant de quitter le repaire)
+			hud.fondu_puis(func(): get_tree().change_scene_to_file(chemin))
+		else:
+			get_tree().change_scene_to_file(chemin)
 
 
 ## Où le héros apparaît : au quai en revenant d'expédition, devant le lieu qu'on vient de quitter, sinon au milieu.
@@ -316,9 +334,13 @@ func _construire() -> void:
 		add_child(l)
 	for l in ORDRE_LIEUX:
 		enseignes[l] = _enseigne(LIEUX[l]["nom"], LIEUX[l]["pos"] + _decalage_enseigne(l))
-		var p := _enseigne("!", LIEUX[l]["pos"] + _decalage_enseigne(l) + Vector3(0, 0.55, 0))
-		p.font_size = 90
-		p.modulate = Color(1.0, 0.4, 0.2)
+		var p := Sprite3D.new()   # (refonte : un sceau de cire « ! », comme sur les raccourcis)
+		p.texture = load("res://assets/ui/matieres/sceau_marque.png")
+		p.pixel_size = 0.0075
+		p.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		p.no_depth_test = true
+		p.position = LIEUX[l]["pos"] + _decalage_enseigne(l) + Vector3(0, 0.62, 0)
+		add_child(p)
 		p.name = "Pastille_" + String(l)
 		p.visible = false
 		pastilles[l] = p
@@ -459,10 +481,12 @@ func _entrepot() -> void:
 func _enseigne(texte: String, pos: Vector3) -> Label3D:
 	var l := Label3D.new()
 	l.text = texte
-	l.font_size = 48
-	l.outline_size = 12
+	l.font = load("res://assets/ui/polices/IMFellEnglishSC-Regular.ttf")   # (la police des titres)
+	l.font_size = 54
+	l.outline_size = 14
+	l.outline_modulate = Color(0.06, 0.04, 0.02)
 	l.pixel_size = 0.006
-	l.modulate = Color("e0b04a")
+	l.modulate = Color("deba70")
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.position = pos
 	add_child(l)

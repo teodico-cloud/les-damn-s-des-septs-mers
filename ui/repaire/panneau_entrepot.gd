@@ -18,7 +18,7 @@ func _init() -> void:
 
 
 func _remplir() -> void:
-	contenu.add_child(StyleRepaire.texte("%d doublons" % Sauvegarde.doublons(), 32, Butin.COULEURS_TAS["doublons"]))
+	contenu.add_child(StyleRepaire.titre("%d doublons" % Sauvegarde.doublons(), 36, StyleRepaire.OR_VIF))
 	contenu.add_child(StyleRepaire.texte("Matériaux (entrepôt niveau %d)" % Sauvegarde.niveau_repaire("entrepot"),
 			24, Color(StyleRepaire.COULEUR_OS, 0.7)))
 	for m in Butin.MATIERES:
@@ -41,7 +41,7 @@ func _remplir() -> void:
 			t += "  (il manque " + Bateau.texte_prix(manque) + ")"
 		textes.add_child(StyleRepaire.texte(t, 20, StyleRepaire.COULEUR_OS if manque.is_empty() else StyleRepaire.ROUGE))
 		ligne.add_child(textes)
-		bouton_agrandir = StyleRepaire.bouton("Agrandir", Vector2(210, 60), 26, StyleRepaire.OR_VIF)
+		bouton_agrandir = StyleRepaire.bouton("Agrandir", Vector2(210, 60), 26)
 		bouton_agrandir.disabled = not manque.is_empty()
 		bouton_agrandir.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		bouton_agrandir.pressed.connect(agrandir)
@@ -51,7 +51,7 @@ func _remplir() -> void:
 	var portes := objets.filter(func(o): return not Sauvegarde.ou_est_porte(o["id"]).is_empty()).size()
 	contenu.add_child(StyleRepaire.texte("Coffres : %d objet%s, dont %d porté%s" % [objets.size(), "s" if objets.size() > 1 else "",
 			portes, "s" if portes > 1 else ""], 26))
-	bouton_equipement = StyleRepaire.bouton("Équipement", Vector2(320, 80), 30, StyleRepaire.OR_VIF)
+	bouton_equipement = StyleRepaire.bouton("Équipement", Vector2(320, 80), 30)
 	bouton_equipement.pressed.connect(func(): equipement_demande.emit())
 	bouton_equipement.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	contenu.add_child(bouton_equipement)
@@ -70,11 +70,11 @@ func _ligne_matiere(m: String) -> Control:
 	jauge.custom_minimum_size = Vector2(LARGEUR_JAUGE, 26)
 	jauge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var fond := ColorRect.new()
-	fond.color = Color(0.0, 0.0, 0.0, 0.5)
+	fond.color = Color(0.25, 0.15, 0.07, 0.22)   # (un lavis sur le parchemin)
 	fond.size = Vector2(LARGEUR_JAUGE, 26)
 	jauge.add_child(fond)
 	var plein := ColorRect.new()
-	plein.color = Color(Butin.COULEURS_TAS[m], 0.85)
+	plein.color = Color(StyleRepaire.encre(Butin.COULEURS_TAS[m]), 0.8)
 	plein.size = Vector2(LARGEUR_JAUGE * clampf(float(n) / maxf(plafond, 1.0), 0.0, 1.0), 26)
 	jauge.add_child(plein)
 	ligne.add_child(jauge)

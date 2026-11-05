@@ -18,22 +18,24 @@ func _init() -> void:
 
 
 func _remplir() -> void:
-	var carte := PanelContainer.new()
-	carte.add_theme_stylebox_override("panel", StyleRepaire.style(false, Color(0.2, 0.15, 0.09, 0.95), StyleRepaire.OR_VIF))
+	var carte := StyleRepaire.cadre()
 	var dans_carte := VBoxContainer.new()
+	dans_carte.add_theme_constant_override("separation", 0)
 	carte.add_child(dans_carte)
-	dans_carte.add_child(StyleRepaire.texte("Destination : le Récif des Pendus", 32, StyleRepaire.OR_VIF))
-	dans_carte.add_child(StyleRepaire.texte("Quatre salles, l'antre du Bosco Maudit, puis la chaloupe sous les vagues.", 22))
+	dans_carte.add_child(StyleRepaire.texte("Destination", 20, Color(StyleRepaire.COULEUR_OS, 0.7)))
+	dans_carte.add_child(StyleRepaire.titre("Le Récif des Pendus", 38, StyleRepaire.ROUGE))
+	dans_carte.add_child(StyleRepaire.texte("Quatre salles, l'antre du Bosco Maudit, puis la chaloupe sous les vagues.", 23))
 	contenu.add_child(carte)
 
 	var rangee := HBoxContainer.new()
 	rangee.add_theme_constant_override("separation", 16)
 	contenu.add_child(rangee)
-	var l_heros := StyleRepaire.texte("Héros :", 26, Color(StyleRepaire.COULEUR_OS, 0.8))
+	var l_heros := StyleRepaire.titre("Héros", 30)
 	l_heros.custom_minimum_size = Vector2(110, 0)
+	l_heros.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	rangee.add_child(l_heros)
 	for h in NOMS_HEROS:
-		var b := StyleRepaire.bouton(NOMS_HEROS[h], Vector2(300, 70), 28)
+		var b := StyleRepaire.bouton(NOMS_HEROS[h], Vector2(280, 68), 28)
 		b.toggle_mode = true
 		b.pressed.connect(choisir_heros.bind(h))
 		rangee.add_child(b)
@@ -44,11 +46,11 @@ func _remplir() -> void:
 	choix_malediction.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	contenu.add_child(choix_malediction)
 
-	bouton_partir = StyleRepaire.bouton("Lever l'ancre !", Vector2(420, 90), 36, StyleRepaire.OR_VIF)
+	bouton_partir = StyleRepaire.bouton("Lever l'ancre !", Vector2(440, 96), 38)
+	bouton_partir.theme_type_variation = &"BoutonPrincipal"
+	bouton_partir.size_flags_horizontal = Control.SIZE_SHRINK_END   # (à droite, sous la main)
 	bouton_partir.pressed.connect(func(): partir.emit(Partie.heros_local))
-	var centre := CenterContainer.new()
-	centre.add_child(bouton_partir)
-	contenu.add_child(centre)
+	contenu.add_child(bouton_partir)
 
 
 func choisir_heros(archetype: StringName) -> void:
@@ -61,8 +63,5 @@ func _marquer_heros() -> void:
 	for h in boutons_heros:
 		var b: Button = boutons_heros[h]
 		b.button_pressed = h == Partie.heros_local
-		var c := StyleRepaire.OR_VIF if h == Partie.heros_local else StyleRepaire.COULEUR_OS
-		for etat in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-			b.add_theme_color_override(etat, c)
-		b.add_theme_stylebox_override("normal", StyleRepaire.style(false, Color(0.16, 0.11, 0.08, 0.92),
-				StyleRepaire.OR_VIF if h == Partie.heros_local else Color(StyleRepaire.COULEUR_OR, 0.5)))
+		# le héros choisi : une planche ; l'autre : une lanière de cuir
+		b.theme_type_variation = &"BoutonOngletActif" if h == Partie.heros_local else &"BoutonOnglet"

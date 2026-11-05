@@ -14,7 +14,7 @@ func _init() -> void:
 
 func _remplir() -> void:
 	boutons.clear()
-	var argent := StyleRepaire.texte("", 24, Butin.COULEURS_TAS["doublons"])
+	var argent := StyleRepaire.texte("", 24, StyleRepaire.OR_VIF)
 	var parts := ["%d doublons" % Sauvegarde.doublons()]
 	for m in Butin.MATIERES:
 		parts.append(Butin.texte_tas(m, Sauvegarde.ressource(m)))
@@ -25,10 +25,7 @@ func _remplir() -> void:
 
 
 func _ligne(a: String) -> Control:
-	var cadre := PanelContainer.new()
-	var style := StyleRepaire.style(false, Color(0.2, 0.14, 0.09, 0.95), Color(StyleRepaire.COULEUR_OR, 0.7))
-	style.set_content_margin_all(8)
-	cadre.add_theme_stylebox_override("panel", style)
+	var cadre := StyleRepaire.cadre()
 	var ligne := HBoxContainer.new()
 	ligne.add_theme_constant_override("separation", 16)
 	cadre.add_child(ligne)
@@ -37,7 +34,7 @@ func _ligne(a: String) -> Control:
 	gauche.add_theme_constant_override("separation", 0)
 	ligne.add_child(gauche)
 	var n := Sauvegarde.niveau_bateau(a)
-	var titre_ligne := StyleRepaire.texte("%s   %s" % [Bateau.NOMS[a], _crans(n)], 26, StyleRepaire.OR_VIF)
+	var titre_ligne := StyleRepaire.titre("%s   %s" % [Bateau.NOMS[a], _crans(n)], 28)
 	gauche.add_child(titre_ligne)
 	var b: Button
 	if n >= Bateau.NIVEAU_MAX:
