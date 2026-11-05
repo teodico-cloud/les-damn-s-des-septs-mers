@@ -269,6 +269,27 @@ Matelots squelettes qui reviennent sans fin.
 - Tests : 304 (16 nouveaux dans `test_bateau.gd` ; 29 sabotages, tous vus) ; essai coop de l'expédition étendu : les
   voiles de l'invité comptent chez les deux (35 s), sa bordée est tirée par l'hôte et ses 5 boulets tombent chez lui.
 
+## Forge et niveaux 2 du repaire (jalon 5, étape 3 — choix de Téo du 04-05/11)
+- **Forge** (lieu du repaire), trois onglets :
+  - **Améliorer** : une arme Commune ou Rare monte d'une rareté ; son effet de base grandit (×1,25 puis ×1,5) et elle
+    gagne un effet en plus tiré au hasard (jamais un qu'elle a déjà). Portée, elle le reste. Prix : Commun → Rare
+    80 doublons + 10 fer noir ; Rare → Épique 160 doublons + 25 fer noir + 5 essence maudite. Ni les reliques ni les
+    objets uniques ; Épique est le plus haut.
+  - **Recycler** : n'importe quel objet des coffres disparaît et rend des matériaux (arme : fer noir 2 / 4 / 8 / 12 pour
+    Commun / Rare / Épique / unique ; relique : essence maudite 1 / 2 / 4 / 6). Deux appuis (« Sûr ? Recycler » en rouge) ; un objet porté est
+    retiré au héros (écrit en rouge sur sa ligne). Entrepôt plein : le surplus est revendu, comme au retour d'expédition.
+  - **Relancer** (forge niveau 2, choix de Téo : **on choisit l'effet**) : chaque effet en plus d'un objet Rare ou Épique
+    a son bouton « Relancer : +6 % de coups critiques » ; il est remplacé au hasard par un effet que l'objet n'a pas.
+    40 doublons + 4 essence maudite. Sans le niveau 2, l'onglet propose « Agrandir la forge ».
+- **Niveaux 2** : forge 300 doublons + 40 bois + 20 fer (débloque la relance) ; entrepôt 250 doublons + 60 bois (plafonds
+  150 / 80 / 40 → 400 / 200 / 100), bouton « Agrandir » dans l'entrepôt. Une seule fois chacun.
+- **Pastille « ! »** : sur la forge et l'entrepôt quand leur niveau 2 est payable (pas pour chaque arme améliorable :
+  la pastille brillerait presque tout le temps).
+- Tous les achats sont notés au journal de la sauvegarde ; chaque bouton redit ce qu'il a vu (rareté, effet) : un
+  double appui ne paie jamais deux fois.
+- Petits choix faits sans Téo, à lui signaler : les valeurs du recyclage ; un objet unique se recycle (12 fer pour une
+  arme Légendaire) mais ne s'améliore pas ; la pastille de la forge ne signale que son agrandissement.
+
 ## Objets uniques : une fois par héros (04/11, choix de Téo)
 - Un même objet unique (Légendaire ou Maudit) ne se porte qu'une fois par héros ; l'autre héros peut porter l'autre
   exemplaire. Équiper le 2e exemplaire retire le premier (comme un objet déplacé d'une relique à l'autre) ; écran

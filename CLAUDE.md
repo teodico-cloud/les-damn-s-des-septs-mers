@@ -100,10 +100,13 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Repaire (jalon 5) : `game/repaire/repaire.gd` (`Repaire` : grotte, quai, lieux `LIEUX`, héros au joystick, ouvre les
   lieux ; arrivée selon `Partie.lieu_repaire`) ; `navire.gd` (`Navire`, fait par code) ; `ui/repaire/` : `HudRepaire`
   (joystick, ressources, raccourcis, « Ouvrir »), `PanneauRepaire` (cadre d'un lieu) et ses lieux (`PanneauCartes`,
-  `PanneauEntrepot`, `PanneauChantier`), `StyleRepaire` (couleurs, boutons). L'expédition revient au repaire
-  (`_scene_retour`). `bateau.gd` (`Bateau`) : les 4 améliorations (effets par niveau, prix, ce qui manque, ce qui
+  `PanneauEntrepot` (et son niveau 2), `PanneauChantier`, `PanneauForge`), `StyleRepaire` (couleurs, boutons).
+  L'expédition revient au repaire (`_scene_retour`). `bateau.gd` (`Bateau`) : les 4 améliorations (effets par niveau, prix, ce qui manque, ce qui
   compte en expédition : `ma_cale`, `duree_chaloupe_partie`, `ma_malediction_max`, `tirs_bordee`) ; achat :
   `Sauvegarde.ameliorer_bateau`. Bordée : `HudCombat` (bouton, visée), `Expedition.tirer_bordee`, `game/combat/boulet.gd`.
+  `forge.gd` (`Forge`, étape 3) : ce qui est possible et ce que ça coûte (monter une arme d'une rareté, recycler, relancer
+  un effet, agrandir la forge ou l'entrepôt) ; les achats eux-mêmes : `Sauvegarde.ameliorer_objet`, `recycler`,
+  `relancer_effet`, `agrandir` (journal `achats`).
 - `tests/unit/` : tests GUT (`test_*.gd`) ; `addons/gut/` : GUT 9.7.1 (exclu de l'APK) ; `tests/pre_run.gd` :
   avant les tests, la sauvegarde passe dans `user://sauvegarde_tests.json` (jamais celle du jeu).
   `test_scripts.gd` charge tous les scripts du jeu (remplace `--check-only`, voir pièges).
@@ -139,8 +142,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   butin (vitrine du catalogue, au sol, ramassage, trésor du Bosco, fins) : `tools/capture_butin.gd`,
   `SEULEMENT_VITRINE=1` pour la vitrine seule ; armes en main, écran Équipement, objets uniques en jeu :
   `tools/capture_equipement.gd -- <dossier> [armes|ecran|uniques|cale|double]` ; repaire (vues de jeu, de dessus,
-  panneaux) et matériaux (au sol, sac, fin, gros plan), chantier naval et navire, bordée :
-  `tools/capture_repaire.gd -- <dossier> [vues|dessus|panneaux|matieres|chantier|bordee]`)
+  panneaux) et matériaux (au sol, sac, fin, gros plan), chantier naval et navire, bordée, forge et entrepôt niveau 2 :
+  `tools/capture_repaire.gd -- <dossier> [vues|dessus|panneaux|matieres|chantier|bordee|forge]`)
 - Où pointe l'arme d'un squelette dans chaque pose : `godot --headless --path . -s "$PWD/tools/sonde_arme.gd"`
   (sans argument : l'arbalétrier ; sinon `-- <modèle.glb> <arme.gltf> <axe x|y|z> [animations…]`)
 - Essai de la coop (hôte + invité sur cette machine, vérifications automatiques, aussi dans le CI) :
@@ -361,8 +364,11 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   marchent.
 - Nouveaux décors KayKit : copier le `.gltf.glb`, importer, puis mettre `embedded_image_handling=0` et la matière
   partagée dans le `.import`, réimporter et **supprimer** les `*_dungeon_texture.png` extraits au premier import.
-- Repaire : un lieu qui n'est pas encore construit (forge) affiche un message ; tout nouveau lieu s'ajoute à
-  `Repaire.LIEUX` / `ORDRE_LIEUX` (enseigne, raccourci et bouton « Ouvrir » suivent) et à `Repaire.ouvrir`.
+- Repaire : tout nouveau lieu s'ajoute à `Repaire.LIEUX` / `ORDRE_LIEUX` (enseigne, raccourci et bouton « Ouvrir »
+  suivent) et à `Repaire.ouvrir` ; ce qui mérite une pastille « ! » à `Repaire.lieux_a_signaler`.
+- Forge : les tirages au hasard (effet en plus, relance) passent par `Sauvegarde.rng` (un test fixe sa graine). Chaque
+  achat vérifie l'état vu par le bouton (rareté, niveau, effet encore présent) : un double appui ne paie jamais deux
+  fois. Les panneaux ne gardent jamais un objet en mémoire : ils relisent la sauvegarde à chaque `rafraichir()`.
 - Bateau en expédition : la cale, la durée de la chaloupe et les tirs de bordée sont fixés au départ (`Expedition._pret`) ;
   à deux, le bateau de l'autre arrive à la connexion (`Reseau.bateau_partenaire`, `_bonjour` / `_bienvenue`).
 - Bordée : chaque boulet est un `Boulet` posé dans la salle (retiré au changement de salle) ; l'invité le reçoit par
