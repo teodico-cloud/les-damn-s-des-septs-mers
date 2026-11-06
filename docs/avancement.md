@@ -28,7 +28,8 @@ Dernière mise à jour : 4 novembre 2026.
 - **Attaque façon Diablo (05/11, demande de Téo)** : bond, arcs, moulinet, tir qui explose, téléportation à charges
   (voir plus bas) ; APK 0.5.22.
 - **Jalon 6 — refonte de l'interface (05/11, demande de Téo)** : tous les écrans existants refaits (voir plus bas) ;
-  APK 0.5.23. Reste l'écran Paramètres, puis les sons.
+  APK 0.5.23. Puis l'écran Réglages (qualité graphique) et le carnet de bord du repaire (choix de Téo du 05/11) ;
+  APK suivant. Reste : les sons.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -293,7 +294,12 @@ Jalon 6 réordonné par Téo : la refonte d'abord (elle remplace « écrans rest
   (le navire en fond, rôle d'équipage sur parchemin) ; Équipement (cuir, coffres sur parchemin, fiche sur cuir) ; HUD de
   combat (jauge de vie en fourreau de cuir avec la perte qui fond, médaillons cerclés de fer, Menu en planche, textes en
   police des titres, chiffres en Alegreya ExtraBold) ; barre du Bosco ; tri de la cale et écran de fin (parchemins).
-- Reste : l'écran Paramètres (nouveau), puis les sons.
+- **Réglages** (choix de Téo : la qualité graphique seulement, ce qui marche déjà ; volumes avec les sons) : Économie
+  (sans ombres ni halo, image à 75 %), Normale (le jeu tel quel, réglage de départ), Belle (bords lissés, ombres plus
+  douces). Fichier à part de la sauvegarde. Ouvert depuis l'écran titre (planche « Réglages ») et le carnet.
+- **Carnet de bord** (annexe retenue par Téo) : Menu, dans le repaire, ouvre le carnet (Reprendre / Réglages / Écran
+  titre) au lieu de quitter tout de suite ; toucher à côté ou le retour d'Android le referme.
+- Reste : les sons.
 
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)
 Téo : « le gameplay pas assez proche de Diablo, c'est peut-être l'attaque de base ». Ce qui le gênait : frapper dans le
@@ -432,6 +438,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 30/10/2026 | Parade : elle coupe le coup en cours ; parade parfaite en bonus (0,25 s), zone dorée avant le coup + étincelles, « PARFAIT ! » et ralenti, Parade rendue. Onde de choc : non retenue. |
 | 31/10/2026 | Jalon 3, étape 3 (choix de Téo) : Bosco « brute à la hache » (tourbillon, charge qui le laisse sonné 2 s contre un mur, coup au sol ; rage à mi-vie + 3 matelots) ; coups mi-parables (seul le coup au sol se pare, les gros coups rouge sombre sont imparables) ; ~1 min 30 en solo ; malédiction 0–5 choisie au départ avec l'échelle proposée (+20 % de butin par niveau) ; chaloupe : tenir 45 s à bord, le compte s'arrête si personne n'y est ; annexe retenue : écran de fin enrichi. |
 | 05/11/2026 | Refonte de l'interface (demande de Téo) avant les sons ; matières créées sur mesure ; police « gravure marine » (IM Fell English SC + Alegreya Sans) ; direction validée sur planches ; pas de chambre des reliques ; inventaire = coffres. Annexes retenues pour le jalon 6 : jauge façon Diablo 3/4, bandeau derrière les ressources (fait). |
+| 05/11/2026 | Écran Réglages : seulement la qualité graphique (3 niveaux, Normale au départ) ; non retenus pour l'instant : limite 30/60 i/s, mode gaucher, compteur d'images, page Crédits, vibrations, cacher le mode test. Retenu : le carnet de bord du repaire. |
 | 05/11/2026 | Attaque façon Diablo (demande de Téo, modèle Diablo 3/4) : Bretteur qui bondit sur sa cible (4 m), taillades en arc, moulinet 360° qui va au bout mais ~30 % plus vite ; tir de l'Occultiste guidé qui **explose** (1,2 m) ; téléportation **2 charges de 3 s**. Remplace directement l'ancienne attaque. Jauge façon Diablo 3/4 : plus tard. |
 | 05/11/2026 | Jalon 5, étape 3 (choix de Téo) : forge et niveaux 2 avec les prix proposés ; « Relancer un effet » : **on choisit l'effet** à relancer (remplacé au hasard). Étape 3 lancée après l'APK 0.5.20. Après la relecture : recycler avec l'entrepôt presque plein **rend ce qui entre, le reste est perdu** (écrit avant d'appuyer ; sans aucune place, grisé) — pas de revente en doublons. |
 | 04/11/2026 | Combats navals et abordages : gardés pour après le MVP, comme prévu (Téo, après explication de la bordée). |

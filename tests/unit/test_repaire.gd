@@ -192,9 +192,37 @@ func test_retour_d_android_ferme_d_abord_le_lieu() -> void:
 
 
 func test_menu_vers_l_ecran_titre() -> void:
+	# (jalon 6, annexe de Téo : Menu ouvre le carnet de bord ; on quitte par « Écran titre »)
 	var r := await _repaire()
 	r.hud.bouton_menu.pressed.emit()
-	assert_eq(r.scene_demandee, Repaire.SCENE_MENU)
+	assert_true(r.hud.panneau is Carnet, "Menu ouvre le carnet de bord")
+	assert_eq(r.scene_demandee, "", "Sans quitter le repaire")
+	assert_false(r.hud.racine.visible, "Le joystick et les raccourcis s'effacent derrière le carnet")
+	var carnet: Carnet = r.hud.panneau
+	carnet.bouton_titre.pressed.emit()
+	carnet.bouton_titre.pressed.emit()   # (double appui nerveux)
+	assert_eq(r.scene_demandee, Repaire.SCENE_MENU, "« Écran titre » quitte le repaire")
+
+
+func test_le_carnet_reprend_et_ouvre_les_reglages() -> void:
+	var r := await _repaire()
+	r.hud.bouton_menu.pressed.emit()
+	r.hud.panneau.bouton_reprendre.pressed.emit()
+	assert_null(r.hud.panneau, "« Reprendre » referme le carnet")
+	assert_true(r.hud.racine.visible)
+	r.hud.bouton_menu.pressed.emit()
+	r._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	assert_null(r.hud.panneau, "Le retour d'Android referme le carnet")
+	assert_eq(r.scene_demandee, "", "Sans quitter le repaire")
+	r.hud.bouton_menu.pressed.emit()
+	r.hud.panneau.bouton_reglages.pressed.emit()
+	await wait_process_frames(2)
+	assert_true(r.hud.panneau is PanneauReglages, "« Réglages » ouvre l'écran Réglages")
+	assert_eq(r.hud.get_children().filter(func(c): return c is Carnet and not c.is_queued_for_deletion()).size(), 0,
+			"Le carnet laisse la place aux réglages")
+	r.hud.panneau.bouton_fermer.pressed.emit()
+	assert_null(r.hud.panneau, "Fermer : retour au repaire")
+	assert_eq(r.scene_demandee, "")
 
 
 # ---------------------------------------------------------------- autour du repaire

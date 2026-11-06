@@ -3,6 +3,7 @@ extends Control
 ## des damnés amarré au ponton, de nuit (DecorMenu) ; à gauche, le titre gravé à l'or sur une rose des vents, et
 ## le menu en planches cerclées de fer clouées le long d'une corde, un peu de travers comme posées à la main.
 ## En haut à droite, la bourse (doublons, objets des coffres) ; en bas à droite, la version et le Mode test.
+## « Réglages » (jalon 6) ouvre l'écran Réglages par-dessus (PanneauReglages).
 ## Mode test (APK de test) : santé infinie, salle de départ de l'expédition, malédiction, coffres de test (des
 ## objets pour essayer l'équipement tout de suite), ressources de test (doublons et matériaux pour les achats).
 
@@ -19,6 +20,8 @@ var bouton_vitrine: Button
 var bouton_repaire: Button
 var bouton_combat: Button
 var bouton_coop: Button
+var bouton_reglages: Button
+var panneau_reglages: Control   ## l'écran Réglages ouvert par-dessus (null sinon)
 var label_doublons: Label
 var bouton_test: Button
 var panneau_test: PanelContainer
@@ -124,8 +127,10 @@ func _menu() -> void:
 	bouton_coop.pressed.connect(_ouvrir_coop)
 	bouton_combat = _planche("Combat d'entraînement", &"", Vector2(430, 84), Vector2(62, y + 218), -0.4, 0.51)
 	bouton_combat.pressed.connect(_ouvrir_arene)
-	bouton_vitrine = _planche("Voir les héros", &"BoutonPetit", Vector2(340, 68), Vector2(86, y + 318), 0.9, 0.59)
+	bouton_vitrine = _planche("Voir les héros", &"BoutonPetit", Vector2(300, 68), Vector2(86, y + 318), 0.9, 0.59)
 	bouton_vitrine.pressed.connect(_ouvrir_vitrine)
+	bouton_reglages = _planche("Réglages", &"BoutonPetit", Vector2(220, 68), Vector2(398, y + 322), -0.7, 0.65)
+	bouton_reglages.pressed.connect(ouvrir_reglages)
 
 
 func _planche(texte: String, variation: StringName, taille: Vector2, pos: Vector2, degres: float, delai: float) -> Button:
@@ -305,6 +310,37 @@ func _ouvrir_coop() -> void:
 
 func _ouvrir_vitrine() -> void:
 	_aller(SCENE_VITRINE)
+
+
+## Les réglages (jalon 6), par-dessus l'écran titre ; le retour d'Android les referme au lieu de quitter le jeu.
+func ouvrir_reglages() -> void:
+	if panneau_reglages:
+		return
+	panneau_reglages = PanneauReglages.new()
+	panneau_reglages.ferme.connect(fermer_reglages)
+	add_child(panneau_reglages)
+	var ombre := ColorRect.new()   # (le menu s'assombrit derrière le parchemin, comme le repaire derrière un lieu)
+	ombre.color = Color(0.02, 0.015, 0.01, 0.62)
+	ombre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ombre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panneau_reglages.add_child(ombre)
+	panneau_reglages.move_child(ombre, 0)
+	move_child(voile, -1)   # (le fondu reste au-dessus de tout)
+	get_tree().set_quit_on_go_back(false)
+
+
+func fermer_reglages() -> void:
+	if panneau_reglages == null:
+		return
+	panneau_reglages.queue_free()
+	panneau_reglages = null
+	# (plus tard : Godot décide de quitter après avoir prévenu les nœuds du retour qui ferme ce panneau)
+	get_tree().set_quit_on_go_back.call_deferred(true)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and panneau_reglages:
+		fermer_reglages()
 
 
 # ---------------------------------------------------------------- petits outils

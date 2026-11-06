@@ -16,6 +16,9 @@ const MARGE_HAUT := 66.0
 const MARGE_BAS := 18.0
 
 var titre := "Lieu"
+var marge_x := MARGE_X          ## (un panneau plus petit, comme les Réglages, change ses marges dans _init)
+var marge_haut := MARGE_HAUT
+var marge_bas := MARGE_BAS
 var cadre: PanelContainer
 var contenu: VBoxContainer
 var bouton_fermer: Button
@@ -29,10 +32,10 @@ func _ready() -> void:
 	cadre = PanelContainer.new()
 	cadre.theme_type_variation = &"PanelParchemin"
 	cadre.set_anchors_preset(Control.PRESET_FULL_RECT)
-	cadre.offset_left = MARGE_X
-	cadre.offset_right = -MARGE_X
-	cadre.offset_top = MARGE_HAUT
-	cadre.offset_bottom = -MARGE_BAS
+	cadre.offset_left = marge_x
+	cadre.offset_right = -marge_x
+	cadre.offset_top = marge_haut
+	cadre.offset_bottom = -marge_bas
 	add_child(cadre)
 	var deco := Control.new()   # (sous le texte : la rose des vents en filigrane)
 	deco.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -60,7 +63,7 @@ func _ready() -> void:
 	# la plaque du nom, qui déborde en haut à gauche ; « Fermer », en haut à droite
 	plaque = PanelContainer.new()
 	plaque.theme_type_variation = &"PanelPlaque"
-	plaque.position = Vector2(MARGE_X - 26, MARGE_HAUT - 46)
+	plaque.position = Vector2(marge_x - 26, marge_haut - 46)
 	plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var l := Label.new()
 	l.text = titre
@@ -74,10 +77,10 @@ func _ready() -> void:
 	bouton_fermer.custom_minimum_size = Vector2(170, 60)
 	bouton_fermer.anchor_left = 1.0
 	bouton_fermer.anchor_right = 1.0
-	bouton_fermer.offset_left = -MARGE_X - 150
-	bouton_fermer.offset_right = -MARGE_X + 20
-	bouton_fermer.offset_top = MARGE_HAUT - 40
-	bouton_fermer.offset_bottom = MARGE_HAUT + 20
+	bouton_fermer.offset_left = -marge_x - 150
+	bouton_fermer.offset_right = -marge_x + 20
+	bouton_fermer.offset_top = marge_haut - 40
+	bouton_fermer.offset_bottom = marge_haut + 20
 	bouton_fermer.pressed.connect(fermer)
 	add_child(bouton_fermer)
 	EffetsUI.animer_bouton(bouton_fermer)
@@ -100,9 +103,9 @@ func _ornements() -> void:
 		t.anchor_right = c[0].x
 		t.anchor_top = c[0].y
 		t.anchor_bottom = c[0].y
-		t.offset_left = -MARGE_X - 100 if c[0].x > 0 else MARGE_X + 24
+		t.offset_left = -marge_x - 100 if c[0].x > 0 else marge_x + 24
 		t.offset_right = t.offset_left + 76
-		t.offset_top = MARGE_HAUT + 26 if c[0].y == 0 else -MARGE_BAS - 100
+		t.offset_top = marge_haut + 26 if c[0].y == 0 else -marge_bas - 100
 		t.offset_bottom = t.offset_top + 76
 		add_child(t)
 

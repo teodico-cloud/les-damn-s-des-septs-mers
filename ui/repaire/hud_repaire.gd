@@ -3,7 +3,7 @@ extends CanvasLayer
 ## Interface du repaire (jalon 5 ; refonte de l'interface, 05/11) : joystick flottant à gauche ; en haut à gauche,
 ## « Menu » et la plaque du lieu ; en haut à droite, la bourse sur une lanière de cuir (doublons et matériaux,
 ## chacun avec son icône : toujours lisible, même quand une enseigne passe dessous — annexe retenue par Téo) ;
-## à droite, les raccourcis vers les quatre lieux (des planches ; un sceau de cire « ! » quand un achat y est
+## (« Menu » ouvre le carnet de bord, jalon 6) ; à droite, les raccourcis vers les quatre lieux (des planches ; un sceau de cire « ! » quand un achat y est
 ## possible) ; en bas à droite, « Ouvrir » quand le héros est devant un lieu ; un lieu ouvert s'affiche en
 ## parchemin par-dessus le repaire.
 
@@ -44,7 +44,7 @@ func _ready() -> void:
 
 	bouton_menu = StyleRepaire.bouton("Menu", Vector2(150, 60), 24)
 	bouton_menu.position = Vector2(22, 18)
-	bouton_menu.pressed.connect(func(): menu_demande.emit())
+	bouton_menu.pressed.connect(ouvrir_carnet)   # (jalon 6 : le carnet de bord, au lieu de quitter tout de suite)
 	racine.add_child(bouton_menu)
 
 	var plaque := PanelContainer.new()
@@ -172,6 +172,14 @@ func marquer(lieu: StringName, oui: bool) -> void:
 		t.tween_property(p, "scale", Vector2.ONE * 1.12, 0.5).set_trans(Tween.TRANS_SINE)
 		t.tween_property(p, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_SINE)
 	p.visible = oui
+
+
+## Le carnet de bord (Menu) : Reprendre, Réglages, Écran titre.
+func ouvrir_carnet() -> void:
+	var c := Carnet.new()
+	c.reglages_demandes.connect(func(): ouvrir_panneau(PanneauReglages.new()))
+	c.ecran_titre_demande.connect(func(): menu_demande.emit())
+	ouvrir_panneau(c)
 
 
 ## Fondu au noir, puis `appel` (le changement de scène).

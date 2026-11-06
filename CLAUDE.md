@@ -113,6 +113,11 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   (`EffetsUI` : bouton qui s'enfonce, arrivées, fondus) ; `ui/screens/decor_menu.gd` (`DecorMenu` : navire au ponton,
   fond de l'écran titre et de « Jouer à deux ») ; `StyleRepaire` : l'encre sur parchemin (`encre()`, `texte()`,
   `titre()`, `cadre()`, `separateur()`).
+- Réglages (jalon 6) : `autoload/reglages.gd` (Reglages) : qualité graphique économie / normale / belle, rangée dans
+  `user://reglages.json` (à part de la sauvegarde) ; appliquée à l'image (finesse, bords lissés, ombres douces) et à
+  chaque lumière ou environnement qui entre en scène (ce que la scène voulait est gardé en méta `ombre_voulue` /
+  `halo_voulu`). Écran `ui/commun/panneau_reglages.gd` (PanneauReglages, un PanneauRepaire plus petit), ouvert depuis
+  l'écran titre et depuis le carnet de bord du repaire (`ui/repaire/carnet.gd` : Menu → Reprendre / Réglages / Écran titre).
 - `tests/unit/` : tests GUT (`test_*.gd`) ; `addons/gut/` : GUT 9.7.1 (exclu de l'APK) ; `tests/pre_run.gd` :
   avant les tests, la sauvegarde passe dans `user://sauvegarde_tests.json` (jamais celle du jeu).
   `test_scripts.gd` charge tous les scripts du jeu (remplace `--check-only`, voir pièges).
@@ -150,7 +155,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   `SEULEMENT_VITRINE=1` pour la vitrine seule ; armes en main, écran Équipement, objets uniques en jeu :
   `tools/capture_equipement.gd -- <dossier> [armes|ecran|uniques|cale|double]` ; repaire (vues de jeu, de dessus,
   panneaux) et matériaux (au sol, sac, fin, gros plan), chantier naval et navire, bordée, forge et entrepôt niveau 2 :
-  `tools/capture_repaire.gd -- <dossier> [vues|dessus|panneaux|matieres|chantier|bordee|forge]`)
+  `tools/capture_repaire.gd -- <dossier> [vues|dessus|panneaux|matieres|chantier|bordee|forge]` ; écran titre,
+  Réglages, carnet de bord et repaire dans les trois qualités : `tools/capture_reglages.gd -- <dossier>`)
 - Où pointe l'arme d'un squelette dans chaque pose : `godot --headless --path . -s "$PWD/tools/sonde_arme.gd"`
   (sans argument : l'arbalétrier ; sinon `-- <modèle.glb> <arme.gltf> <axe x|y|z> [animations…]`)
 - Essai de la coop (hôte + invité sur cette machine, vérifications automatiques, aussi dans le CI) :
@@ -392,6 +398,10 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   `tools/ui/fabriquer_theme.gd`. `trait` est un mot réservé en GDScript 4.7 (variable « trait » : erreur de lecture).
 - Ne pas modifier un script du jeu pendant que la suite de tests tourne : GUT charge les scripts au fil des tests et
   prend la version modifiée (vu : une erreur d'écriture en cours de route a fait échouer deux tests).
+- Une scène règle ses lumières comme avant (ombre voulue ou non) : c'est `Reglages` qui les coupe en Économie. Ne pas
+  remettre `shadow_enabled` à chaud ailleurs (Reglages ne le reverrait qu'au prochain changement de qualité).
+- Retour d'Android sur l'écran titre : il quitte le jeu (`quit_on_go_back`), sauf réglages ouverts ; Godot décide de
+  quitter **après** avoir prévenu les nœuds, d'où le `call_deferred` pour le réactiver en fermant les réglages.
 - Panneaux du repaire : après une action, le panneau se refait **tout de suite** et un autre bouton apparaît sous le
   doigt (niveau suivant, « Sûr ? Recycler ») ; le second toucher d'un vrai double appui le touchait (relecture : cale
   achetée deux fois). Toute action commence donc par `appui_accepte()` (ignorée 0,4 s après la précédente). Dans un
