@@ -2,6 +2,8 @@ extends Node3D
 ## Vitrine des héros (jalon 0) : les deux héros dans une salle de forteresse, ambiance sombre.
 ## Toucher l'écran : les héros enchaînent leurs actions. Glisser : tourner la caméra.
 ## Sert aussi de test de performance sur téléphone (compteur d'images par seconde).
+## Interface (refonte du 06/11) : « Retour » et la plaque « Les héros » en haut à gauche, noms en police des titres,
+## consigne et actions sur un bandeau de cuir, compteur discret en haut à droite, bords assombris.
 
 const SCENE_MENU := "res://ui/screens/demarrage.tscn"
 const HEROS := {
@@ -158,10 +160,12 @@ func _heros() -> void:
 		etiquette.text = info["nom"]
 		etiquette.position = info["pos"] + Vector3(0, 2.85, 0)
 		etiquette.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		etiquette.font_size = 48
+		etiquette.font = HudCombat.police_titre()
+		etiquette.font_size = 56
 		etiquette.pixel_size = 0.006
-		etiquette.outline_size = 14
-		etiquette.modulate = Color("e2d6ba")
+		etiquette.outline_size = 16
+		etiquette.modulate = Color("deba70")
+		etiquette.outline_modulate = Color(0.05, 0.03, 0.02, 0.9)
 		add_child(etiquette)
 
 	# La lanterne de l'Occultiste éclaire réellement autour de lui
@@ -217,39 +221,58 @@ func _interface() -> void:
 	racine.set_anchors_preset(Control.PRESET_FULL_RECT)
 	racine.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	couche.add_child(racine)
-
-	label_fps = _label(26, Color("6cffa0"))
-	label_fps.position = Vector2(24, 18)
-	racine.add_child(label_fps)
+	racine.add_child(EffetsUI.vignette())
 
 	var retour := Button.new()
 	retour.text = "Retour"
-	retour.custom_minimum_size = Vector2(200, 84)
-	retour.add_theme_font_size_override("font_size", 30)
-	retour.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	retour.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	retour.position = Vector2(-224, 18)
+	retour.theme_type_variation = &"BoutonPetit"
+	retour.custom_minimum_size = Vector2(150, 60)
+	retour.position = Vector2(22, 18)
 	retour.pressed.connect(retour_menu)
 	racine.add_child(retour)
+	EffetsUI.animer_bouton(retour)
+	var plaque := PanelContainer.new()
+	plaque.theme_type_variation = &"PanelPlaque"
+	plaque.position = Vector2(186, 16)
+	plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var titre := Label.new()
+	titre.text = "Les héros"
+	titre.theme_type_variation = &"LabelTitre"
+	titre.add_theme_font_size_override("font_size", 34)
+	plaque.add_child(titre)
+	racine.add_child(plaque)
 
-	label_action = _label(30, Color("e2d6ba"))
+	# le compteur d'images (test de performance), discret, en haut à droite
+	label_fps = Label.new()
+	label_fps.add_theme_font_size_override("font_size", 20)
+	label_fps.add_theme_color_override("font_color", Color("deba70", 0.9))
+	label_fps.add_theme_color_override("font_outline_color", Color(0.05, 0.03, 0.02, 0.9))
+	label_fps.add_theme_constant_override("outline_size", 6)   # (lisible sur le mur clair)
+	label_fps.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	label_fps.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	label_fps.offset_left = -24
+	label_fps.offset_right = -24
+	label_fps.offset_top = 22
+	label_fps.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	label_fps.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	racine.add_child(label_fps)
+
+	# la consigne, puis le nom des actions, sur un bandeau de cuir
+	var bandeau := PanelContainer.new()
+	bandeau.theme_type_variation = &"PanelCuir"
+	bandeau.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	bandeau.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	bandeau.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	bandeau.offset_top = -20
+	bandeau.offset_bottom = -20
+	bandeau.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	racine.add_child(bandeau)
+	label_action = Label.new()
 	label_action.text = "Touchez l'écran pour lancer une action  ·  Glissez pour tourner la caméra"
-	label_action.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	label_action.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	label_action.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	label_action.add_theme_font_size_override("font_size", 26)
 	label_action.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label_action.position.y -= 28
-	racine.add_child(label_action)
-
-
-func _label(taille: int, couleur: Color) -> Label:
-	var l := Label.new()
-	l.add_theme_font_size_override("font_size", taille)
-	l.add_theme_color_override("font_color", couleur)
-	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
-	l.add_theme_constant_override("outline_size", 8)
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return l
+	label_action.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bandeau.add_child(label_action)
 
 
 func _unhandled_input(event: InputEvent) -> void:

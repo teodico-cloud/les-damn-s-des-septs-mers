@@ -299,7 +299,10 @@ Jalon 6 réordonné par Téo : la refonte d'abord (elle remplace « écrans rest
   douces). Fichier à part de la sauvegarde. Ouvert depuis l'écran titre (planche « Réglages ») et le carnet.
 - **Carnet de bord** (annexe retenue par Téo) : Menu, dans le repaire, ouvre le carnet (Reprendre / Réglages / Écran
   titre) au lieu de quitter tout de suite ; toucher à côté ou le retour d'Android le referme.
-- Reste : les sons.
+- **Vitrine « Voir les héros »** (06/11) : « Retour » et plaque « Les héros », noms en police des titres, bandeau de
+  cuir pour la consigne et les actions, compteur discret, bords assombris (`EffetsUI.vignette`, partagé avec le choix
+  du héros).
+- Ensuite (Téo, 06/11) : revoir l'identité visuelle ; puis les sons.
 
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)
 Téo : « le gameplay pas assez proche de Diablo, c'est peut-être l'attaque de base ». Ce qui le gênait : frapper dans le

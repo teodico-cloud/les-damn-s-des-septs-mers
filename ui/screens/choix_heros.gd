@@ -124,7 +124,7 @@ func _interface() -> void:
 	racine.set_anchors_preset(Control.PRESET_FULL_RECT)
 	racine.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	couche.add_child(racine)
-	racine.add_child(_vignette())
+	racine.add_child(EffetsUI.vignette())
 
 	var retour := Button.new()
 	retour.text = "Retour"
@@ -211,18 +211,3 @@ func _ligne(texte: String, variation: StringName, taille: int) -> Label:
 
 
 ## Les bords de l'écran dans l'ombre (le regard va aux héros).
-func _vignette() -> TextureRect:
-	var g := Gradient.new()
-	g.colors = PackedColorArray([Color(0, 0, 0, 0), Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.75)])
-	g.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
-	var tex := GradientTexture2D.new()
-	tex.gradient = g
-	tex.fill = GradientTexture2D.FILL_RADIAL
-	tex.fill_from = Vector2(0.5, 0.45)
-	tex.fill_to = Vector2(1.15, 1.0)
-	var r := TextureRect.new()
-	r.texture = tex
-	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return r
