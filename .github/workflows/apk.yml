@@ -85,7 +85,18 @@ jobs:
 
       - name: Tests automatiques
         run: |
+          set +e
           ~/godot/godot --headless --path . -s addons/gut/gut_cmdln.gd 2>&1 | tee gut.log
+          CODE=${PIPESTATUS[0]}
+          set -e
+          if [ "$CODE" != "0" ]; then
+            # (les journaux bruts ne sont pas lisibles depuis l'espace de Claude : les tests en échec vont en annotations)
+            sed 's/\x1b\[[0-9;]*m//g' gut.log | grep -E "^- test_|\[Failed\]" > echecs.txt || true
+            awk 'NR <= 40' echecs.txt > echecs_courts.txt
+            while read -r l; do echo "::error::$l"; done < echecs_courts.txt
+            echo "::error::Tests en échec (code $CODE)"
+            exit 1
+          fi
           # GUT ignore un fichier de test qui ne se charge pas sans échouer : on le refuse ici.
           # (Les scripts du jeu sont tous chargés par tests/unit/test_scripts.gd.)
           if grep -qE "Parse Error|Failed to load script|Ignoring script|SCRIPT ERROR" gut.log; then

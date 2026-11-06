@@ -326,6 +326,14 @@ Jalon 6 réordonné par Téo : la refonte d'abord (elle remplace « écrans rest
 - Au passage (suite complète) : deux squelettes sortis à 0,94 m l'un de l'autre, avec 4 squelettes seulement, contre
   un mur. `GenerateurEnnemis._ecarter` cherche maintenant, en dernier recours, la place libre la plus proche dans toute
   la salle (test fait exprès : salle pleine, une seule place, loin).
+- **Étape 4, personnages refaits dans Blender** : allonger seul changeait peu (planche variantes 1 et 2). Choix de Téo :
+  « variante 3 + usure » (encore plus poussée). `build_heroes.py` : tête 0,4, buste 1,65 / 1,35, bras 1,6, jambes 2,3,
+  mains 0,58, pieds 0,66 ; usure : couleurs ternies (rouge → bordeaux, or → laiton terni, moins saturé, plus sombre ;
+  lueurs épargnées) et ombres des creux cuites dans les sommets (Cycles, « AO », 60 %), que le jeu active sur toutes
+  les pièces (`Heros._ombres_des_creux`). Héros refaits ; plus de retouche de tête en jeu pour eux. Les squelettes
+  suivent (même traitement), puis l'Occultiste et le Bretteur seront vérifiés sur téléphone par Téo.
+- APK 0.5.28 (textures) : échec des tests sur GitHub, alors que la suite passe ici, même sur une copie neuve importée de
+  zéro. Le workflow écrit maintenant les tests en échec en annotations (on saura lequel au prochain échec).
 - Annexes proposées (pas encore retenues) : brume au ras du sol, poussière dans la lumière des torches.
 
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)

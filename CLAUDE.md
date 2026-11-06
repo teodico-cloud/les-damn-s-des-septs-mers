@@ -367,6 +367,11 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   (ombre de torche) ; sur téléphone (rendu Mobile) ce mode marche.
 - Blender en script : ne jamais nommer un fichier comme un module Python standard (`inspect.py`…) :
   Blender plante au démarrage.
+- `build_heroes.py` (06/11) : `HEROS_PROPS` / `HEROS_SORTIE` pour essayer des proportions sans toucher au jeu ;
+  l'usure (couleurs ternies, ombres des creux en couleur de sommets) est faite à l'export (`HEROS_USURE=0` l'enlève).
+  Après une refabrication, Godot **ne réécrit pas** les textures extraites à côté du .glb : supprimer les `*.png` et
+  leurs `.import` (garder une copie des `.import`), importer, remettre les `.import` (compression `compress/mode=2`),
+  vider `.godot/imported/<Héros>*`, importer encore. Une matière et son image portent souvent le même nom.
 - `build_heroes.py` : tout ce qui touche la tête est multiplié par `HEAD_K`. Ne jamais réutiliser `k`
   comme variable de boucle (un tel bug a multiplié les cheveux par 12).
 - `bpy.ops.wm.read_factory_settings` efface les matériaux : les créer après (`init_mats()`).

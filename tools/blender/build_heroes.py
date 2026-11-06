@@ -439,19 +439,21 @@ def hair_shell(head, name, material, pred, offset=0.03):
 
 
 # Proportions « élancées » : facteurs (x, y, z) par os, y = le long de l'os.
-HEAD_K = 0.62
-LEG = (0.84, 2.0, 0.84)
-ARM = (0.85, 1.3, 0.85)
+# (06/11, « variante 3 » choisie par Téo pour un style façon Diablo IV : encore plus élancés qu'au jalon 0, qui avait
+#  HEAD_K 0,62, jambes 2,0, bras 1,3, buste 1,35 / 1,15)
+HEAD_K = 0.4
+LEG = (0.76, 2.3, 0.76)
+ARM = (0.72, 1.6, 0.72)
 PROPS = {
-    "hips": (0.88, 1.0, 0.88),
-    "spine": (0.82, 1.35, 0.82),
-    "chest": (0.84, 1.15, 0.84),
+    "hips": (0.78, 1.0, 0.78),
+    "spine": (0.7, 1.65, 0.7),
+    "chest": (0.74, 1.35, 0.74),
     "upperarm.l": ARM, "upperarm.r": ARM, "lowerarm.l": ARM, "lowerarm.r": ARM,
     "wrist.l": (0.75, 0.75, 0.75), "wrist.r": (0.75, 0.75, 0.75),
-    "hand.l": (0.75, 0.75, 0.75), "hand.r": (0.75, 0.75, 0.75),
+    "hand.l": (0.58, 0.58, 0.58), "hand.r": (0.58, 0.58, 0.58),
     "upperleg.l": LEG, "upperleg.r": LEG, "lowerleg.l": LEG, "lowerleg.r": LEG,
-    "foot.l": (0.8, 0.8, 0.8), "foot.r": (0.8, 0.8, 0.8),
-    "toes.l": (0.8, 0.8, 0.8), "toes.r": (0.8, 0.8, 0.8),
+    "foot.l": (0.66, 0.66, 0.66), "foot.r": (0.66, 0.66, 0.66),
+    "toes.l": (0.66, 0.66, 0.66), "toes.r": (0.66, 0.66, 0.66),
     "head": (HEAD_K, HEAD_K, HEAD_K),
 }
 CAPE_BOTTOM = 0.35
@@ -459,6 +461,7 @@ CAPE_BOTTOM = 0.35
 # Essais de proportions sans toucher aux modèles du jeu (06/11, identité visuelle façon Diablo IV) :
 #   HEROS_SORTIE=<dossier>  écrit les .glb ailleurs que dans assets/models/heroes/
 #   HEROS_PROPS='{"HEAD_K": 0.5, "PROPS": {"spine": [0.78, 1.45, 0.78]}}'  remplace des proportions
+#   HEROS_USURE=0  sans l'usure (couleurs ternies, ombres des creux)
 if os.environ.get("HEROS_PROPS"):
     import json
     _s = json.loads(os.environ["HEROS_PROPS"])
@@ -574,6 +577,7 @@ def _user_rgb(px):
 def user_couleurs(objs):
     """Ternit toutes les couleurs des héros (textures recolorées et matières faites par script), sauf les lueurs."""
     faites = set()
+    images_faites = set()   # (à part : une matière et son image portent souvent le même nom, « bretteur_corps »)
     for o in objs:
         if o.type != "MESH":
             continue
@@ -585,8 +589,9 @@ def user_couleurs(objs):
             if b and b.inputs["Emission Strength"].default_value > 0.0:
                 continue   # (yeux, lanterne, verre maudit : ils doivent luire)
             for n in m.node_tree.nodes:
-                if n.type == "TEX_IMAGE" and n.image and not n.image.name.endswith("_use"):
+                if n.type == "TEX_IMAGE" and n.image and n.image.name not in images_faites:
                     im = n.image
+                    images_faites.add(im.name)   # (même nom qu'avant : la texture extraite par Godot garde son nom)
                     w, h = im.size
                     px = np.array(im.pixels[:], dtype=np.float32).reshape(h, w, 4)
                     # (la texture KayKit n'a que quelques dizaines de couleurs : on les traite une fois chacune)
@@ -594,12 +599,10 @@ def user_couleurs(objs):
                                           return_inverse=True)
                     neuves = _user_rgb(cles.astype(np.float32) / 255.0)
                     px[..., :3] = neuves[inv.reshape(-1)].reshape(h, w, 3)
-                    nu = bpy.data.images.new(im.name + "_use", w, h, alpha=True)
-                    nu.pixels.foreach_set(px.ravel())
-                    nu.filepath_raw = TEX + nu.name + ".png"
-                    nu.file_format = "PNG"
-                    nu.save()
-                    n.image = nu
+                    im.pixels.foreach_set(px.ravel())
+                    if im.filepath_raw:
+                        im.save()
+                    print("USURE texture", im.name)
             if b:
                 c = b.inputs["Base Color"].default_value
                 lin2srgb = lambda x: 12.92 * x if x <= 0.0031308 else 1.055 * x ** (1 / 2.4) - 0.055
@@ -608,7 +611,7 @@ def user_couleurs(objs):
                 b.inputs["Roughness"].default_value = max(b.inputs["Roughness"].default_value, 0.75)
 
 
-def user_ombres(objs, force=0.75):
+def user_ombres(objs, force=0.6):
     """Ombres des creux (sous le chapeau, sous les bras, entre les jambes) cuites dans les sommets (« AO » de
     Cycles), en pose de repos ; exportées comme couleur de sommet, que Godot multiplie à la couleur."""
     sc = bpy.context.scene
@@ -638,7 +641,7 @@ def export(rig, keep_objs, name):
     for o in list(bpy.data.objects):
         if o not in keep_objs and o is not rig:
             bpy.data.objects.remove(o, do_unlink=True)
-    usure = os.environ.get("HEROS_USURE") == "1"
+    usure = os.environ.get("HEROS_USURE", "1") != "0"   # (usure choisie par Téo le 06/11 ; HEROS_USURE=0 pour l'enlever)
     if usure:
         user_couleurs(keep_objs)
         user_ombres(keep_objs)

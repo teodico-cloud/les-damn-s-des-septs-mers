@@ -6,8 +6,6 @@ extends CharacterBody3D
 ## ajoute son attaque, son esquive et ses deux compétences. Réglages : data/equilibrage.tres.
 
 const EQ: Equilibrage = preload("res://data/equilibrage.tres")
-## Tête un peu plus petite (06/11, identité visuelle façon Diablo IV, version rapide ; le tricorne suit).
-const ECHELLE_TETE := 0.8
 const ARCHETYPES := {
 	&"bretteur": "res://game/player/bretteur.gd",
 	&"occultiste": "res://game/player/occultiste.gd",
@@ -55,6 +53,16 @@ static func creer(nom: StringName) -> Heros:
 	return load(ARCHETYPES[nom]).new()
 
 
+## Les héros refaits dans Blender (06/11, « variante 3 + usure ») portent les ombres de leurs creux dans la couleur de
+## leurs sommets ; l'import glTF de Godot ne s'en sert que sur certaines pièces : on l'active sur toutes.
+static func _ombres_des_creux(modele: Node) -> void:
+	for mi in modele.find_children("*", "MeshInstance3D", true, false):
+		for i in mi.mesh.get_surface_count():
+			var m := mi.mesh.surface_get_material(i) as BaseMaterial3D
+			if m and not m.vertex_color_use_as_albedo:
+				m.vertex_color_use_as_albedo = true
+
+
 func _ready() -> void:
 	add_to_group("heros")
 	add_child(HaloHeros.new())   # (la lumière qui le suit, façon Diablo IV, 06/11)
@@ -71,7 +79,7 @@ func _ready() -> void:
 
 	visuel = modele.instantiate()
 	add_child(visuel)
-	OsProportions.poser(visuel, {"head": Vector3.ONE * ECHELLE_TETE})   # (façon Diablo IV, version rapide)
+	_ombres_des_creux(visuel)
 	anim = visuel.find_child("AnimationPlayer", true, false)
 	for boucle in ["Idle", "Running_A"]:
 		anim.get_animation(boucle).loop_mode = Animation.LOOP_LINEAR

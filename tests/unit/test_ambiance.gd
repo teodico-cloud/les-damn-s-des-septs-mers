@@ -63,17 +63,29 @@ func _rapport_tete(visuel: Node3D) -> float:
 
 
 func test_cranes_et_tetes_plus_petits() -> void:
-	# (06/11, version rapide : moins « jouets »), après l'animation, pour chaque type de squelette et le héros
+	# (06/11, version rapide : moins « jouets »), après l'animation, pour chaque type de squelette
 	for type in [&"matelot", &"arbaletrier", &"pretre", &"bosco"]:
 		var e := Ennemi.creer_type(type, true)
 		e.position = Vector3(20, 0, 0)
 		add_child_autofree(e)
 		await wait_process_frames(2)
 		assert_almost_eq(await _rapport_tete(e.visuel), Ennemi.ECHELLE_TETE, 0.01, "Crâne plus petit : %s" % type)
-	var h := Heros.creer(&"occultiste")
-	add_child_autofree(h)
-	await wait_process_frames(2)
-	assert_almost_eq(await _rapport_tete(h.visuel), Heros.ECHELLE_TETE, 0.01, "Tête du héros")
+	# les héros ont été refaits dans Blender (tête plus petite dans le modèle même) : plus de retouche en jeu, mais les
+	# ombres des creux (couleur des sommets) sont prises par toutes leurs pièces
+	for arch in [&"bretteur", &"occultiste"]:
+		var h := Heros.creer(arch)
+		add_child_autofree(h)
+		await wait_process_frames(2)
+		var sk: Skeleton3D = h.visuel.find_children("*", "Skeleton3D", true, false)[0]
+		assert_eq(sk.get_children().filter(func(c): return c is OsProportions).size(), 0, "Pas de retouche en jeu")
+		var pieces := 0
+		for mi in h.visuel.find_children("*", "MeshInstance3D", true, false):
+			for i in mi.mesh.get_surface_count():
+				var m := mi.mesh.surface_get_material(i) as BaseMaterial3D
+				if m:
+					pieces += 1
+					assert_true(m.vertex_color_use_as_albedo, "%s : %s" % [arch, mi.name])
+		assert_gt(pieces, 8)
 
 
 func test_les_decors_prennent_les_matieres_realistes() -> void:
