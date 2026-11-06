@@ -6,6 +6,9 @@ extends GutTest
 func test_chaque_heros_a_sa_lumiere_qui_le_suit_sans_tourner() -> void:
 	var h := Heros.creer(&"bretteur")
 	add_child_autofree(h)
+	# (sans sol, le héros tomberait ; sa chute pouvait avoir lieu entre le suivi de la lumière et la mesure : le test
+	#  échouait au hasard sur GitHub — APK 0.5.28 et 0.5.30. Le héros reste donc immobile.)
+	h.set_physics_process(false)
 	await wait_process_frames(2)
 	var halos := h.get_children().filter(func(c): return c is HaloHeros)
 	assert_eq(halos.size(), 1, "Une lumière par héros")
@@ -14,8 +17,9 @@ func test_chaque_heros_a_sa_lumiere_qui_le_suit_sans_tourner() -> void:
 	h.global_position = Vector3(3.0, 0.0, -2.0)
 	h.rotation.y = 1.3
 	await wait_process_frames(2)
-	var p := h.global_position   # (sans sol, le héros tombe : on mesure depuis sa vraie place)
-	assert_almost_eq(halo.global_position.y, p.y + HaloHeros.HAUTEUR, 0.05, "Au-dessus du héros")
+	var p := h.global_position
+	assert_eq(p, Vector3(3.0, 0.0, -2.0), "Le héros n'a pas bougé")
+	assert_almost_eq(halo.global_position.y, p.y + HaloHeros.HAUTEUR, 0.01, "Au-dessus du héros")
 	var a_plat := Vector2(halo.global_position.x - p.x, halo.global_position.z - p.z)
 	assert_lt(a_plat.length(), HaloHeros.VERS_CAMERA + 0.01, "Elle l'a suivi")
 	assert_almost_eq(halo.global_rotation.y, 0.0, 0.001, "Elle ne tourne pas avec lui")

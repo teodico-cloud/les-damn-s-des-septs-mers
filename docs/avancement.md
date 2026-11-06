@@ -337,6 +337,8 @@ Jalon 6 réordonné par Téo : la refonte d'abord (elle remplace « écrans rest
   Crâne / hauteur : 0,39 (KayKit) → 0,24. `OsProportions` (la retouche en jeu) n'existe plus.
 - APK 0.5.28 (textures) : échec des tests sur GitHub, alors que la suite passe ici, même sur une copie neuve importée de
   zéro. Le workflow écrit maintenant les tests en échec en annotations (on saura lequel au prochain échec).
+  Trouvé à l'APK 0.5.30 : `test_chaque_heros_a_sa_lumiere_qui_le_suit_sans_tourner` (le héros du test tombait sans
+  sol, sa chute pouvait arriver entre le suivi de la lumière et la mesure) ; le héros du test reste immobile.
 - Annexes proposées (pas encore retenues) : brume au ras du sol, poussière dans la lumière des torches.
 
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)
