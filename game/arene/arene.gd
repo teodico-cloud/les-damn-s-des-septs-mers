@@ -290,30 +290,10 @@ func _process(delta: float) -> void:
 
 
 # ---------------------------------------------------------------- décor
+## Lumière façon Diablo IV (06/11, voir Ambiance).
 func _ambiance() -> void:
-	var we := WorldEnvironment.new()
-	var e := Environment.new()
-	e.background_mode = Environment.BG_COLOR
-	e.background_color = Color(0.02, 0.03, 0.05)
-	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	e.ambient_light_color = Color(0.3, 0.4, 0.55)
-	e.ambient_light_energy = 0.45
-	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	e.fog_enabled = true
-	e.fog_light_color = Color(0.05, 0.08, 0.11)
-	e.fog_density = 0.012
-	e.glow_enabled = true
-	e.glow_intensity = 0.9
-	e.glow_bloom = 0.08
-	we.environment = e
-	add_child(we)
-	var lune := DirectionalLight3D.new()
-	lune.rotation_degrees = Vector3(-55, -30, 0)
-	lune.light_color = Color(0.55, 0.65, 1.0)
-	lune.light_energy = 0.4
-	lune.shadow_enabled = true
-	lune.directional_shadow_max_distance = 30.0
-	add_child(lune)
+	add_child(Ambiance.environnement())
+	add_child(Ambiance.lune(0.28, 30.0))
 
 
 func _objet(nom: String, pos: Vector3, rot_y := 0.0) -> Node3D:
@@ -388,12 +368,6 @@ func _salle() -> void:
 
 
 func _torche(pos: Vector3, ombre: bool) -> void:
-	var l := OmniLight3D.new()
-	l.position = pos
-	l.light_color = Color(1.0, 0.55, 0.2)
-	l.light_energy = 2.4
-	l.omni_range = 8.0
-	l.shadow_enabled = ombre
-	l.omni_shadow_mode = OmniLight3D.SHADOW_DUAL_PARABOLOID
+	var l := Ambiance.torche(pos, ombre)
 	add_child(l)
 	torches.append(l)

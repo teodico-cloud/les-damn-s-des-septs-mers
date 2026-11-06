@@ -69,6 +69,7 @@ var _premier_appui_menu := -100.0   ## expédition : heure du 1er appui sur Menu
 
 func _ready() -> void:
 	_actions_clavier()
+	add_child(EffetsUI.vignette())   # (bords de l'écran assombris, façon Diablo IV, 06/11)
 	var racine := Control.new()
 	racine.set_anchors_preset(Control.PRESET_FULL_RECT)
 	racine.mouse_filter = Control.MOUSE_FILTER_IGNORE

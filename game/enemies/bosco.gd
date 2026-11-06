@@ -429,10 +429,10 @@ func _preparer_visuel() -> void:
 	_jauge.scale = Vector3(p, 1, p) if attaque == Attaque.TOURBILLON else Vector3(1, 1, p)
 	if attaque == Attaque.COUP:
 		if signal_parade():
-			_mat_rempli.albedo_color = Color(1.0, 0.86, 0.25, 0.85)
-			_mat_zone_annonce.albedo_color = Color(1.0, 0.8, 0.2, 0.4)
+			_mat_rempli.albedo_color = COULEUR_MARQUE_DOREE
+			_mat_zone_annonce.albedo_color = COULEUR_ZONE_DOREE
 		else:
-			_mat_rempli.albedo_color = Color(1.0, 0.3 + 0.2 * p, 0.1, 0.3 + 0.35 * p)
+			_mat_rempli.albedo_color = Color(1.8, 0.3 + 0.2 * p, 0.08, 0.42 + 0.4 * p)   # (comme le matelot)
 			_mat_zone_annonce.albedo_color = COULEUR_ZONE
 	else:
 		_mat_rempli.albedo_color = Color(ROUGE_SOMBRE, 0.55 + 0.3 * p)

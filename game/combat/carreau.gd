@@ -74,7 +74,7 @@ func _ready() -> void:
 		_mat_trainee_rouge = StandardMaterial3D.new()
 		_mat_trainee_rouge.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		_mat_trainee_rouge.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		_mat_trainee_rouge.albedo_color = Color(1.0, 0.22, 0.12, 0.75)
+		_mat_trainee_rouge.albedo_color = Color(1.8, 0.22, 0.1, 0.8)   # (voir Ennemi.COULEUR_ZONE)
 		_mat_trainee_or = _mat_trainee_rouge.duplicate()
 		_mat_trainee_or.albedo_color = Color(1.0, 0.8, 0.25, 0.85)
 	_requete.shape = _forme

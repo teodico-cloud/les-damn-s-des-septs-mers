@@ -304,6 +304,17 @@ Jalon 6 réordonné par Téo : la refonte d'abord (elle remplace « écrans rest
   du héros).
 - Ensuite (Téo, 06/11) : revoir l'identité visuelle ; puis les sons.
 
+## Identité visuelle façon Diablo IV (06/11, demande de Téo : « moins cartoon »)
+- Téo veut revoir les personnages, les décors et la lumière, « façon Diablo IV ». Planche d'essai sur une salle figée
+  (`tools/capture_style.gd`) : a lumière, b textures réalistes (Poly Haven, CC0 : pavés, pierre, bois, métal rouillé,
+  envoyées par Téo), c personnages retouchés. Choix de Téo : **tout** (a, b, c rapide, puis c refait dans Blender), avec
+  la noirceur de la planche. Ordre : lumière → personnages rapide → textures → personnages refaits ; APK à chaque étape.
+- **Étape 1, lumière** : `Ambiance` (fond presque noir, ambiance faible et grise, AgX, saturation 0,6, contraste,
+  brume, lune froide et faible, torches orangées qui s'éteignent vite), `HaloHeros` (une lumière chaude suit chaque
+  héros, côté caméra), bords d'écran sombres ; palette KayKit du donjon assombrie (`kaykit_dungeon.tres`). Zones
+  d'annonce, visée et carreau en rouge « au-delà du blanc » pour rester lisibles ; braises de la forge moins vives.
+- Annexes proposées (pas encore retenues) : brume au ras du sol, poussière dans la lumière des torches.
+
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)
 Téo : « le gameplay pas assez proche de Diablo, c'est peut-être l'attaque de base ». Ce qui le gênait : frapper dans le
 vide, se sentir planté, pas assez de squelettes touchés ; modèle Diablo 3/4 ; les deux héros ; nerf de la téléportation.

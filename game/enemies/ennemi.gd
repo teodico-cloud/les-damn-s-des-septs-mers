@@ -10,7 +10,11 @@ extends CharacterBody3D
 const EQ: Equilibrage = preload("res://data/equilibrage.tres")
 const MODELE := preload("res://assets/models/enemies/Skeleton_Minion.glb")
 const LAME := preload("res://assets/models/enemies/Skeleton_Blade.gltf")
-const COULEUR_ZONE := Color(1.0, 0.25, 0.1, 0.22)   ## zone de l'annonce au sol, pâle
+## Zone de l'annonce au sol, pâle. Couleurs « au-delà du blanc » (rouge > 1) depuis la lumière façon Diablo IV
+## (06/11) : l'étalonnage terne éteignait le rouge ; ainsi la zone garde son éclat (et le halo lumineux la reprend).
+const COULEUR_ZONE := Color(1.5, 0.22, 0.08, 0.32)
+const COULEUR_ZONE_DOREE := Color(1.5, 1.15, 0.25, 0.5)
+const COULEUR_MARQUE_DOREE := Color(1.7, 1.3, 0.3, 0.9)
 
 enum Etat { APPARITION, POURSUITE, PREPARATION, FRAPPE, RECUPERATION, TOUCHE, ETOURDI, MORT, ENCHAINE, INCANTATION }
 ## Types d'ennemis (le nom de chaque ennemi commence par son préfixe : l'invité recrée le bon type).
@@ -372,10 +376,10 @@ func _preparer_visuel() -> void:
 	var p := clampf(_t / EQ.squelette_preparation, 0.0, 1.0)
 	_remplissage.scale = Vector3(maxf(p, 0.01), 1.0, maxf(p, 0.01))
 	if signal_parade():
-		_mat_marque.albedo_color = Color(1.0, 0.86, 0.25, 0.85)
-		_mat_zone.albedo_color = Color(1.0, 0.8, 0.2, 0.4)
+		_mat_marque.albedo_color = COULEUR_MARQUE_DOREE
+		_mat_zone.albedo_color = COULEUR_ZONE_DOREE
 	else:
-		_mat_marque.albedo_color = Color(1.0, 0.3 + 0.2 * p, 0.1, 0.3 + 0.35 * p)
+		_mat_marque.albedo_color = Color(1.8, 0.3 + 0.2 * p, 0.08, 0.42 + 0.4 * p)
 		_mat_zone.albedo_color = COULEUR_ZONE
 
 

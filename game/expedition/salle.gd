@@ -293,12 +293,6 @@ func _obstacle(centre: Vector3, taille: Vector3, rot_y: float) -> void:
 
 
 func _torche(pos: Vector3, ombre: bool) -> void:
-	var l := OmniLight3D.new()
-	l.position = pos
-	l.light_color = Salles.TORCHE
-	l.light_energy = 2.4
-	l.omni_range = 8.0
-	l.shadow_enabled = ombre
-	l.omni_shadow_mode = OmniLight3D.SHADOW_DUAL_PARABOLOID
+	var l := Ambiance.torche(pos, ombre)   # (façon Diablo IV, 06/11)
 	add_child(l)
 	_torches.append(l)

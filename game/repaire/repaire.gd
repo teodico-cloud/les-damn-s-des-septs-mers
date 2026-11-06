@@ -237,30 +237,10 @@ func _poser_heros(archetype: StringName, pos: Vector3) -> void:
 
 
 # ---------------------------------------------------------------- construction
+## Lumière façon Diablo IV (06/11, voir Ambiance).
 func _ambiance() -> void:
-	var we := WorldEnvironment.new()
-	var e := Environment.new()
-	e.background_mode = Environment.BG_COLOR
-	e.background_color = Color(0.02, 0.03, 0.05)
-	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	e.ambient_light_color = Color(0.3, 0.4, 0.55)
-	e.ambient_light_energy = 0.45
-	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	e.fog_enabled = true
-	e.fog_light_color = Color(0.05, 0.08, 0.11)
-	e.fog_density = 0.014
-	e.glow_enabled = true
-	e.glow_intensity = 0.9
-	e.glow_bloom = 0.08
-	we.environment = e
-	add_child(we)
-	var lune := DirectionalLight3D.new()
-	lune.rotation_degrees = Vector3(-55, -30, 0)
-	lune.light_color = Color(0.55, 0.65, 1.0)
-	lune.light_energy = 0.35
-	lune.shadow_enabled = true
-	lune.directional_shadow_max_distance = 34.0
-	add_child(lune)
+	add_child(Ambiance.environnement())
+	add_child(Ambiance.lune(0.25, 34.0))
 
 
 func _construire() -> void:
@@ -315,13 +295,7 @@ func _construire() -> void:
 	var premiere := true
 	for x in [-9.6, -1.6, 3.0, 8.0]:
 		_objet("torch_mounted", Vector3(x, 1.8, -6.4), 0)
-		var l := OmniLight3D.new()
-		l.position = Vector3(x, 2.35, -5.95)
-		l.light_color = TORCHE
-		l.light_energy = 2.4
-		l.omni_range = 8.0
-		l.shadow_enabled = premiere
-		l.omni_shadow_mode = OmniLight3D.SHADOW_DUAL_PARABOLOID
+		var l := Ambiance.torche(Vector3(x, 2.35, -5.95), premiere)
 		premiere = false
 		add_child(l)
 		_torches.append(l)
@@ -425,10 +399,10 @@ func _forge() -> void:
 	bb.size = Vector3(1.4, 0.06, 0.75)
 	braises.mesh = bb
 	var mb := StandardMaterial3D.new()
-	mb.albedo_color = Color(1.0, 0.35, 0.08)
-	mb.emission_enabled = true
-	mb.emission = Color(1.0, 0.4, 0.1)
-	mb.emission_energy_multiplier = 3.0
+	mb.albedo_color = Color(0.2, 0.05, 0.02)   # (des braises sombres qui rougeoient : avec la lumière façon Diablo IV,
+	mb.emission_enabled = true                 #  un orange vif sous la lueur du foyer virait au blanc)
+	mb.emission = Color(1.0, 0.22, 0.03)
+	mb.emission_energy_multiplier = 0.55
 	braises.material_override = mb
 	braises.position.y = 0.92
 	foyer.add_child(braises)

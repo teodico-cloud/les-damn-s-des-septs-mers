@@ -52,7 +52,7 @@ func _preparer_modele() -> void:
 		_mat_visee = StandardMaterial3D.new()
 		_mat_visee.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		_mat_visee.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		_mat_visee.albedo_color = Color(1.0, 0.15, 0.1, 0.7)
+		_mat_visee.albedo_color = Color(1.8, 0.15, 0.08, 0.75)   # (rouge « au-delà du blanc » : voir Ennemi.COULEUR_ZONE)
 		_maillage_visee = BoxMesh.new()
 		_maillage_visee.size = Vector3(0.04, 0.04, 1.0)
 	_visee = MeshInstance3D.new()

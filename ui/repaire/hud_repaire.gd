@@ -35,6 +35,7 @@ func _ready() -> void:
 	HudCombat._actions_clavier()
 	if repaire:
 		heros = repaire.heros
+	add_child(EffetsUI.vignette())   # (bords de l'écran assombris, façon Diablo IV, 06/11)
 	racine = Control.new()
 	racine.set_anchors_preset(Control.PRESET_FULL_RECT)
 	racine.mouse_filter = Control.MOUSE_FILTER_IGNORE

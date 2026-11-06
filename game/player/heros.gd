@@ -55,6 +55,7 @@ static func creer(nom: StringName) -> Heros:
 
 func _ready() -> void:
 	add_to_group("heros")
+	add_child(HaloHeros.new())   # (la lumière qui le suit, façon Diablo IV, 06/11)
 	collision_layer = Combat.COUCHE_HEROS
 	collision_mask = Combat.COUCHE_MONDE | Combat.COUCHE_ENNEMIS
 

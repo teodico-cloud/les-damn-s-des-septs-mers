@@ -24,7 +24,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Sauvegarde locale JSON versionnée, écriture sûre, anti-doublon par identifiant d'expédition.
 - Archétypes du MVP : Bretteur et Occultiste. Héros masculins.
 - Style : packs KayKit (CC0) retravaillés : proportions élancées, visages durs, palette « pirates maudits »,
-  ambiance sombre donnée par l'éclairage (torches, brume, lueurs vertes).
+  ambiance sombre donnée par l'éclairage (torches, brume, lueurs vertes). Depuis le 06/11 (Téo, sur planche
+  d'essai) : direction « façon Diablo IV », moins cartoon — lumière (fait), personnages, textures réalistes.
 - Assets : une seule famille (KayKit) pour la cohérence ; crédits dans `assets/CREDITS.md`.
 
 ## Arborescence actuelle
@@ -113,6 +114,9 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   (`EffetsUI` : bouton qui s'enfonce, arrivées, fondus) ; `ui/screens/decor_menu.gd` (`DecorMenu` : navire au ponton,
   fond de l'écran titre et de « Jouer à deux ») ; `StyleRepaire` : l'encre sur parchemin (`encre()`, `texte()`,
   `titre()`, `cadre()`, `separateur()`).
+- Lumière façon Diablo IV (06/11) : `game/commun/ambiance.gd` (`Ambiance` : environnement, lune, torches ; partagé
+  par l'arène, les salles et le repaire), `game/player/halo_heros.gd` (`HaloHeros` : la lumière qui suit chaque héros),
+  bords sombres (`EffetsUI.vignette` dans les HUD). Planche d'essai du style : `tools/capture_style.gd`.
 - Réglages (jalon 6) : `autoload/reglages.gd` (Reglages) : qualité graphique économie / normale / belle, rangée dans
   `user://reglages.json` (à part de la sauvegarde) ; appliquée à l'image (finesse, bords lissés, ombres douces) et à
   chaque lumière ou environnement qui entre en scène (ce que la scène voulait est gardé en méta `ombre_voulue` /
@@ -398,6 +402,10 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   `tools/ui/fabriquer_theme.gd`. `trait` est un mot réservé en GDScript 4.7 (variable « trait » : erreur de lecture).
 - Ne pas modifier un script du jeu pendant que la suite de tests tourne : GUT charge les scripts au fil des tests et
   prend la version modifiée (vu : une erreur d'écriture en cours de route a fait échouer deux tests).
+- Lumière façon Diablo IV : l'étalonnage (AgX, saturation 0,6) éteint les couleurs vives. Ce qui doit sauter aux yeux
+  en combat (zones d'annonce, visée de l'arbalétrier, traînée du carreau) a une couleur « au-delà du blanc » (rouge à
+  1,5–1,8, voir `Ennemi.COULEUR_ZONE`) ; un objet très lumineux (braises de la forge) vire au blanc : baisser son
+  émission plutôt que d'éclaircir sa couleur. Vérifier toute nouvelle annonce sur capture.
 - Une scène règle ses lumières comme avant (ombre voulue ou non) : c'est `Reglages` qui les coupe en Économie. Ne pas
   remettre `shadow_enabled` à chaud ailleurs (Reglages ne le reverrait qu'au prochain changement de qualité).
 - Retour d'Android sur l'écran titre : il quitte le jeu (`quit_on_go_back`), sauf réglages ouverts ; Godot décide de
