@@ -21,6 +21,7 @@ var bouton_attaque: BoutonAction
 var bouton_esquive: BoutonAction
 var bouton_competence_1: BoutonAction
 var bouton_competence_2: BoutonAction
+var globe: GlobeJauge          ## jauge façon Diablo (06/11), à côté de la compétence 2 qui la dépense
 var barre_vie: Control
 var label_mort: Label
 var label_ips: Label
@@ -43,6 +44,8 @@ static var _police_titre: Font
 ## (glissé depuis le bouton) ; relâché, le navire tire. Sans glisser : devant le héros.
 const BORDEE: Equilibrage = preload("res://data/equilibrage.tres")
 const ZONE_MORTE_BORDEE := 25.0     ## pixels : en deçà, la zone reste devant le héros
+const RAYON_GLOBE := 50.0
+const CENTRE_GLOBE := Vector2(-72, -478)   ## depuis le coin en bas à droite, comme les boutons
 const GLISSE_BORDEE := 170.0        ## pixels : glissé jusqu'à la portée la plus longue
 var bouton_bordee: BoutonAction
 var viseur_bordee: MeshInstance3D   ## la zone visée, au sol (dans le monde du héros)
@@ -89,6 +92,19 @@ func _ready() -> void:
 	bouton_bordee.icone = preload("res://assets/ui/icones/canon.svg")
 	_boutons.erase(bouton_bordee)   # (son toucher est à part : on vise avant de tirer)
 	bouton_bordee.visible = false
+	# jauge façon Diablo (06/11, choix de Téo : un globe) : en haut à droite des boutons, près de la compétence 2
+	globe = GlobeJauge.new()
+	globe.configurer(heros, RAYON_GLOBE)
+	globe.anchor_left = 1.0
+	globe.anchor_top = 1.0
+	globe.anchor_right = 1.0
+	globe.anchor_bottom = 1.0
+	globe.offset_left = CENTRE_GLOBE.x - RAYON_GLOBE
+	globe.offset_top = CENTRE_GLOBE.y - RAYON_GLOBE
+	globe.offset_right = CENTRE_GLOBE.x + RAYON_GLOBE
+	globe.offset_bottom = CENTRE_GLOBE.y + RAYON_GLOBE
+	racine.add_child(globe)
+	bouton_competence_2.couleur_jauge = heros.couleur_jauge()
 
 	barre_vie = Control.new()
 	barre_vie.position = Vector2(24, 20)
@@ -725,6 +741,8 @@ func _process(delta: float) -> void:
 	if bouton_attaque.appuye:
 		_demander(&"attaque")
 	_faire_fondre_le_retard(delta)
+	var cout := heros.cout_jauge(&"competence_2")
+	bouton_competence_2.jauge_part = heros.jauge / cout if cout > 0.0 else -1.0
 	for action in [&"attaque", &"esquive", &"competence_1", &"competence_2"]:
 		if Input.is_action_just_pressed(action):
 			_demander(action)

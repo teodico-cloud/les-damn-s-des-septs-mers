@@ -71,6 +71,7 @@ func _scenario() -> void:
 	await _capture("occ_projectile.png")
 
 	await _attendre(40)
+	h.jauge = h.jauge_max()   # (jauge façon Diablo : les Chaînes la dépensent)
 	_demander(&"competence_2")
 	await _attendre(30)
 	await _capture("occ_chaines.png")

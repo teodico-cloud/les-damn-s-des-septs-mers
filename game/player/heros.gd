@@ -37,6 +37,11 @@ var progres_reanimation := 0.0
 var _zone_reanimation: Node3D
 var _vitesse_anim := 1.0     ## vitesse demandée (pas celle figée un instant par l'arrêt sur image)
 var _n_geste := 0            ## change à chaque geste : le son prévu d'un geste interrompu n'est pas joué
+## Jauge façon Diablo (06/11, choix de Téo) : l'attaque la remplit, la compétence 2 la dépense. Décidée par l'hôte en
+## coop (l'invité la reçoit dans l'instantané ; il retire tout de suite ce qu'il dépense, pour l'affichage).
+var jauge := 0.0
+var _dernier_combat := -100.0   ## horloge du dernier coup porté ou reçu (la jauge baisse hors combat)
+var _jauge_predite_jusqua := -1.0
 var _liste_anims := PackedStringArray()
 ## Équipement (jalon 4) : les objets portés et leurs effets additionnés (voir Equipement, b()).
 var objets_equipes: Array = []
@@ -263,6 +268,7 @@ func _physics_process(delta: float) -> void:
 	recharge_esquive.avancer(delta)
 	recharge_competence_1.avancer(delta)
 	recharge_competence_2.avancer(delta)
+	_baisser_jauge(delta)
 
 	match etat:
 		Etat.LIBRE: _etat_libre(delta)
@@ -297,11 +303,70 @@ func _essayer_actions_prioritaires() -> bool:
 		commandes.prendre(&"competence_1", horloge)
 		recharge_competence_1.declencher()
 		return true
-	if recharge_competence_2.prete() and commandes.en_attente(&"competence_2", horloge) and _commencer_competence_2():
+	if recharge_competence_2.prete() and jauge_suffit(&"competence_2") and commandes.en_attente(&"competence_2", horloge) \
+			and _commencer_competence_2():
 		commandes.prendre(&"competence_2", horloge)
 		recharge_competence_2.declencher()
+		depenser_jauge(cout_jauge(&"competence_2"))
 		return true
 	return false
+
+
+# ---------------------------------------------------------------- jauge façon Diablo (06/11)
+func jauge_max() -> float:
+	return EQ.jauge_max
+
+
+## Ce que coûte une action, en jauge (0 : rien). Chaque archétype donne le prix de sa compétence 2.
+func cout_jauge(_action: StringName) -> float:
+	return 0.0
+
+
+func jauge_suffit(action: StringName) -> bool:
+	return jauge >= cout_jauge(action) - 0.001
+
+
+## Nom et couleur de la jauge (le globe du HUD).
+func nom_jauge() -> String:
+	return "Jauge"
+
+
+func couleur_jauge() -> Color:
+	return Color(0.8, 0.2, 0.15)
+
+
+## Un geste d'attaque a touché `touches` squelettes : la jauge se remplit (plafonnée par geste). Seul ou chez l'hôte.
+func jauge_coups(touches: int) -> void:
+	if touches > 0:
+		gagner_jauge(minf(touches * EQ.jauge_gain_coup, EQ.jauge_gain_geste_max))
+
+
+func gagner_jauge(v: float) -> void:
+	if marionnette or Reseau.est_invite():
+		return   # (en coop, l'hôte décide ; l'invité reçoit la jauge dans l'instantané)
+	jauge = clampf(jauge + v, 0.0, jauge_max())
+	_dernier_combat = horloge
+
+
+func depenser_jauge(v: float) -> void:
+	if v <= 0.0:
+		return
+	jauge = maxf(jauge - v, 0.0)
+	if Reseau.est_invite():
+		_jauge_predite_jusqua = horloge + 0.4   # (l'instantané de l'hôte ne le sait pas encore)
+
+
+## Coop, invité : la jauge décidée par l'hôte (sauf juste après une dépense faite ici, pas encore connue de lui).
+func definir_jauge(v: float) -> void:
+	if horloge < _jauge_predite_jusqua:
+		return
+	jauge = clampf(v, 0.0, jauge_max())
+
+
+func _baisser_jauge(delta: float) -> void:
+	if jauge <= 0.0 or Reseau.est_invite() or horloge - _dernier_combat < EQ.jauge_baisse_apres:
+		return
+	jauge = maxf(jauge - EQ.jauge_baisse * delta, 0.0)
 
 
 ## Remet les collisions normales (après une esquive ou une ruée qui traverse les ennemis).
@@ -407,6 +472,7 @@ func recevoir_coup(degats: float, source: Node3D, _lourd: bool, _critique := fal
 	if reel <= 0.0:
 		return 0.0
 	EventBus.coup_porte.emit(global_position + Vector3.UP * 2.2, reel, true, true, self, source, false)
+	_dernier_combat = horloge   # (la jauge ne baisse pas en plein combat)
 	_renvoyer_epines(source, reel)
 	if sante.est_mort:
 		return reel
@@ -475,6 +541,7 @@ func _on_mort(_source: Node) -> void:
 	velocity = Vector3.ZERO
 	collision_layer = 0
 	_quitter_action()
+	jauge = 0.0   # (jauge façon Diablo : à terre, elle se vide)
 	_jouer("Death_A", 1.0, 0.05, true)
 	_changer(Etat.MORT)
 	EventBus.heros_mort.emit(self)
@@ -513,12 +580,14 @@ func temps_avant_reapparition() -> float:
 ## Ce que l'hôte envoie de ce héros à chaque instantané (voir SynchroArene).
 func instantane() -> Array:
 	return [global_position, rotation.y, int(etat), code_anim(anim.current_animation), _vitesse_anim, sante.pv,
-			visuel.visible, progres_reanimation, _t]
+			visuel.visible, progres_reanimation, _t, snappedf(jauge, 0.1)]
 
 
 ## Marionnette : applique ce que l'hôte a envoyé (la position est posée à part, lissée).
 func appliquer_instantane(etat_recu: int, anim_recue: Variant, vitesse: float, pv: float, visible_recu: bool,
-		progres := 0.0, t_etat := 0.0) -> void:
+		progres := 0.0, t_etat := 0.0, jauge_recue := -1.0) -> void:
+	if jauge_recue >= 0.0:
+		jauge = jauge_recue
 	var nom_anim := nom_anim(anim_recue)
 	afficher_reanimation(progres, etat_recu == int(Etat.MORT))
 	var reentre := etat_recu == int(etat) and t_etat + 0.05 < _t   # même état recommencé chez l'hôte

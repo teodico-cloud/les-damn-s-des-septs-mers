@@ -17,6 +17,11 @@ var doigt := -1
 var compteur := -1      ## jalon 5 (bordée) : tirs restants, dans une pastille ; -1 : pas de pastille (une recharge
                         ## à charges, téléportation : ses charges, mises à jour seules)
 var inactif := false    ## plus rien à faire (bordée vide) : icône grisée
+## Jauge façon Diablo (06/11) : part du prix de la compétence déjà dans la jauge (0 à 1 ; 1 et plus : possible) ;
+## -1 : la compétence ne coûte rien. Pas assez : icône assombrie, l'anneau se remplit à la couleur de la jauge.
+var jauge_part := -1.0
+var couleur_jauge := Color(0.78, 0.08, 0.06)
+var _jauge_dessinee := -1.0
 var _etait_appuye := false
 var _etait_en_recharge := false
 var _charge_en_cours := false
@@ -48,7 +53,7 @@ func _process(_delta: float) -> void:
 		compteur = recharge.charges
 		queue_redraw()
 	if en_recharge or charge_en_cours or charge_en_cours != _charge_en_cours or en_recharge != _etait_en_recharge \
-			or appuye != _etait_appuye:
+			or appuye != _etait_appuye or absf(minf(jauge_part, 1.0) - minf(_jauge_dessinee, 1.0)) > 0.005:
 		queue_redraw()
 	_charge_en_cours = charge_en_cours
 	_etait_en_recharge = en_recharge
@@ -62,6 +67,8 @@ func _draw() -> void:
 	var c := size / 2.0
 	var police: Font = HudCombat.police_grasse()
 	var en_recharge := recharge != null and not recharge.prete()
+	var manque_jauge := jauge_part >= 0.0 and jauge_part < 1.0
+	_jauge_dessinee = jauge_part
 	var or_vieilli := Color("b08a42")
 	draw_circle(c + Vector2(0, 4), rayon, Color(0, 0, 0, 0.35))   # ombre portée
 	draw_circle(c, rayon, Color(0.11, 0.075, 0.05, 0.9) if not appuye else Color(0.06, 0.04, 0.03, 0.95))
@@ -70,7 +77,7 @@ func _draw() -> void:
 		# icône au centre, un peu haute pour laisser la place au nom
 		var cote := rayon * 1.2
 		var rect := Rect2(c - Vector2(cote, cote) / 2.0 - Vector2(0, rayon * 0.13), Vector2(cote, cote))
-		draw_texture_rect(icone, rect, false, Color(0.45, 0.45, 0.45) if en_recharge or inactif else Color.WHITE)
+		draw_texture_rect(icone, rect, false, Color(0.45, 0.45, 0.45) if en_recharge or inactif or manque_jauge else Color.WHITE)
 		if not en_recharge:
 			var tp := int(rayon * 0.25)
 			var tn := police.get_string_size(texte, HORIZONTAL_ALIGNMENT_CENTER, -1, tp)
@@ -106,6 +113,9 @@ func _draw() -> void:
 		var p := c + Vector2(cos(a), sin(a)) * (rayon - 3.0)
 		draw_circle(p, 3.6, Color(0.05, 0.035, 0.02))
 		draw_circle(p - Vector2(0.6, 0.6), 2.6, Color(0.62, 0.58, 0.5))
+	if manque_jauge:
+		# pas encore assez de jauge : l'anneau se remplit à sa couleur, comme un liseré qui monte vers le prix
+		draw_arc(c, rayon - 3.0, -PI / 2.0, -PI / 2.0 + TAU * jauge_part, 40, couleur_jauge.lightened(0.2), 5.0, true)
 	if recharge != null and recharge.charges_max > 1 and not en_recharge and recharge.restant > 0.0:
 		# une charge revient : un liseré clair fait le tour du bouton
 		var f := 1.0 - recharge.fraction()

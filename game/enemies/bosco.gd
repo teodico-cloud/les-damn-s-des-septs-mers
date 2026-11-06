@@ -181,14 +181,16 @@ func _commencer(a: Attaque, dir: Vector3) -> void:
 	EventBus.effet_visuel.emit(self, "bosco_" + NOMS_ATTAQUES[a], point)
 
 
-## La hache qui frappe le sol, le tourbillon (plus grave que le moulinet du Bretteur).
+## La hache qui frappe le sol, le tourbillon (plus grave que le moulinet du Bretteur), le cri de sa rage.
 func sons_animation(nom: String, vitesse: float) -> Array:
 	match nom:
 		"2H_Melee_Attack_Chop":
 			return [[&"sol_lourd", IMPACT_COUP / vitesse]]
 		"2H_Melee_Attack_Spinning":
 			return [[&"moulinet", 0.0, 0.7]]
-	return []
+		"Taunt":   # sa rage à mi-vie (choix de Téo du 06/11)
+			return [[&"cri_bosco", 0.05]]
+	return super(nom, vitesse)
 
 
 ## Jusqu'où il chargera : le premier mur ou meuble devant lui, au plus bosco_charge_longueur.

@@ -383,7 +383,32 @@ Jalon 6 réordonné par Téo : la refonte d'abord (elle remplace « écrans rest
   (ligne ajoutée au tableau de l'écran Réglages).
 - Vérifié : 360 tests, 4 essais de la coop (Wi-Fi parfait, découverte automatique, moyen, mauvais), captures.
 - Premier réglage des volumes fait sans écouter : **Téo juge à l'oreille** (trop fort, trop faible, un son qui ne
-  colle pas) ; chaque son se retouche dans `Sons.CATALOGUE` ou dans `fabriquer_sons.py`.
+  colle pas) ; chaque son se retouche dans `Sons.CATALOGUE` ou dans `fabriquer_sons.py`. APK 0.5.32.
+- Sons des ennemis (proposés après l'APK 0.5.32, retenus par Téo) : la sortie de terre (grondement, cailloux, cliquetis
+  d'os), le souffle de la lame des squelettes juste avant leur impact (plus grave et plus discret que celui du héros),
+  le cri du Bosco à sa rage (gorge vide qui gronde), le prêtre noyé qui relève les morts (accord sourd, eau qui
+  gargouille). Non retenus pour l'instant : bruits de pas, flammes des torches. `fabriquer_sons.py` ne réécrit plus un
+  son identique (chaque écriture OGG porte un numéro au hasard : git voyait tous les sons changés).
+
+## Jauge façon Diablo (06/11, jalon 6 — choix de Téo)
+- L'attaque remplit la jauge, la **Fente** (Bretteur) et les **Chaînes** (Occultiste) la dépensent ; Parade et Marque
+  gardent leur recharge. Fureur rouge sang (Bretteur), Âmes vertes (Occultiste), de 0 à 100.
+- Choix de Téo : coût sur la compétence 2 seulement ; **jauge + courte recharge** (Fente 1 s au lieu de 3,5 ; Chaînes
+  1,2 s au lieu de 10) ; remplie par les **coups portés** (9 par squelette touché par l'attaque, la riposte ou le tir ;
+  au plus 22 par geste : un moulinet dans la horde ne remplit pas tout) et la **parade parfaite** (30) ; **globe** à
+  l'écran.
+- Proposé et appliqué (Téo l'a lu dans la question) : elle baisse doucement hors combat (6 par seconde après 5 s sans
+  coup porté ni reçu). Choix faits sans Téo, à lui signaler : Fente 35, Chaînes 40 ; à terre, la jauge se vide ; des
+  Chaînes coupées avant de partir rendent leurs Âmes (comme leur recharge).
+- Écran : `GlobeJauge` (`ui/hud/globe_jauge.gd` + `globe.gdshader`) : boule de verre cerclée de fer, liquide avec vague
+  et remous, trait doré au prix de la compétence, éclair bref quand elle redevient possible ; en haut à droite des
+  boutons, près de la compétence 2. Le bouton de la compétence 2, tant qu'il manque de la jauge : icône assombrie et
+  anneau qui se remplit à la couleur de la jauge.
+- Coop : la jauge est décidée par l'hôte et voyage dans l'instantané du héros (`VERSION_RESEAU` 15) ; l'invité retire
+  tout de suite ce qu'il dépense (et garde sa valeur 0,4 s, le temps que l'hôte l'apprenne).
+- Captures : `tools/capture_jauge.gd`. Tests : `test_jauge.gd` (et les anciens tests de Fente et Chaînes remplissent la
+  jauge avant).
+- Vérifié : 371 tests ; 4 essais de la coop (Wi-Fi parfait, découverte automatique, Wi-Fi moyen, expédition à deux).
 
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)
 Téo : « le gameplay pas assez proche de Diablo, c'est peut-être l'attaque de base ». Ce qui le gênait : frapper dans le

@@ -28,6 +28,19 @@ func _init() -> void:
 	recharge_competence_2 = Recharge.new(EQ.fente_recharge)
 
 
+## Jauge façon Diablo (06/11) : la Fureur, rouge sang ; la Fente la dépense.
+func cout_jauge(action: StringName) -> float:
+	return EQ.fente_cout if action == &"competence_2" else 0.0
+
+
+func nom_jauge() -> String:
+	return "Fureur"
+
+
+func couleur_jauge() -> Color:
+	return Color(0.78, 0.08, 0.06)
+
+
 func noms_boutons() -> Dictionary:
 	return {&"attaque": "Attaque", &"esquive": "Roulade", &"competence_1": "Parade", &"competence_2": "Fente"}
 
@@ -126,8 +139,11 @@ func _frapper_combo() -> void:
 	# traînée lumineuse du sabre (aussi montrée chez l'autre joueur en coop)
 	EffetsMagie.trainee_sabre(get_parent(), global_position, _direction, _combo)
 	EventBus.effet_visuel.emit(self, "trainee_%d_%d" % [_combo, roundi(rad_to_deg(atan2(_direction.x, _direction.z)))], global_position)
+	var touches := 0
 	for cible in cibles_du_coup(_combo):
-		Combat.porter_coup(self, cible, EQ.combo_degats[_combo], lourd)
+		if Combat.porter_coup(self, cible, EQ.combo_degats[_combo], lourd) > 0.0:
+			touches += 1
+	jauge_coups(touches)
 
 
 ## Ce que touche le coup `index` maintenant : les taillades, tout un arc devant le héros (dans `_direction`) ;
@@ -250,6 +266,7 @@ func _riposter(source: Node3D, parfaite := false) -> void:
 	_faire_face(dir)
 	if parfaite:
 		recharge_competence_1.restant = 0.0   # on peut parer le squelette suivant aussitôt
+		gagner_jauge(EQ.jauge_gain_parade_parfaite)
 		EventBus.parade_parfaite.emit(self, global_position + dir * 0.7 + Vector3.UP * 1.2)
 	_impact_fait = false
 	_duree_action = anim.get_animation("Block_Attack").length / EQ.riposte_vitesse_animation
@@ -269,7 +286,8 @@ func _etat_riposte() -> void:
 		_impact_fait = true
 		if is_instance_valid(_cible_riposte) and _cible_riposte.has_method("est_vivant") and _cible_riposte.est_vivant() \
 				and global_position.distance_to(_cible_riposte.global_position) < _portee_riposte(_cible_riposte):
-			Combat.porter_coup(self, _cible_riposte, EQ.riposte_degats, true, _riposte_parfaite)
+			if Combat.porter_coup(self, _cible_riposte, EQ.riposte_degats, true, _riposte_parfaite) > 0.0:
+				jauge_coups(1)
 			if _cible_riposte.has_method("etourdir"):
 				_cible_riposte.etourdir(EQ.riposte_etourdissement_parfaite if _riposte_parfaite else EQ.riposte_etourdissement)
 	if _t >= _duree_action:
@@ -286,6 +304,7 @@ func renvoyer_carreau(c: Node3D) -> bool:
 	_jouer("Block_Hit", 1.4, 0.03, true)
 	if parfaite:
 		recharge_competence_1.restant = 0.0
+		gagner_jauge(EQ.jauge_gain_parade_parfaite)
 		EventBus.parade_parfaite.emit(self, c.global_position)
 	else:
 		EffetsMagie.eclat(get_parent(), c.global_position)

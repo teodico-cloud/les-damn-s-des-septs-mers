@@ -69,7 +69,17 @@ extends Resource
 @export var fente_duree := 0.26
 @export var fente_degats := 18.0
 @export var fente_rayon := 1.2
-@export var fente_recharge := 3.5
+@export var fente_recharge := 1.0       ## (3,5 avant la jauge : c'est elle qui décide, 06/11)
+@export var fente_cout := 35.0          ## de jauge
+
+@export_group("Jauge façon Diablo (06/11, choix de Téo)")
+## L'attaque remplit la jauge (Fureur du Bretteur, Âmes de l'Occultiste), la compétence 2 (Fente, Chaînes) la dépense.
+@export var jauge_max := 100.0
+@export var jauge_gain_coup := 9.0          ## par squelette touché par l'attaque (taillades, moulinet, tir) ou la riposte
+@export var jauge_gain_geste_max := 22.0    ## au plus par geste : un moulinet dans la horde ne remplit pas tout
+@export var jauge_gain_parade_parfaite := 30.0
+@export var jauge_baisse_apres := 5.0       ## secondes sans coup porté ni reçu : la jauge baisse doucement…
+@export var jauge_baisse := 6.0             ## … de tant par seconde
 
 @export_group("Occultiste")
 @export var occ_pv_max := 80.0                 ## plus fragile : il doit garder ses distances
@@ -100,7 +110,8 @@ extends Resource
 @export var occ_chaines_rayon := 2.5
 @export var occ_chaines_duree := 2.0           ## secondes d'immobilisation
 @export var occ_chaines_portee := 8.0          ## distance max du centre de la zone
-@export var occ_chaines_recharge := 10.0
+@export var occ_chaines_recharge := 1.2   ## (10 avant la jauge, 06/11)
+@export var occ_chaines_cout := 40.0     ## de jauge
 @export var occ_chaines_instant := 0.28
 @export var occ_chaines_duree_geste := 0.55
 

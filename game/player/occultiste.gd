@@ -27,6 +27,19 @@ func pv_max() -> float:
 	return EQ.occ_pv_max
 
 
+## Jauge façon Diablo (06/11) : les Âmes, vert maudit ; les Chaînes les dépensent.
+func cout_jauge(action: StringName) -> float:
+	return EQ.occ_chaines_cout if action == &"competence_2" else 0.0
+
+
+func nom_jauge() -> String:
+	return "Âmes"
+
+
+func couleur_jauge() -> Color:
+	return Color(0.18, 0.75, 0.42)
+
+
 func noms_boutons() -> Dictionary:
 	return {&"attaque": "Attaque", &"esquive": "Téléport", &"competence_1": "Marque", &"competence_2": "Chaînes"}
 
@@ -69,6 +82,7 @@ func _rendre_recharge() -> void:
 		recharge_competence_1.restant = 0.0
 	elif _sort == Sort.CHAINES:
 		recharge_competence_2.restant = 0.0
+		jauge = minf(jauge + cout_jauge(&"competence_2"), jauge_max())   # (et ses Âmes)
 
 
 # ---------------------------------------------------------------- projectile maudit

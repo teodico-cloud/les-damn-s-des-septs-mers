@@ -137,6 +137,9 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   (faits par `tools/sons/fabriquer_sons.py`) et `assets/sons/kenney/` (CC0, copiés par le même script depuis
   `third_party/sons/`, téléchargés par `tools/sons/telecharger_kenney.sh`). Les gestes sonnent par
   `sons_animation(nom, vitesse)` (Heros, Bretteur, Occultiste, Ennemi, Bosco), les chocs par `EventBus.coup_porte`.
+- Jauge façon Diablo (06/11) : `Heros.jauge` (Fureur, Âmes), `cout_jauge(action)`, `jauge_coups(touches)`,
+  `gagner_jauge`, `depenser_jauge`, `definir_jauge` (invité) ; réglages « Jauge façon Diablo » dans l'équilibrage ;
+  globe `ui/hud/globe_jauge.gd` (`GlobeJauge`, `globe.gdshader`) ; captures `tools/capture_jauge.gd -- <dossier>`.
 - Brume au ras du sol et poussière dans la lumière (06/11) : `Ambiance.brume(taille, centre)` (`game/commun/brume.gdshader`,
   groupe `brume`), `Ambiance.poussiere(...)` / `poussiere_torche(lumiere)` (groupe `poussiere`) ; réduites en Économie
   par Reglages. Captures : `tools/capture_brume.gd -- <dossier>`.
@@ -448,6 +451,10 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   ambiance doit le recevoir (le test `test_les_ambiances_bouclent` le vérifie).
 - Sons : en coop, ne rien envoyer de neuf sur le réseau pour un son : le jouer là où l'image se montre déjà des deux
   côtés (animation lancée par `_jouer`, `EventBus.coup_porte`, fonctions de `EffetsMagie`, `_ready` d'un projectile…).
+- Jauge : la Fente et les Chaînes coûtent de la jauge ; un test (ou une capture) qui les lance doit d'abord remplir
+  `heros.jauge`. Elle ne se gagne que seul ou chez l'hôte (`gagner_jauge` ne fait rien chez l'invité ni sur une
+  marionnette) : tout nouveau gain passe par elle. Un nouveau coût : `cout_jauge(action)` de l'archétype et le test
+  de `Heros._essayer_actions_prioritaires`.
 - Brume : ses nappes ont une priorité de rendu négative pour que les annonces au sol (priorité 0 et 1) se dessinent
   par-dessus ; une nouvelle annonce transparente garde une priorité ≥ 0.
 - Retour d'Android sur l'écran titre : il quitte le jeu (`quit_on_go_back`), sauf réglages ouverts ; Godot décide de

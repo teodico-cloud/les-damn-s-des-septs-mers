@@ -199,6 +199,7 @@ func test_parade_a_un_temps_de_recharge() -> void:
 func test_fente_traverse_et_touche_plusieurs_ennemis() -> void:
 	var e1 := _ennemi(Vector3(0, 0, 1.5))
 	var e2 := _ennemi(Vector3(0, 0, 3.0))
+	heros.gagner_jauge(EQ.fente_cout)   # (jauge façon Diablo : la Fente la dépense)
 	heros.commandes.deplacement = Vector3(0, 0, 1)
 	_demander(&"competence_2")
 	await wait_physics_frames(2)

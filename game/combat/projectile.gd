@@ -133,7 +133,8 @@ func _virer(delta: float) -> void:
 func _exploser(touche: Node3D) -> void:
 	var qui: Node3D = tireur if is_instance_valid(tireur) else null
 	if touche.has_method("recevoir_coup"):
-		Combat.porter_coup(qui, touche, degats, false)
+		if Combat.porter_coup(qui, touche, degats, false) > 0.0 and qui is Heros:
+			qui.jauge_coups(1)   # (jauge façon Diablo : le tir qui touche remplit les Âmes)
 	for e in Combat.cibles_dans_sphere(get_world_3d(), global_position, explosion_rayon, Combat.COUCHE_ENNEMIS, [touche]):
 		if e != touche:
 			Combat.porter_coup_discret(qui, e, explosion_degats)

@@ -362,6 +362,8 @@ func _recaler(heros: Dictionary, ack: int) -> void:
 		return
 	var donnees: Array = heros[cle]
 	heros_local.sante.definir_pv(donnees[5])
+	if donnees.size() > 9:
+		heros_local.definir_jauge(donnees[9])
 	heros_local.afficher_reanimation(donnees[7], heros_local.etat == Heros.Etat.MORT)
 	if not _historique.has(ack):
 		return
@@ -430,7 +432,8 @@ func _afficher_monde() -> void:
 			heros_partenaire.rotation.y = lerp_angle(da[1], db[1], f)
 		if dernier[1].has(cle):
 			var dn: Array = dernier[1][cle]
-			heros_partenaire.appliquer_instantane(dn[2], dn[3], dn[4], dn[5], dn[6], dn[7], dn[8] + age)
+			heros_partenaire.appliquer_instantane(dn[2], dn[3], dn[4], dn[5], dn[6], dn[7], dn[8] + age,
+					dn[9] if dn.size() > 9 else -1.0)
 	if dernier[1].has("@temps") and arene.has_method("caler_temps_salle"):
 		arene.caler_temps_salle(dernier[1]["@temps"] + age)   # pièges calés sur l'hôte
 	if dernier[1].has("@chaloupe") and arene.has_method("caler_chaloupe"):

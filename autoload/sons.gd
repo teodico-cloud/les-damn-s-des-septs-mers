@@ -42,6 +42,11 @@ const CATALOGUE := {
 	&"teleport": [["fabriques/teleport"], -7.0, 0.05, 1],
 	&"carreau": [["kenney/carreau"], -7.0, 0.06, 2],
 	&"sol_lourd": [["kenney/sol_lourd"], -3.0, 0.04, 1],
+	# ennemis (06/11, choix de Téo) : plus discrets que les gestes du héros
+	&"lame_squelette": [["fabriques/lame_1", "fabriques/lame_2", "fabriques/lame_3"], -11.0, 0.08, 2],
+	&"sortie_terre": [["fabriques/sortie_terre"], -8.0, 0.1, 2],
+	&"cri_bosco": [["fabriques/cri_bosco"], -2.0, 0.0, 1],
+	&"relever": [["fabriques/relever"], -6.0, 0.04, 1],
 	# combat : chocs
 	&"coup": [["kenney/coup_1", "kenney/coup_2", "kenney/coup_3"], -5.0, 0.08, 2],
 	&"coup_lourd": [["kenney/coup_lourd"], -3.0, 0.06, 2],

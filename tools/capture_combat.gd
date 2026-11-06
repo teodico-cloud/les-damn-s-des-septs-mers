@@ -59,6 +59,7 @@ func _scenario() -> void:
 	await _capture("combat_impact.png")
 	print("après coup : PV squelette %.0f / %.0f" % [e.sante.pv, e.sante.pv_max])
 	await _attendre(40)
+	h.jauge = h.jauge_max()   # (jauge façon Diablo : la Fente la dépense)
 	h.commandes.demander(&"competence_2", h.horloge)
 	await _attendre(9)
 	await _capture("combat_fente.png")

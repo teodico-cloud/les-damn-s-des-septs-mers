@@ -222,6 +222,7 @@ func test_marque_cible_morte_pendant_le_geste_recharge_rendue() -> void:
 # ---------------------------------------------------------------- Chaînes spectrales
 func test_sort_coupe_par_un_coup_recharge_rendue() -> void:
 	var e := _ennemi(Vector3(0, 0, 3))
+	occ.gagner_jauge(EQ.occ_chaines_cout)   # (jauge façon Diablo : les Chaînes la dépensent)
 	_demander(&"competence_2")
 	await wait_physics_frames(2)
 	assert_eq(occ.etat, Heros.Etat.INCANTATION)
@@ -248,6 +249,7 @@ func test_les_chaines_immobilisent_et_coupent_l_annonce() -> void:
 	var e := _ennemi(Vector3(0, 0, 1.7), false)
 	await wait_physics_frames(3)
 	assert_eq(e.etat, Ennemi.Etat.PREPARATION, "Le squelette prépare son coup")
+	occ.gagner_jauge(EQ.occ_chaines_cout)   # (jauge façon Diablo : les Chaînes la dépensent)
 	_demander(&"competence_2")
 	await _secondes(EQ.occ_chaines_instant + 0.05)
 	assert_eq(e.etat, Ennemi.Etat.ENCHAINE, "Il est enchaîné")
@@ -267,6 +269,7 @@ func test_les_chaines_immobilisent_et_coupent_l_annonce() -> void:
 func test_les_chaines_ne_prennent_que_la_zone() -> void:
 	var proche := _ennemi(Vector3(0, 0, 3))
 	var loin := _ennemi(Vector3(0, 0, -7))
+	occ.gagner_jauge(EQ.occ_chaines_cout)   # (jauge façon Diablo : les Chaînes la dépensent)
 	_demander(&"competence_2")
 	await _secondes(EQ.occ_chaines_instant + 0.05)
 	assert_eq(proche.etat, Ennemi.Etat.ENCHAINE)

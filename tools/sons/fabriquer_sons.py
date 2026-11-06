@@ -84,8 +84,22 @@ def normaliser(x, crete=0.89):
 def ecrire(nom, x, crete=0.89):
     os.makedirs(SORTIE, exist_ok=True)
     x = normaliser(np.asarray(x, dtype=np.float64), crete)
-    sf.write(os.path.join(SORTIE, nom + ".ogg"), x.astype(np.float32), TAUX, format="OGG", subtype="VORBIS")
+    _ecrire_ogg(os.path.join(SORTIE, nom + ".ogg"), x, TAUX)
     print("son", nom, "%.2f s" % (len(x) / TAUX))
+
+
+def _ecrire_ogg(chemin, x, taux):
+    """Écrit un OGG, sauf si le fichier déjà là contient exactement le même son : chaque écriture OGG porte un numéro
+    tiré au hasard, et git verrait tous les sons changés à chaque passage du script."""
+    temporaire = chemin + ".tmp.ogg"
+    sf.write(temporaire, np.asarray(x, dtype=np.float32), taux, format="OGG", subtype="VORBIS")
+    if os.path.exists(chemin):
+        neuf, _ = sf.read(temporaire)
+        ancien, _ = sf.read(chemin)
+        if neuf.shape == ancien.shape and np.abs(neuf - ancien).max() < 1e-7:
+            os.remove(temporaire)
+            return
+    os.replace(temporaire, chemin)
 
 
 def boucle(x, fondu=1.0):
@@ -213,12 +227,80 @@ def essence():
     ecrire("essence", x * np.exp(-tt * 7) * enveloppe(n, 0.004, 0.1), 0.6)
 
 
+# ---------------------------------------------------------------- ennemis (06/11, choix de Téo)
+def ennemis():
+    global rng
+    # squelette qui sort de terre : la terre qui se soulève (grondement), des cailloux qui roulent, puis un cliquetis
+    # d'os quand il se redresse
+    rng = np.random.default_rng(110)
+    tt = t(1.1)
+    n = len(tt)
+    p = tt / tt[-1]
+    terre = passe_bas(brun(n), 320) * np.sin(np.pi * np.clip(p * 1.3, 0, 1)) ** 1.5
+    cailloux = np.zeros(n)
+    for t0 in np.sort(rng.uniform(0.0, 0.7, 26)):
+        d = int(rng.uniform(0.006, 0.02) * TAUX)
+        f = rng.uniform(700, 2600)
+        c = passe_bande(bruit(d), f * 0.7, f * 1.4) * np.exp(-np.linspace(0, 8, d))
+        i0 = int(t0 * TAUX)
+        cailloux[i0:i0 + d] += c[: n - i0] * rng.uniform(0.2, 0.8) * (1.0 - t0)
+    os_ = np.zeros(n)
+    for t0 in rng.uniform(0.72, 0.95, 5):
+        d = int(0.02 * TAUX)
+        c = passe_bande(bruit(d), 1500, 4500) * np.exp(-np.linspace(0, 9, d))
+        i0 = int(t0 * TAUX)
+        os_[i0:i0 + d] += c[: n - i0] * rng.uniform(0.3, 0.6)
+    ecrire("sortie_terre", (terre * 0.9 + cailloux + os_) * enveloppe(n, 0.05, 0.2))
+
+    # cri du Bosco (sa rage à mi-vie) : une gorge vide qui gronde ; hauteur qui monte puis retombe, voix rauque
+    # (harmoniques secouées), trois « formants » de bouche, un peu de souffle, saturé doucement
+    rng = np.random.default_rng(120)
+    tt = t(1.5)
+    n = len(tt)
+    p = tt / tt[-1]
+    f0 = 85 + 55 * np.sin(np.pi * np.clip(p * 1.15, 0, 1)) ** 0.7
+    f0 = f0 * (1 + 0.025 * passe_bas(bruit(n), 30) / 0.05)
+    phase = 2 * np.pi * np.cumsum(f0) / TAUX
+    source = np.zeros(n)
+    for k in range(1, 28):
+        secousse = 1 + 0.35 * passe_bas(bruit(n), 40) / 0.05
+        source += np.sin(k * phase) / k ** 0.9 * secousse
+    souffle_ = passe_bande(bruit(n), 300, 3500) * (0.5 + 0.5 * np.sin(phase)) * 0.6
+    voix = source + souffle_ * np.abs(source).mean() * 2
+    bouche = (passe_bande(voix, 450, 800) * 1.0 + passe_bande(voix, 950, 1400) * 0.7
+              + passe_bande(voix, 2200, 2900) * 0.35 + passe_bas(voix, 250) * 0.5)
+    bouche = np.tanh(normaliser(bouche) * 2.2)
+    grave = np.sin(2 * np.pi * np.cumsum(f0 / 2) / TAUX) * 0.35
+    ecrire("cri_bosco", (bouche + grave) * enveloppe(n, 0.09, 0.45, 1.6))
+
+    # prêtre noyé qui relève les morts : un accord sourd et faux qui enfle, l'eau qui gargouille (bulles)
+    rng = np.random.default_rng(130)
+    tt = t(1.7)
+    n = len(tt)
+    p = tt / tt[-1]
+    accord = sum(np.sin(2 * np.pi * f * tt + 0.4 * np.sin(2 * np.pi * 0.7 * tt)) * a
+                 for f, a in ((55.0, 1.0), (58.3, 0.8), (82.4, 0.6), (116.5, 0.35), (174.6, 0.2)))
+    accord *= (np.sin(np.pi * p) ** 1.2) * (0.8 + 0.2 * np.sin(2 * np.pi * 5.5 * tt))
+    bulles = np.zeros(n)
+    t0 = 0.05
+    while t0 < 1.5:
+        d = int(rng.uniform(0.04, 0.09) * TAUX)
+        tt2 = np.arange(d) / TAUX
+        f = rng.uniform(250, 600)
+        b = np.sin(2 * np.pi * np.cumsum(f * (1 + 2.5 * tt2 / tt2[-1])) / TAUX) * np.exp(-tt2 * 30)
+        i0 = int(t0 * TAUX)
+        bulles[i0:i0 + d] += b[: n - i0] * rng.uniform(0.2, 0.7) * np.sin(np.pi * t0 / 1.6)
+        t0 += rng.exponential(0.06)
+    eau = passe_bas(brun(n), 500) * np.sin(np.pi * p) * 0.4
+    ecrire("relever", (accord * 0.8 + bulles * 0.6 + eau) * enveloppe(n, 0.1, 0.4))
+
+
 # ---------------------------------------------------------------- ambiances (en boucle, stéréo)
 def ecrire_stereo(nom, g, d, crete=0.89):
     os.makedirs(SORTIE, exist_ok=True)
     x = np.stack([g, d], axis=1)
     x = x / (np.abs(x).max() + 1e-9) * crete
-    sf.write(os.path.join(SORTIE, nom + ".ogg"), x.astype(np.float32), TAUX, format="OGG", subtype="VORBIS")
+    _ecrire_ogg(os.path.join(SORTIE, nom + ".ogg"), x, TAUX)
     print("ambiance", nom, "%.2f s" % (len(x) / TAUX))
 
 
@@ -354,7 +436,7 @@ def _copier(src, nom, mono=True):
     if mono and x.ndim > 1:
         x = x.mean(axis=1)
     x = x / (np.abs(x).max() + 1e-9) * 0.89
-    sf.write(os.path.join(KENNEY, nom + ".ogg"), x.astype(np.float32), taux, format="OGG", subtype="VORBIS")
+    _ecrire_ogg(os.path.join(KENNEY, nom + ".ogg"), x, taux)
 
 
 if __name__ == "__main__":
@@ -363,5 +445,6 @@ if __name__ == "__main__":
     magie()
     explosions()
     essence()
+    ennemis()
     ambiances()
     kenney()

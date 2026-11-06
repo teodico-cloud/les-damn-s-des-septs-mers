@@ -728,7 +728,13 @@ func _sons_du_geste(nom: String, vitesse: float, ecoule := 0.0) -> void:
 		Sons.jouer_plus_tard(s[0], delai, self, n, s[2] if s.size() > 2 else 1.0)
 
 
-## Les sons d'une animation : [[son, délai en secondes, (hauteur)], …] (le Bosco a les siens ; les coups des
-## squelettes sonnent quand ils touchent : voir Sons).
-func sons_animation(_nom: String, _vitesse: float) -> Array:
+## Les sons d'une animation : [[son, délai en secondes, (hauteur)], …] (choix de Téo du 06/11) : la sortie de terre ;
+## le souffle de la lame juste avant l'impact, plus grave et plus discret que celui du héros. Le choc lui-même sonne
+## quand le coup touche (Sons, par EventBus.coup_porte).
+func sons_animation(nom: String, vitesse: float) -> Array:
+	match nom:
+		"Spawn_Ground_Skeletons":
+			return [[&"sortie_terre", 0.0]]
+		"1H_Melee_Attack_Chop":
+			return [[&"lame_squelette", maxf(EQ.squelette_impact_animation / vitesse - 0.12, 0.0), 0.85]]
 	return []

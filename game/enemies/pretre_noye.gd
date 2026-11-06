@@ -121,6 +121,13 @@ func _poursuivre(delta: float) -> void:
 		_jouer("Idle_Combat")
 
 
+## Il relève les morts : un accord sourd et l'eau qui gargouille (choix de Téo du 06/11).
+func sons_animation(nom: String, vitesse: float) -> Array:
+	if nom == "Spellcasting":
+		return [[&"relever", 0.0]]
+	return super(nom, vitesse)
+
+
 func _commencer_incantation(i: int) -> void:
 	var gen := _generateur()
 	gen.reserver_tombe(i)
