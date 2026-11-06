@@ -29,7 +29,7 @@ Dernière mise à jour : 4 novembre 2026.
   (voir plus bas) ; APK 0.5.22.
 - **Jalon 6 — refonte de l'interface (05/11, demande de Téo)** : tous les écrans existants refaits (voir plus bas) ;
   APK 0.5.23. Puis l'écran Réglages (qualité graphique) et le carnet de bord du repaire (choix de Téo du 05/11) ;
-  APK suivant. Reste : les sons.
+  APK 0.5.24. Reste : les sons.
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
