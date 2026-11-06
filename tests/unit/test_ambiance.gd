@@ -40,6 +40,10 @@ func test_l_arene_prend_l_ambiance_commune() -> void:
 		assert_eq(t.light_color, Ambiance.TORCHE, "Torches orangées")
 		assert_gt(t.omni_attenuation, 1.0, "Des taches de lumière")
 	assert_eq(a.heros.get_children().filter(func(c): return c is HaloHeros).size(), 1)
+	# (relecture du jalon 6) l'ancienne lumière d'appoint du héros, orangée comme sur la planche validée par Téo
+	var appoints := a.heros.get_children().filter(func(c): return c is OmniLight3D and not (c is HaloHeros))
+	assert_eq(appoints.size(), 1)
+	assert_eq(appoints[0].light_color, Ambiance.TORCHE)
 
 
 func test_les_annonces_restent_vives() -> void:
@@ -140,12 +144,16 @@ func test_brume_au_ras_du_sol_et_poussiere() -> void:
 	await wait_physics_frames(3)
 	var brumes := a.find_children("Brume", "Node3D", true, false)
 	assert_eq(brumes.size(), 1, "Une brume dans la salle")
-	var nappes := brumes[0].find_children("*", "MeshInstance3D", true, false)
+	var nappes := brumes[0].get_children()
 	assert_eq(nappes.size(), 2, "Deux nappes l'une au-dessus de l'autre")
 	for n in nappes:
 		assert_lt(n.position.y, 0.8, "Au ras du sol")
-		assert_eq(n.cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
-		assert_lt(n.material_override.render_priority, 0, "Dessinée avant les annonces au sol : elle ne cache aucun danger")
+		var morceaux := n.find_children("*", "MeshInstance3D", true, false)
+		assert_gt(morceaux.size(), 1, "En morceaux : chacun reçoit les lumières qui l'entourent (8 au plus par objet)")
+		for m in morceaux:
+			assert_lte(m.mesh.size.x, Ambiance.MORCEAU_BRUME + 0.01)
+			assert_eq(m.cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
+			assert_lt(m.material_override.render_priority, 0, "Dessinée avant les annonces au sol : elle ne cache aucun danger")
 	for t in a.torches:
 		assert_eq(t.find_children("*", "CPUParticles3D", true, false).size(), 1, "De la poussière dans la lumière de chaque torche")
 	var halo: HaloHeros = a.heros.get_children().filter(func(c): return c is HaloHeros)[0]

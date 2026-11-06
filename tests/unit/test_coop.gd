@@ -134,6 +134,7 @@ func test_instantane_tient_dans_un_paquet_wifi() -> void:
 			e.marquer(a, 5.0)
 			e.sante.subir(9999.0, a)
 			tues += 1
+	_valeurs_de_jeu(a, b)
 	var s := SynchroArene.new()
 	autofree(s)
 	s.generateur = gen
@@ -143,6 +144,16 @@ func test_instantane_tient_dans_un_paquet_wifi() -> void:
 	assert_eq(ennemis.size(), 11)
 	var taille := var_to_bytes([99999, s._etat_heros(), ennemis, 99999]).size()
 	assert_lt(taille, 1300, "Instantané de %d octets" % taille)
+	# un héros voyage emballé et se retrouve identique chez l'invité (à la précision près ; relecture j6)
+	var h: Array = a.instantane()
+	var recu: Array = SynchroArene._deballer_heros(s._etat_heros()["HerosHote"])
+	assert_eq(recu.size(), h.size())
+	assert_almost_eq((recu[0] as Vector3).distance_to(h[0]), 0.0, 0.001)
+	for i in range(1, h.size()):
+		if h[i] is bool:
+			assert_eq(recu[i], h[i], "valeur %d" % i)
+		else:
+			assert_almost_eq(float(recu[i]), float(h[i]), 0.001, "valeur %d" % i)
 	# un squelette vaincu voyage en court, avec son tueur (les os partent loin de lui chez l'invité)
 	var court: Array = SynchroArene._deballer(ennemis["Squelette_100"])
 	assert_eq(court.size(), 4)
@@ -158,6 +169,19 @@ func test_instantane_tient_dans_un_paquet_wifi() -> void:
 			assert_eq(w[i], v[i])
 		else:
 			assert_almost_eq(float(w[i]), float(v[i]), 0.001, "valeur %d" % i)
+
+
+## Des valeurs comme en jeu, pas « rondes » (relecture du jalon 6 : avec 37,3 de jauge ou 87,65 PV, un nombre prend
+## 8 octets au lieu de 4 ; les tests de taille, avec des valeurs rondes, ne voyaient pas l'instantané déborder).
+static func _valeurs_de_jeu(a: Heros, b: Heros) -> void:
+	for h in [a, b]:
+		h.jauge = 37.3
+		h._t = 1.2345678
+		h._vitesse_anim = 1.65
+		h.sante.pv = 87.654321
+		h.progres_reanimation = 0.3333
+		h.global_position += Vector3(0.2345678, 0.0001, 0.98765)
+		h.rotation.y = 0.7071
 
 
 func test_marionnette_vaincue_eclate_loin_du_tueur() -> void:

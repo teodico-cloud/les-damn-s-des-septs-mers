@@ -193,7 +193,7 @@ func _etat_heros() -> Dictionary:
 	var d := {}
 	for h in [heros_local, heros_partenaire]:
 		if is_instance_valid(h):
-			d[String(h.name)] = h.instantane()
+			d[String(h.name)] = _emballer_heros(h.instantane())
 	if arene and arene.get("temps_salle") != null:
 		d["@temps"] = arene.temps_salle   # horloge des pièges de la salle (expédition)
 		if arene.chaloupe_restant >= 0.0:
@@ -221,6 +221,20 @@ static func _emballer(v: Array) -> PackedFloat32Array:
 	if v.size() < 8:
 		return PackedFloat32Array([p.x, p.y, p.z, v[1], v[2], maxi(TUEURS.find(v[3]), 0)])
 	return PackedFloat32Array([p.x, p.y, p.z, v[1], v[2], v[3], v[4], v[5], 1.0 if v[6] else 0.0, v[7]])
+
+
+## Un héros voyage aussi en nombres à virgule simple (relecture du jalon 6 : avec la jauge, l'instantané du quai
+## dépassait un paquet Wi-Fi ; emballé, un héros pèse environ 60 octets au lieu de 120).
+## [position, rotation, état, animation, vitesse, PV, visible, réanimation, temps dans l'état, jauge]
+static func _emballer_heros(v: Array) -> PackedFloat32Array:
+	var p: Vector3 = v[0]
+	return PackedFloat32Array([p.x, p.y, p.z, v[1], v[2], v[3], v[4], v[5], 1.0 if v[6] else 0.0, v[7], v[8], v[9]])
+
+
+static func _deballer_heros(p: Variant) -> Variant:
+	if not (p is PackedFloat32Array):
+		return p   # (« @temps », « @chaloupe »)
+	return [Vector3(p[0], p[1], p[2]), p[3], roundi(p[4]), roundi(p[5]), p[6], p[7], p[8] > 0.5, p[9], p[10], p[11]]
 
 
 static func _deballer(p: Variant) -> Array:
@@ -347,6 +361,8 @@ func _traiter_instantane(numero: int, heros: Dictionary, ennemis: Dictionary, ac
 	_decalage_horloge = minf(_decalage_horloge + 0.0005, _maintenant() - t_hote)
 	for nom in ennemis:
 		ennemis[nom] = _deballer(ennemis[nom])
+	for nom in heros:
+		heros[nom] = _deballer_heros(heros[nom])
 	_instantanes.append([t_hote, heros, ennemis])
 	if _instantanes.size() > 12:
 		_instantanes.pop_front()

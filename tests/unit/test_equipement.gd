@@ -651,3 +651,31 @@ func test_les_squelettes_sortent_ecartes() -> void:
 				var d := Vector2(liste[i].position.x - liste[j].position.x, liste[i].position.z - liste[j].position.z).length()
 				plus_proche = minf(plus_proche, d)
 	assert_gte(plus_proche, GenerateurEnnemis.ECART_MIN - 0.001, "Jamais l'un dans l'autre (au plus près : %.2f m)" % plus_proche)
+
+
+## (Relecture du jalon 6 : le dernier recours parcourait toute la salle par pas de 0,2 m, 2 600 points, chacun
+## comparé à tous les squelettes : 17 ms sur ordinateur, une saccade sur téléphone. Il cherche maintenant en anneaux
+## autour du point voulu et s'arrête au premier qui a une place.)
+class GenerateurCompte extends GenerateurEnnemis:
+	var essais := 0
+
+	func _place_libre(q: Vector3) -> bool:
+		essais += 1
+		return super(q)
+
+
+func test_le_dernier_recours_ne_parcourt_pas_toute_la_salle() -> void:
+	var gen := GenerateurCompte.new()
+	gen.demarrage_auto = false
+	gen.nombre = 0
+	gen.demi_cote = 5.0
+	monde.add_child(gen)
+	for i in 16:   # un coin de la salle bien rempli, le point voulu au milieu d'eux
+		var e := Ennemi.creer(true)
+		e.position = Vector3(-5.0 + (i % 4) * 0.9, 0, -5.0 + (i / 4) * 0.9)
+		gen.add_child(e)
+		e.set_physics_process(false)
+	var q: Vector3 = gen._ecarter(Vector3(-5.0, 0, -5.0))
+	assert_true(gen._place_libre(q), "Une place libre (%s)" % q)
+	assert_lt(Vector2(q.x + 5.0, q.z + 5.0).length(), 4.5, "La plus proche du coin, pas n'importe où")
+	assert_lt(gen.essais, 1500, "Sans parcourir toute la salle par pas de 0,2 m : plus de 2 600 places (%d essayées)" % gen.essais)

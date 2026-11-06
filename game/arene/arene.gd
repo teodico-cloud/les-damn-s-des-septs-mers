@@ -68,7 +68,7 @@ func _ready() -> void:
 	camera.current = true
 
 	var appoint := OmniLight3D.new()   # éclaire le héros côté caméra, le suit
-	appoint.light_color = Color(1.0, 0.8, 0.6)
+	appoint.light_color = Ambiance.TORCHE   # (orangée comme sur la planche validée par Téo le 06/11 ; relecture j6)
 	appoint.light_energy = 1.3
 	appoint.omni_range = 8.0
 	appoint.position = Vector3(1.6, 3.2, 1.6)

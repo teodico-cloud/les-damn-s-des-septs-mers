@@ -61,6 +61,14 @@ func test_sans_fichier_ou_fichier_abime_reglages_de_depart() -> void:
 	assert_eq(Reglages.qualite, Reglages.Qualite.NORMALE, "Valeur inconnue : Normale")
 	Reglages.choisir_qualite(7)
 	assert_eq(Reglages.qualite, Reglages.Qualite.BELLE, "Hors limites : ramené au plus proche")
+	# (relecture du jalon 6) une qualité qui n'est pas un texte arrêtait la lecture : les volumes étaient perdus
+	for q in ["2", "null", "[1]"]:
+		_ecrire('{"version": 1, "qualite": %s, "volumes": {"general": 0.3, "effets": 0.2, "ambiances": 0.1}}' % q)
+		Reglages.charger()
+		assert_eq(Reglages.qualite, Reglages.Qualite.NORMALE, "Qualité %s illisible : Normale" % q)
+		assert_almost_eq(Reglages.volume("general"), 0.3, 0.001, "Les volumes sont lus quand même (%s)" % q)
+	for c in Reglages.CANAUX:
+		Reglages.volumes[c] = 1.0   # (les autres tests partent des volumes pleins)
 
 
 # ---------------------------------------------------------------- ce que change la qualité

@@ -4,6 +4,8 @@ extends SceneTree
 ##         godot --headless --path . -s <chemin absolu>/tools/test_coop.gd -- invite 127.0.0.1
 ## L'hôte joue le Bretteur (ou HEROS_HOTE=occultiste) ; l'invité prend l'autre héros, se déplace puis attaque.
 ## DESTINATION=expedition : l'expédition à deux (salle nettoyée, porte prise à deux, salle suivante, fin).
+## SCENARIO=jauge : la jauge façon Diablo de l'invité Occultiste (remplie par ses tirs chez l'hôte, dépensée par ses
+## Chaînes chez lui tout de suite, sans remonter le temps que l'hôte l'apprenne ; relecture du jalon 6).
 ## Chacun écrit ce qu'il voit (lignes « MESURE … ») et vérifie ce qui doit l'être (lignes « VERIF »,
 ## « ECHEC ») ; le script shell échoue si une vérification échoue.
 ## Ne pas typer avec les classes du jeu (voir CLAUDE.md, pièges).
@@ -11,6 +13,7 @@ extends SceneTree
 var role := ""
 var destination: StringName = &"arene"
 var boulets_de_l_invite := 0   ## jalon 5 : boulets de la bordée de l'invité, tirés chez l'hôte
+var scenario := ""             ## « jauge » : voir plus haut
 var scenario_fin := "chaloupe"   ## expédition : « chaloupe » (fin normale) ou « hote_parti » (l'hôte part en pleine expédition)
 var reseau: Node
 var partie: Node
@@ -77,6 +80,7 @@ func _derouler(args: PackedStringArray) -> void:
 		print("MESURE %s reseau_simule latence=%.0fms gigue=%.0fms perte=%.0f%%" % [role, reseau.latence_simulee * 1000.0, reseau.gigue_simulee * 1000.0, reseau.perte_simulee * 100.0])
 	destination = StringName(OS.get_environment("DESTINATION")) if OS.has_environment("DESTINATION") else &"arene"
 	scenario_fin = OS.get_environment("FIN") if OS.has_environment("FIN") else "chaloupe"
+	scenario = OS.get_environment("SCENARIO") if OS.has_environment("SCENARIO") else ""
 	# jalon 4 : chaque téléphone a sa sauvegarde et porte son équipement (arme et chandelle, sur ses deux
 	# héros) ; l'autre doit le voir (PV max, arme en main). Rien qui change la vitesse : les distances
 	# mesurées par l'essai restent les mêmes.
@@ -155,6 +159,11 @@ func _derouler(args: PackedStringArray) -> void:
 			await _hote_expedition()
 		else:
 			await _invite_expedition()
+	elif scenario == "jauge":
+		if role == "hote":
+			await _hote_jauge()
+		else:
+			await _invite_jauge()
 	elif role == "hote":
 		await _hote()
 	else:
@@ -598,3 +607,62 @@ func _p(n) -> String:
 	if n == null or not is_instance_valid(n):
 		return "-"
 	return "(%.2f,%.2f)" % [n.global_position.x, n.global_position.z]
+
+
+# ---------------------------------------------------------------- jauge façon Diablo (relecture du jalon 6)
+## L'hôte : il décide des Âmes de l'invité (ses tirs touchent chez lui) et doit voir ses Chaînes partir.
+func _hote_jauge() -> void:
+	var p = arene.heros_partenaire
+	arene.heros.sante.rendre_invulnerable(100.0)
+	p.sante.rendre_invulnerable(100.0)
+	var incantations := [0]
+	p.etat_change.connect(func(e): if e == 8: incantations[0] += 1)   # INCANTATION
+	var max_vu := 0.0
+	var fin := Time.get_ticks_msec() + 11000
+	var prochain := 0
+	while Time.get_ticks_msec() < fin and is_instance_valid(p):
+		await physics_frame
+		if not is_instance_valid(p):
+			break   # (l'invité a fini son essai et quitté la partie)
+		max_vu = maxf(max_vu, p.jauge)
+		if Time.get_ticks_msec() >= prochain:
+			prochain = Time.get_ticks_msec() + 500
+			print("MESURE hote t=%.2f jauge_partenaire=%.1f etat=%d" % [Time.get_ticks_msec() / 1000.0 - t0, p.jauge, p.etat])
+	_verifier(max_vu > 0.0, "les tirs de l'invité remplissent ses Âmes chez l'hôte (jusqu'à %.1f)" % max_vu)
+	_verifier(incantations[0] >= 1, "l'hôte a vu les Chaînes de l'invité (%d)" % incantations[0])
+
+
+## L'invité Occultiste : il tire 5 s, reçoit ses Âmes de l'hôte, lance les Chaînes (40) dès qu'il en a assez.
+func _invite_jauge() -> void:
+	var h = arene.heros
+	var cle := String(h.name)
+	h.sante.rendre_invulnerable(100.0)
+	var debut := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - debut < 5000:
+		h.commandes.demander(&"attaque", h.horloge)
+		await physics_frame
+	await _attendre(0.6)
+	var j_avant: float = h.jauge
+	var j_hote: float = arene.synchro._instantanes[-1][1][cle][9]
+	print("MESURE invite apres_tirs jauge=%.1f instantane=%.1f" % [j_avant, j_hote])
+	_verifier(j_avant > 0.0, "nos tirs remplissent nos Âmes (décidé par l'hôte) : %.1f" % j_avant)
+	_verifier(absf(j_avant - j_hote) < 0.2, "la même jauge que l'hôte (%.1f / %.1f)" % [j_avant, j_hote])
+	var cout: float = h.cout_jauge(&"competence_2")
+	if j_avant < cout:
+		_verifier(false, "assez d'Âmes pour les Chaînes après 5 s de tirs (%.1f)" % j_avant)
+		return
+	h.commandes.demander(&"competence_2", h.horloge)
+	for k in 3:
+		await physics_frame
+	_verifier(h.etat == 8, "Chaînes lancées chez nous (état %d)" % h.etat)
+	var apres: float = h.jauge
+	_verifier(absf(apres - (j_avant - cout)) < 0.5, "leur prix retiré tout de suite (%.1f -> %.1f)" % [j_avant, apres])
+	var max_vu := apres
+	var fin := Time.get_ticks_msec() + 1500
+	while Time.get_ticks_msec() < fin:
+		await physics_frame
+		max_vu = maxf(max_vu, h.jauge)
+	j_hote = arene.synchro._instantanes[-1][1][cle][9]
+	print("MESURE invite apres_chaines local=%.1f hote=%.1f max_vu=%.1f" % [h.jauge, j_hote, max_vu])
+	_verifier(max_vu < j_avant - cout + 1.0, "la jauge ne remonte pas à l'ancienne valeur (max %.1f)" % max_vu)
+	_verifier(absf(h.jauge - j_hote) < 0.2, "puis la même que l'hôte (%.1f / %.1f)" % [h.jauge, j_hote])

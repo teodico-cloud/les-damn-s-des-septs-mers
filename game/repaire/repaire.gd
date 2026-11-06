@@ -230,7 +230,7 @@ func _poser_heros(archetype: StringName, pos: Vector3) -> void:
 	add_child(heros)
 	heros.rotation.y = PI * 0.25
 	var appoint := OmniLight3D.new()   # éclaire le héros côté caméra, le suit
-	appoint.light_color = Color(1.0, 0.8, 0.6)
+	appoint.light_color = Ambiance.TORCHE   # (orangée comme sur la planche validée par Téo le 06/11 ; relecture j6)
 	appoint.light_energy = 1.2
 	appoint.omni_range = 8.0
 	appoint.position = Vector3(1.6, 3.2, 1.6)

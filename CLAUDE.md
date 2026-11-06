@@ -193,7 +193,7 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   `LATENCE_MS=30 GIGUE_MS=20 PERTE_PCT=3` ; captures des deux écrans : ajouter
   `CAPTURE_DIR=$PWD/build/apercus AFFICHAGE="xvfb-run -a" OPTIONS_RENDU="--rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720"`
   (avec le rendu, le jeu tourne ici plus lentement que le temps réel : distances plus courtes, c'est normal) ;
-  l'expédition à deux : préfixer `DESTINATION=expedition`
+  l'expédition à deux : préfixer `DESTINATION=expedition` ; la jauge de l'invité : `SCENARIO=jauge`
 - Suivre la fabrication de l'APK : `gh api repos/teodico-cloud/les-damn-s-des-septs-mers/actions/runs`
 - Diagnostics d'une fabrication (les journaux bruts ne sont pas lisibles d'ici, le workflow écrit ses
   diagnostics en annotations) : `gh api repos/teodico-cloud/les-damn-s-des-septs-mers/check-runs/<id du job>/annotations`
@@ -261,10 +261,12 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   La marionnette de l'invité éclate aussi en recevant l'état MORT.
 - Coop : les animations voyagent par numéro (`code_anim` / `nom_anim`, place dans la liste du modèle) ;
   chaque squelette est emballé en nombres à virgule simple (`SynchroArene._emballer` / `_deballer`),
-  un vaincu en format court avec son tueur. Un instantané doit tenir sous 1 392 octets (un paquet
-  Wi-Fi ; au-delà, un morceau perdu perd tout) : le test `test_instantane_tient_dans_un_paquet_wifi`
-  le vérifie (8 debout + 3 vaincus). Toute nouvelle valeur dans `Ennemi.instantane()` passe aussi par
-  `_emballer` / `_deballer`, et augmente `VERSION_RESEAU`.
+  un vaincu en format court avec son tueur ; les héros aussi (`_emballer_heros` / `_deballer_heros`, depuis la
+  relecture du jalon 6). Un instantané doit tenir sous 1 392 octets (un paquet Wi-Fi ; au-delà, un morceau perdu
+  perd tout) : `test_instantane_tient_dans_un_paquet_wifi` et `test_instantane_du_quai_tient_dans_un_paquet_wifi`
+  le vérifient avec des valeurs **non rondes** (`test_coop._valeurs_de_jeu` : un nombre comme 37,3 prend 8 octets
+  au lieu de 4 ; avec des valeurs rondes, le quai débordait sans que le test le voie). Toute nouvelle valeur dans
+  `Ennemi.instantane()` ou `Heros.instantane()` passe aussi par l'emballage, et augmente `VERSION_RESEAU`.
 - Captures d'un effet très court (traînée de 0,2 s) : le rendu sans carte graphique est lent, l'effet a
   parfois disparu avant la capture. Ralentir (`Engine.time_scale = 0.1`) le temps de la capture.
 - Sur le sol clair de l'arène, un effet en mélange additif vire au blanc éblouissant : préférer le
@@ -455,6 +457,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   `heros.jauge`. Elle ne se gagne que seul ou chez l'hôte (`gagner_jauge` ne fait rien chez l'invité ni sur une
   marionnette) : tout nouveau gain passe par elle. Un nouveau coût : `cout_jauge(action)` de l'archétype et le test
   de `Heros._essayer_actions_prioritaires`.
+- Brume : faite de morceaux de 6 m au plus (`Ambiance.MORCEAU_BRUME`) ; sur téléphone un objet ne reçoit que 8 lumières.
+  Son bord s'efface d'après la nappe entière (`centre`, `demi` du shader), pas d'après chaque morceau.
 - Brume : ses nappes ont une priorité de rendu négative pour que les annonces au sol (priorité 0 et 1) se dessinent
   par-dessus ; une nouvelle annonce transparente garde une priorité ≥ 0.
 - Retour d'Android sur l'écran titre : il quitte le jeu (`quit_on_go_back`), sauf réglages ouverts ; Godot décide de

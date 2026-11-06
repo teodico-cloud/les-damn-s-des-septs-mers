@@ -160,19 +160,25 @@ func _ecarter(p: Vector3) -> Vector3:
 				meilleur = q
 				meilleure_distance = d
 	# (contre un mur, les points ramenés dans la salle retombent les uns sur les autres : vu par le test, 0,94 m
-	# avec 4 squelettes seulement) : dernier recours, la place libre la plus proche, cherchée dans toute la salle
-	var libre := Vector3.INF
-	var pas := 0.2
-	var x := -demi_cote
-	while x <= demi_cote + 0.001:
-		var z := -demi_cote
-		while z <= demi_cote + 0.001:
-			var q := Vector3(x, p.y, z)
+	# avec 4 squelettes seulement) : dernier recours, la place libre la plus proche, cherchée en anneaux de plus en
+	# plus larges autour du point voulu ; on s'arrête au premier anneau qui en a une (relecture j6 : parcourir toute
+	# la salle par pas de 0,2 m coûtait 17 ms sur ordinateur, une saccade sur téléphone).
+	var pas := 0.25
+	var r := pas
+	while r <= demi_cote * 2.9:
+		var libre := Vector3.INF
+		var n := maxi(8, ceili(TAU * r / pas))
+		for k in n:
+			var a := TAU * k / n
+			var q := p + Vector3(cos(a), 0, sin(a)) * r
+			q.x = clampf(q.x, -demi_cote, demi_cote)
+			q.z = clampf(q.z, -demi_cote, demi_cote)
 			if _place_libre(q) and (libre == Vector3.INF or q.distance_to(p) < libre.distance_to(p)):
 				libre = q
-			z += pas
-		x += pas
-	return libre if libre != Vector3.INF else meilleur
+		if libre != Vector3.INF:
+			return libre
+		r += pas
+	return meilleur
 
 
 func _distance_au_plus_proche(p: Vector3) -> float:

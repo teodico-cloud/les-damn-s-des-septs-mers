@@ -9,6 +9,8 @@ uniform float opacite = 0.3;
 uniform float echelle = 0.11;           // bruit : tours par mètre
 uniform vec2 vent = vec2(0.018, 0.007); // dérive (tours par seconde)
 uniform float bord = 0.14;              // part du bord de la nappe où elle s'efface
+uniform vec2 centre = vec2(0.0);        // la nappe entière (en mètres du monde ; elle est faite de plusieurs
+uniform vec2 demi = vec2(7.0);          // morceaux : chacun reçoit les lumières qui l'entourent)
 uniform sampler2D bruit : repeat_enable, filter_linear_mipmap;
 
 varying vec2 sol;
@@ -22,7 +24,8 @@ void fragment() {
 	float a = texture(bruit, uv + TIME * vent).r;
 	float b = texture(bruit, uv * 1.9 + vec2(0.37, 0.71) - TIME * vent * 1.6).r;
 	float n = smoothstep(0.36, 0.82, a * 0.65 + b * 0.35);
-	float d = min(min(UV.x, 1.0 - UV.x), min(UV.y, 1.0 - UV.y));
+	vec2 reste = (demi - abs(sol - centre)) / (2.0 * demi);   // 0 au bord de la nappe, 0,5 au milieu
+	float d = min(reste.x, reste.y);
 	ALBEDO = couleur;
 	ROUGHNESS = 1.0;
 	ALPHA = n * opacite * smoothstep(0.0, bord, d);

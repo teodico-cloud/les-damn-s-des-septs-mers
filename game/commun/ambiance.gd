@@ -10,6 +10,7 @@ const LUNE := Color(0.55, 0.62, 0.8)
 const SHADER_BRUME := preload("res://game/commun/brume.gdshader")
 ## Nappes de brume : [hauteur (m), opacité, échelle du bruit, vent]
 const NAPPES := [[0.16, 0.34, 0.11, Vector2(0.018, 0.007)], [0.55, 0.2, 0.08, Vector2(-0.011, 0.014)]]
+const MORCEAU_BRUME := 6.0
 
 static var _ressources := {}
 
@@ -66,6 +67,8 @@ static func torche(pos: Vector3, ombre: bool) -> OmniLight3D:
 ## Brume au ras du sol (06/11, choix de Téo avec les sons) : deux nappes transparentes qui roulent lentement, de
 ## `taille` mètres, éclairées par les torches. Les annonces au sol (zones rouges et dorées) restent dessinées par-dessus
 ## (priorité de rendu plus basse) : la brume ne cache jamais un danger. Masquée en qualité Économie (Reglages).
+## Chaque nappe est faite de morceaux d'au plus MORCEAU_BRUME mètres : sur téléphone, un objet ne reçoit que 8
+## lumières ; d'un seul tenant, la brume en aurait ignoré une partie (torches, halos ; relecture du jalon 6).
 static func brume(taille: Vector2, centre := Vector3.ZERO) -> Node3D:
 	var racine := Node3D.new()
 	racine.name = "Brume"
@@ -83,29 +86,36 @@ static func brume(taille: Vector2, centre := Vector3.ZERO) -> Node3D:
 		t.generate_mipmaps = true
 		t.noise = bruit
 		_ressources["bruit"] = t
+	var nx := maxi(1, ceili(taille.x / MORCEAU_BRUME))
+	var nz := maxi(1, ceili(taille.y / MORCEAU_BRUME))
+	var morceau := Vector2(taille.x / nx, taille.y / nz)
+	var plan := PlaneMesh.new()
+	plan.size = morceau
+	plan.subdivide_width = int(morceau.x / 0.6)    # (éclairée sommet par sommet : il en faut assez)
+	plan.subdivide_depth = int(morceau.y / 0.6)
 	for i in NAPPES.size():
 		var n: Array = NAPPES[i]
-		var cle := "nappe_%d" % i
-		if not _ressources.has(cle):
-			var m := ShaderMaterial.new()
-			m.shader = SHADER_BRUME
-			m.render_priority = -2
-			m.set_shader_parameter("bruit", _ressources["bruit"])
-			m.set_shader_parameter("opacite", n[1])
-			m.set_shader_parameter("echelle", n[2])
-			m.set_shader_parameter("vent", n[3])
-			_ressources[cle] = m
-		var plan := PlaneMesh.new()
-		plan.size = taille
-		plan.subdivide_width = int(taille.x / 0.6)    # (éclairée sommet par sommet : il en faut assez)
-		plan.subdivide_depth = int(taille.y / 0.6)
-		var nappe := MeshInstance3D.new()
-		nappe.name = "Nappe%d" % i
-		nappe.mesh = plan
-		nappe.material_override = _ressources[cle]
-		nappe.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		nappe.position.y = n[0]
-		racine.add_child(nappe)
+		var m := ShaderMaterial.new()   # (une par brume : elle connaît la taille de sa nappe)
+		m.shader = SHADER_BRUME
+		m.render_priority = -2
+		m.set_shader_parameter("bruit", _ressources["bruit"])
+		m.set_shader_parameter("opacite", n[1])
+		m.set_shader_parameter("echelle", n[2])
+		m.set_shader_parameter("vent", n[3])
+		m.set_shader_parameter("centre", Vector2(centre.x, centre.z))
+		m.set_shader_parameter("demi", taille / 2.0)
+		var couche := Node3D.new()
+		couche.name = "Nappe%d" % i
+		couche.position.y = n[0]
+		racine.add_child(couche)
+		for ix in nx:
+			for iz in nz:
+				var piece := MeshInstance3D.new()
+				piece.mesh = plan
+				piece.material_override = m
+				piece.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				piece.position = Vector3(-taille.x / 2.0 + morceau.x * (ix + 0.5), 0, -taille.y / 2.0 + morceau.y * (iz + 0.5))
+				couche.add_child(piece)
 	return racine
 
 

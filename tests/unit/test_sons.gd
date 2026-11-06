@@ -315,3 +315,27 @@ func test_les_ennemis_sonnent() -> void:
 	await _secondes(0.15)
 	assert_has(_noms(), &"cri_bosco", "Le cri de la rage du Bosco")
 	assert_has(_noms(), &"relever", "Le prêtre relève les morts")
+
+
+func test_marionnette_sortie_de_terre_seulement_si_elle_sort() -> void:
+	# (relecture du jalon 6) chez l'invité, un squelette créé en retard, déjà debout chez l'hôte, ne fait pas le
+	# bruit de terre ; un squelette qui sort vraiment le fait, une seule fois
+	var debout := Ennemi.creer()
+	debout.marionnette = true
+	debout.position = Vector3(4, 0, 0)
+	monde.add_child(debout)
+	var sortant := Ennemi.creer()
+	sortant.marionnette = true
+	sortant.position = Vector3(-4, 0, 0)
+	monde.add_child(sortant)
+	await wait_physics_frames(2)
+	assert_does_not_have(_noms(), &"sortie_terre", "Pas avant de savoir où en est l'hôte")
+	debout.appliquer_instantane(int(Ennemi.Etat.POURSUITE), debout.code_anim("Running_A"), 1.0, 40.0, false, 2.0)
+	await wait_physics_frames(2)
+	assert_does_not_have(_noms(), &"sortie_terre", "Déjà debout chez l'hôte : pas de bruit de terre")
+	sortant.appliquer_instantane(int(Ennemi.Etat.APPARITION), sortant.code_anim("Spawn_Ground_Skeletons"), 1.6, 40.0,
+			false, 0.05)
+	sortant.appliquer_instantane(int(Ennemi.Etat.APPARITION), sortant.code_anim("Spawn_Ground_Skeletons"), 1.6, 40.0,
+			false, 0.08)
+	await wait_physics_frames(2)
+	assert_eq(_noms().count(&"sortie_terre"), 1, "Il sort de terre : une fois")

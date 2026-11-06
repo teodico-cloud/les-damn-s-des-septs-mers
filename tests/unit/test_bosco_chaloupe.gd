@@ -604,11 +604,13 @@ func test_instantane_du_quai_tient_dans_un_paquet_wifi() -> void:
 	s.generateur = gen
 	s.heros_local = a
 	s.heros_partenaire = b
+	load("res://tests/unit/test_coop.gd")._valeurs_de_jeu(a, b)   # (valeurs non rondes : relecture du jalon 6)
 	var d := s._etat_heros()
-	d["@temps"] = 12.5
-	d["@chaloupe"] = Vector2(23.0, 1.0)
+	d["@temps"] = 12.3456789
+	d["@chaloupe"] = Vector2(23.456, 1.0)
 	var taille := var_to_bytes([99999, d, s._etat_ennemis(), 99999]).size()
-	assert_lt(taille, 1392, "Instantané du quai : %d octets pour %d debout" % [taille, debout])
+	# sous 1 392 octets, avec une marge pour les en-têtes du réseau (ENet, RPC)
+	assert_lt(taille, 1340, "Instantané du quai : %d octets pour %d debout" % [taille, debout])
 
 
 func test_ecran_de_fin_enrichi() -> void:

@@ -344,6 +344,8 @@ func jauge_coups(touches: int) -> void:
 func gagner_jauge(v: float) -> void:
 	if marionnette or Reseau.est_invite():
 		return   # (en coop, l'hôte décide ; l'invité reçoit la jauge dans l'instantané)
+	if not est_vivant():
+		return   # (relecture du jalon 6 : un tir parti avant sa chute ne remplit pas la jauge d'un héros à terre)
 	jauge = clampf(jauge + v, 0.0, jauge_max())
 	_dernier_combat = horloge
 
@@ -580,7 +582,7 @@ func temps_avant_reapparition() -> float:
 ## Ce que l'hôte envoie de ce héros à chaque instantané (voir SynchroArene).
 func instantane() -> Array:
 	return [global_position, rotation.y, int(etat), code_anim(anim.current_animation), _vitesse_anim, sante.pv,
-			visuel.visible, progres_reanimation, _t, snappedf(jauge, 0.1)]
+			visuel.visible, progres_reanimation, _t, jauge]   # (voyage emballé : SynchroArene._emballer_heros)
 
 
 ## Marionnette : applique ce que l'hôte a envoyé (la position est posée à part, lissée).

@@ -36,6 +36,15 @@ func _ready() -> void:
 	appliquer()
 
 
+## L'appli passe en arrière-plan ou se ferme pendant qu'un volume attend d'être écrit : on l'écrit tout de suite
+## (Android peut tuer une appli en arrière-plan sans prévenir ; relecture du jalon 6).
+func _notification(quoi: int) -> void:
+	if quoi in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_CLOSE_REQUEST]:
+		if _ecriture_prevue != null:
+			_ecriture_prevue = null   # (la minuterie qui reste écrira une seconde fois : sans danger)
+			enregistrer()
+
+
 func charger() -> void:
 	qualite = Qualite.NORMALE
 	for c in CANAUX:
@@ -47,7 +56,8 @@ func charger() -> void:
 	if not (d is Dictionary):
 		push_warning("Réglages illisibles : réglages de départ")
 		return
-	var nom := String(d.get("qualite", ""))
+	var lue = d.get("qualite", "")
+	var nom: String = lue if lue is String else ""   # (relecture j6 : un nombre ou null ici arrêtait la lecture)
 	for q in NOMS:
 		if NOMS[q] == nom:
 			qualite = q
@@ -68,7 +78,9 @@ func enregistrer() -> bool:
 		return false
 	f.store_string(JSON.stringify({"version": VERSION, "qualite": NOMS[qualite], "volumes": volumes}, "\t"))
 	f.close()
-	DirAccess.remove_absolute(chemin)
+	if DirAccess.rename_absolute(temporaire, chemin) == OK:   # (remplace l'ancien d'un coup, sur téléphone)
+		return true
+	DirAccess.remove_absolute(chemin)   # (ailleurs, renommer sur un fichier existant peut échouer)
 	return DirAccess.rename_absolute(temporaire, chemin) == OK
 
 

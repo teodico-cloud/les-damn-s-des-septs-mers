@@ -666,6 +666,32 @@ Aucun plantage ni blocage trouvé. Corrigé (chaque correction a un test qui éc
   cri à mi-vie (et appelle son équipage) ; « Os durcis » s'applique aussi au Bosco (combat plus long) ; à deux,
   un seul héros debout à bord suffit pour partir ; l'équipage qui s'effondre peut lâcher des orbes.
 
+## Relecture de fin du jalon 6 (agent relecteur) et corrections — 06/11
+Pas de sauvegarde perdue ni de coop désynchronisée trouvée (essais coop du relecteur : arène, expédition, jauge de
+l'invité sous Wi-Fi moyen et mauvais). Corrigé (chaque correction a un test qui échoue sans elle, sabotage vérifié) :
+- **Instantané du quai trop gros** : avec la jauge et des valeurs de jeu « non rondes », l'instantané de la chaloupe à
+  deux montait à 1 396 octets, au-dessus d'un paquet Wi-Fi (1 392) ; les tests, avec des valeurs rondes, ne le
+  voyaient pas. Les héros voyagent maintenant emballés comme les squelettes (environ 60 octets au lieu de 120 ;
+  `VERSION_RESEAU` 16) ; les tests de taille prennent des valeurs comme en jeu et gardent une marge (1 340).
+- **Jauge d'un héros à terre** : un tir parti avant la chute de l'Occultiste remplissait ses Âmes alors qu'il était à
+  terre (décision : à terre, elle se vide). `gagner_jauge` ne fait plus rien pour un héros à terre.
+- **Réglages abîmés** : une qualité écrite en nombre (ou vide) dans `reglages.json` arrêtait la lecture avec une
+  erreur, et les volumes repartaient à 100 %. Les volumes en attente d'écriture sont aussi écrits quand l'appli passe
+  en arrière-plan ; le fichier est remplacé d'un coup (plus d'instant sans fichier).
+- **Saccade possible à la sortie de terre** : le dernier recours pour écarter les squelettes parcourait toute la salle
+  (2 600 places, 17 ms sur ordinateur) ; il cherche maintenant en anneaux autour du point voulu (environ 800 au pire).
+- **Jauge en coop** : aucun essai ne vérifiait le trajet réseau de la jauge. Nouvel essai `SCENARIO=jauge` (aussi dans
+  le CI, Wi-Fi moyen) : les tirs de l'invité remplissent ses Âmes chez l'hôte, la même valeur chez lui, ses Chaînes
+  retirent 40 tout de suite sans que la jauge remonte, l'hôte voit l'incantation.
+- Soupçons du relecteur traités : la lumière d'appoint du héros (restée en plus de sa lumière qui le suit) est orangée
+  comme sur la planche validée par Téo (elle était blanc-chaud) ; la brume est faite de morceaux de 6 m au plus (sur
+  téléphone, un objet ne reçoit que 8 lumières : d'un seul tenant, elle en ignorait une partie) ; chez l'invité, un
+  squelette créé en retard, déjà debout chez l'hôte, ne fait plus le bruit de sortie de terre.
+- **Question pour Téo** : l'explosion du tir de l'Occultiste blesse aussi les voisins, mais seule la cible directe
+  remplit les Âmes (9). Le moulinet du Bretteur, lui, compte chaque squelette touché (plafond 22 par geste).
+- 374 tests ; essais coop : arène (Wi-Fi parfait et moyen), expédition (Wi-Fi moyen), départ de l'hôte, jauge (Wi-Fi
+  parfait, moyen, 120 ± 60 ms).
+
 ## Relecture de fin du jalon 5 (agent relecteur) et corrections — 05/11
 Aucune perte de sauvegarde ni coop cassée trouvée (conversion depuis l'APK 0.4.18, matériaux à deux, bateau, repaire,
 forge, objets uniques vérifiés). Corrigé (chaque correction a un test qui échoue sans elle) :

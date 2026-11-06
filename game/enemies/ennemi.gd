@@ -52,6 +52,9 @@ var _chaines: Node3D                ## chaînes spectrales visibles quand il est
 var marionnette := false            ## coop, invité : affiché d'après l'hôte, sans IA ni règles
 var _vitesse_anim := 1.0            ## vitesse demandée (pas celle figée un instant par l'arrêt sur image)
 var _n_geste := 0                   ## change à chaque geste : le son prévu d'un geste interrompu n'est pas joué
+## Marionnette (coop, invité) : sa sortie de terre ne sonne qu'au premier instantané, s'il la montre en train de
+## sortir (créée en retard, déjà debout chez l'hôte : pas de bruit de terre ; relecture du jalon 6).
+var _son_sortie_attendu := false
 var _liste_anims := PackedStringArray()
 var _nom_tueur := ""
 var releve := false                 ## relevé par un prêtre noyé : il ne le sera pas une seconde fois
@@ -203,6 +206,7 @@ func _ready() -> void:
 	else:
 		collision_layer = 0
 		var duree := anim.get_animation("Spawn_Ground_Skeletons").length / 1.6
+		_son_sortie_attendu = marionnette
 		_jouer("Spawn_Ground_Skeletons", 1.6, 0.0)
 		_changer(Etat.APPARITION, duree)
 
@@ -610,6 +614,10 @@ func appliquer_mort(tueur: Node3D) -> void:
 ## Marionnette : applique l'état reçu de l'hôte (la position est posée à part, lissée). `t_etat` :
 ## temps passé dans cet état chez l'hôte, estimé à maintenant ; il cale l'annonce au sol et l'animation.
 func appliquer_instantane(etat_recu: int, anim_recue: Variant, vitesse: float, pv: float, marque_recue: bool, t_etat := 0.0) -> void:
+	if _son_sortie_attendu:
+		_son_sortie_attendu = false
+		if etat_recu == int(Etat.APPARITION):
+			_sons_du_geste("Spawn_Ground_Skeletons", 1.6, t_etat)
 	var nom_anim := nom_anim(anim_recue)
 	var reentre := etat_recu == int(etat) and t_etat + 0.05 < _t   # même état recommencé chez l'hôte
 	if etat_recu != int(etat) or reentre:
@@ -717,6 +725,8 @@ func _jouer(nom: String, vitesse := 1.0, fondu := 0.12, rejouer := false, ecoule
 ## Comme pour les héros (Heros._sons_du_geste) : les sons d'un geste, coupés s'il est interrompu.
 func _sons_du_geste(nom: String, vitesse: float, ecoule := 0.0) -> void:
 	_n_geste += 1
+	if _son_sortie_attendu:
+		return   # (marionnette qui vient d'être créée : on attend de savoir où en est sa sortie de terre)
 	var sons := sons_animation(nom, maxf(vitesse, 0.01))
 	if sons.is_empty():
 		return

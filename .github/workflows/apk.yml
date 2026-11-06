@@ -117,9 +117,11 @@ jobs:
           DESTINATION=expedition LATENCE_MS=30 GIGUE_MS=20 PERTE_PCT=3 GODOT=~/godot/godot tools/test_coop.sh > coop_expedition.txt 2>&1 || ECHEC=1
           # l'hôte qui part en pleine expédition : extraction d'urgence de l'invité (jalon 4)
           DESTINATION=expedition FIN=hote_parti GODOT=~/godot/godot tools/test_coop.sh > coop_hote_parti.txt 2>&1 || ECHEC=1
-          cat coop.txt coop_wifi_moyen.txt coop_expedition.txt coop_hote_parti.txt
+          # la jauge façon Diablo de l'invité, sur un Wi-Fi moyen (jalon 6)
+          SCENARIO=jauge LATENCE_MS=30 GIGUE_MS=20 PERTE_PCT=3 GODOT=~/godot/godot tools/test_coop.sh > coop_jauge.txt 2>&1 || ECHEC=1
+          cat coop.txt coop_wifi_moyen.txt coop_expedition.txt coop_hote_parti.txt coop_jauge.txt
           if [ "$ECHEC" = 1 ]; then
-            grep -hE "ECHEC" coop.txt coop_wifi_moyen.txt coop_expedition.txt coop_hote_parti.txt > erreurs_coop.txt || true
+            grep -hE "ECHEC" coop.txt coop_wifi_moyen.txt coop_expedition.txt coop_hote_parti.txt coop_jauge.txt > erreurs_coop.txt || true
             while read -r l; do echo "::error::$l"; done < erreurs_coop.txt
             echo "::error::Essai de la coop en échec"
             exit 1

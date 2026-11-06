@@ -12,7 +12,8 @@ signal combat_lance
 
 const PORT_JEU := 34778
 const PORT_ANNONCE := 34779
-const VERSION_RESEAU := 15       ## à augmenter quand le protocole change (refuse un autre APK) ; 7 : Bosco, malédiction, chaloupe ; 8 : butin ; 9 : équipement ; 10 : coups discrets ; 11 : matériaux ; 12 : bateau et bordée ; 13 : tirs de bordée redits à l'invité ; 14 : attaque façon Diablo (bond, arcs, moulinet, tir qui explose, téléportation à charges) ; 15 : jauge façon Diablo
+const VERSION_RESEAU := 16       ## à augmenter quand le protocole change (refuse un autre APK) ; 7 : Bosco, malédiction, chaloupe ; 8 : butin ; 9 : équipement ; 10 : coups discrets ; 11 : matériaux ; 12 : bateau et bordée ; 13 : tirs de bordée redits à l'invité ; 14 : attaque façon Diablo (bond, arcs, moulinet, tir qui explose, téléportation à charges) ; 15 : jauge façon Diablo ; 16 : héros emballés
+## en nombres à virgule simple (relecture du jalon 6)
 const DELAI_ANNONCE := 0.5
 
 enum Role { AUCUN, HOTE, INVITE }

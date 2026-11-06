@@ -140,6 +140,22 @@ func test_elle_baisse_doucement_hors_combat() -> void:
 	assert_gt(h.jauge, 50.0 - 3.0 * EQ.jauge_baisse, "Doucement")
 
 
+func test_a_terre_un_tir_en_vol_ne_la_remplit_pas() -> void:
+	# (relecture du jalon 6 : l'Occultiste tombe pendant que son tir vole ; le tir touche, sa jauge restait à 9)
+	var h := await _heros(&"occultiste")
+	_squelette(Vector3(0, 0, 8.0))
+	h.commandes.demander(&"attaque", h.horloge)
+	var n := 0
+	while not h._effet_fait and n < 120:
+		await wait_physics_frames(1)
+		n += 1
+	assert_true(h._effet_fait, "Le tir est parti")
+	h.sante.invulnerable_jusqua = 0.0
+	h.recevoir_coup(9999.0, null, true)
+	await _secondes(1.0)
+	assert_eq(h.jauge, 0.0, "À terre, elle reste vide")
+
+
 func test_a_terre_elle_se_vide() -> void:
 	var h := await _heros(&"bretteur")
 	h.gagner_jauge(60.0)
