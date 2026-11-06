@@ -60,6 +60,7 @@ static func eclat(parent: Node, pos: Vector3) -> void:
 static func explosion_maudite(parent: Node, pos: Vector3, rayon: float) -> void:
 	if parent == null or not parent.is_inside_tree():
 		return
+	Sons.jouer(&"explosion_maudite", pos)
 	_bouffee(parent, pos, 22, 0.45, 1.3, Color(0.75, 1.0, 0.8, 1.0), Color(0.15, 0.7, 0.35, 0.0))
 	var cle := "disque_explosion_%s" % rayon
 	if not _ressources.has(cle):
@@ -179,6 +180,7 @@ static func etincelles(parent: Node, pos: Vector3) -> void:
 
 ## Explosion d'un tonneau de poudre : boule de feu, fumée noire, étincelles.
 static func explosion(parent: Node, pos: Vector3) -> void:
+	Sons.jouer(&"explosion", pos)
 	_bouffee(parent, pos, 30, 0.55, 2.4, Color(1.0, 0.62, 0.18, 1.0), Color(0.5, 0.12, 0.05, 0.0))
 	_bouffee(parent, pos + Vector3.UP * 0.6, 16, 1.3, 2.8, Color(0.22, 0.2, 0.18, 0.85), Color(0.08, 0.08, 0.08, 0.0))
 	etincelles(parent, pos)

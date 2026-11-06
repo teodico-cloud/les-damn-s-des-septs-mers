@@ -40,6 +40,7 @@ static func chance_orbe_effective() -> float:
 func _ready() -> void:
 	get_tree().set_quit_on_go_back(false)
 	_ambiance()
+	Sons.ambiance([&"torches", &"vent"])   # (l'expédition change ensuite selon la salle)
 	_construire_lieu()
 	var coop := Reseau.est_en_coop()
 	var hote := Reseau.est_hote()
@@ -294,6 +295,7 @@ func _process(delta: float) -> void:
 func _ambiance() -> void:
 	add_child(Ambiance.environnement())
 	add_child(Ambiance.lune(0.28, 30.0))
+	add_child(Ambiance.brume(Vector2(DEMI_COTE * 2.0 + 2.0, DEMI_COTE * 2.0 + 2.0)))
 
 
 func _objet(nom: String, pos: Vector3, rot_y := 0.0) -> Node3D:
@@ -370,5 +372,6 @@ func _salle() -> void:
 
 func _torche(pos: Vector3, ombre: bool) -> void:
 	var l := Ambiance.torche(pos, ombre)
+	Ambiance.poussiere_torche(l)
 	add_child(l)
 	torches.append(l)

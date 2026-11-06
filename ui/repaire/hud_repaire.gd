@@ -202,6 +202,7 @@ func ouvrir_panneau(p: Control) -> void:
 	panneau = p
 	voile.visible = true
 	add_child(p)
+	Sons.jouer(&"parchemin")
 	if p.has_signal("ferme"):
 		p.ferme.connect(fermer_panneau)
 	racine.visible = false
@@ -212,6 +213,7 @@ func fermer_panneau() -> void:
 	if panneau == null:
 		return
 	if is_instance_valid(panneau):
+		Sons.jouer(&"parchemin_ferme")
 		panneau.queue_free()
 	panneau = null
 	voile.visible = false

@@ -130,6 +130,16 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   chaque lumière ou environnement qui entre en scène (ce que la scène voulait est gardé en méta `ombre_voulue` /
   `halo_voulu`). Écran `ui/commun/panneau_reglages.gd` (PanneauReglages, un PanneauRepaire plus petit), ouvert depuis
   l'écran titre et depuis le carnet de bord du repaire (`ui/repaire/carnet.gd` : Menu → Reprendre / Réglages / Écran titre).
+  Volumes Général / Effets / Ambiances (0 à 1) dans le même fichier ; curseurs dans l'écran Réglages.
+- Sons (jalon 6, 06/11) : `autoload/sons.gd` (Sons) : `jouer(nom, position|nœud|null)`, `jouer_plus_tard`,
+  `ambiance([couches])`, `niveau_ambiance`, `jingle(nom)` ; catalogue des sons (fichiers, volume, variation, maximum
+  en 0,07 s) en tête du fichier ; canaux « Effets » et « Ambiances » créés au démarrage. Fichiers : `assets/sons/fabriques/`
+  (faits par `tools/sons/fabriquer_sons.py`) et `assets/sons/kenney/` (CC0, copiés par le même script depuis
+  `third_party/sons/`, téléchargés par `tools/sons/telecharger_kenney.sh`). Les gestes sonnent par
+  `sons_animation(nom, vitesse)` (Heros, Bretteur, Occultiste, Ennemi, Bosco), les chocs par `EventBus.coup_porte`.
+- Brume au ras du sol et poussière dans la lumière (06/11) : `Ambiance.brume(taille, centre)` (`game/commun/brume.gdshader`,
+  groupe `brume`), `Ambiance.poussiere(...)` / `poussiere_torche(lumiere)` (groupe `poussiere`) ; réduites en Économie
+  par Reglages. Captures : `tools/capture_brume.gd -- <dossier>`.
 - `tests/unit/` : tests GUT (`test_*.gd`) ; `addons/gut/` : GUT 9.7.1 (exclu de l'APK) ; `tests/pre_run.gd` :
   avant les tests, la sauvegarde passe dans `user://sauvegarde_tests.json` (jamais celle du jeu).
   `test_scripts.gd` charge tous les scripts du jeu (remplace `--check-only`, voir pièges).
@@ -143,7 +153,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - `tools/blender/` : fabrication des modèles dans Blender (en script) : héros (`build_heroes.py`) et squelettes
   (`build_squelettes.py`).
 - `tools/preview/` : petit projet Godot qui rend des captures d'aperçu ; exemples dans `tools/preview/exemples/`.
-- `tools/fetch_kaykit.sh` : télécharge les packs KayKit dans `third_party/` (ignoré par git).
+- `tools/fetch_kaykit.sh` : télécharge les packs KayKit dans `third_party/` (ignoré par git) ;
+  `tools/sons/telecharger_kenney.sh` : les packs de sons Kenney dans `third_party/sons/`.
 - `build/` : fichiers générés (textures, aperçus), ignoré par git.
 
 ## Commandes
@@ -152,6 +163,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   code de sortie ≠ 0 si un test échoue, MAIS un fichier de test qui ne se charge pas est ignoré en silence :
   vérifier qu'aucune ligne « Ignoring script » / « Parse Error » n'apparaît — le CI le fait)
 - Vérifier qu'un script se charge : lancer les tests (`test_scripts.gd` charge tous les scripts du jeu).
+- Refaire les sons : `tools/sons/telecharger_kenney.sh` puis `python3 tools/sons/fabriquer_sons.py` (numpy, scipy,
+  soundfile), puis `--import`. On ne peut pas écouter ici : vérifier crêtes, durées et spectres (images) ; Téo juge.
 - Capture d'une scène du jeu (sans téléphone) :
   `xvfb-run -a godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720 -s "$PWD/tools/capture_scene.gd" -- res://game/vitrine/vitrine.tscn build/apercus/vitrine.png [nb_actions] [nb_images]`
 - Captures mises en scène du combat (annonce, coup, fente) + état du combat dans la console :
@@ -426,6 +439,17 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   troisième, sinon tout devient noir). Un objet fait par code peut aussi les prendre (`Matieres.habiller(maillage, "wall")`).
 - Une scène règle ses lumières comme avant (ombre voulue ou non) : c'est `Reglages` qui les coupe en Économie. Ne pas
   remettre `shadow_enabled` à chaud ailleurs (Reglages ne le reverrait qu'au prochain changement de qualité).
+- Sons : un son prévu plus tard ne garde jamais le nœud (ni dans un lambda) : s'il disparaît entre-temps, Godot lève
+  « Lambda capture … was freed » et les tests échouent (vu : 11 tests). `Sons.jouer_plus_tard` le retrouve par son
+  numéro (`instance_from_id`) ; `Callable.is_valid()` d'un lambda ne dit **pas** si son objet a disparu.
+- Sons : la minuterie d'un son prévu compte le temps de jeu (`create_timer(…, false, true)`, images de physique) :
+  calée sur les animations, ralentie avec elles, et juste dans les tests.
+- Sons : une ambiance boucle par son réglage d'import (`loop=true` dans son `.ogg.import`, versionné) ; une nouvelle
+  ambiance doit le recevoir (le test `test_les_ambiances_bouclent` le vérifie).
+- Sons : en coop, ne rien envoyer de neuf sur le réseau pour un son : le jouer là où l'image se montre déjà des deux
+  côtés (animation lancée par `_jouer`, `EventBus.coup_porte`, fonctions de `EffetsMagie`, `_ready` d'un projectile…).
+- Brume : ses nappes ont une priorité de rendu négative pour que les annonces au sol (priorité 0 et 1) se dessinent
+  par-dessus ; une nouvelle annonce transparente garde une priorité ≥ 0.
 - Retour d'Android sur l'écran titre : il quitte le jeu (`quit_on_go_back`), sauf réglages ouverts ; Godot décide de
   quitter **après** avoir prévenu les nœuds, d'où le `call_deferred` pour le réactiver en fermant les réglages.
 - Panneaux du repaire : après une action, le panneau se refait **tout de suite** et un autre bouton apparaît sous le

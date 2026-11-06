@@ -88,6 +88,7 @@ func agrandir() -> void:
 	if not appui_accepte():
 		return
 	if Sauvegarde.agrandir("entrepot"):
+		Sons.jouer(&"marteau")
 		agrandi.emit()
 	rafraichir()
 

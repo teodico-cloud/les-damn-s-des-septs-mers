@@ -132,8 +132,11 @@ func apparitions() -> Array[Vector3]:
 
 
 func ouvrir_portes() -> void:
+	var fermees := portes.filter(func(p): return not p.ouverte)
 	for p in portes:
 		p.ouvrir()
+	if not fermees.is_empty():
+		Sons.jouer(&"porte")   # (une seule fois pour toutes les portes : elles s'ouvrent ensemble)
 
 
 ## Salle trésor : le couvercle s'ouvre (une seule fois).
@@ -141,6 +144,8 @@ func ouvrir_coffre() -> void:
 	if coffre == null or coffre_ouvert:
 		return
 	coffre_ouvert = true
+	Sons.jouer(&"loquet", coffre)
+	Sons.jouer_plus_tard(&"coffre", 0.12, coffre)
 	var couvercle := coffre.find_child("chest_lid", true, false) as Node3D
 	if couvercle:
 		create_tween().tween_property(couvercle, "rotation_degrees:x", -110.0, 0.5).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -295,5 +300,6 @@ func _obstacle(centre: Vector3, taille: Vector3, rot_y: float) -> void:
 
 func _torche(pos: Vector3, ombre: bool) -> void:
 	var l := Ambiance.torche(pos, ombre)   # (façon Diablo IV, 06/11)
+	Ambiance.poussiere_torche(l)
 	add_child(l)
 	_torches.append(l)

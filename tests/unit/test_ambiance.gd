@@ -129,3 +129,38 @@ func test_une_salle_est_habillee() -> void:
 		if mi.material_override is ShaderMaterial and mi.material_override.shader == Matieres.SHADER:
 			poses += 1
 	assert_gt(poses, 20, "Sols, murs, bois et métal de l'arène")
+
+
+func test_brume_au_ras_du_sol_et_poussiere() -> void:
+	# (06/11, choix de Téo avec les sons)
+	Partie.destination = &"arene"
+	var a: Arene = load("res://game/arene/arene.tscn").instantiate()
+	a.changer_de_scene = false
+	add_child_autofree(a)
+	await wait_physics_frames(3)
+	var brumes := a.find_children("Brume", "Node3D", true, false)
+	assert_eq(brumes.size(), 1, "Une brume dans la salle")
+	var nappes := brumes[0].find_children("*", "MeshInstance3D", true, false)
+	assert_eq(nappes.size(), 2, "Deux nappes l'une au-dessus de l'autre")
+	for n in nappes:
+		assert_lt(n.position.y, 0.8, "Au ras du sol")
+		assert_eq(n.cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
+		assert_lt(n.material_override.render_priority, 0, "Dessinée avant les annonces au sol : elle ne cache aucun danger")
+	for t in a.torches:
+		assert_eq(t.find_children("*", "CPUParticles3D", true, false).size(), 1, "De la poussière dans la lumière de chaque torche")
+	var halo: HaloHeros = a.heros.get_children().filter(func(c): return c is HaloHeros)[0]
+	var p: CPUParticles3D = halo.find_children("*", "CPUParticles3D", true, false)[0]
+	assert_false(p.local_coords, "Celle du héros reste où elle flotte quand il bouge")
+	# qualité Économie : sans brume, moins de poussière ; et retour
+	var avant := Reglages.qualite
+	var chemin := Reglages.chemin
+	Reglages.chemin = "user://reglages_test_brume.json"
+	Reglages.choisir_qualite(Reglages.Qualite.ECONOMIE)
+	assert_false(brumes[0].visible, "Économie : sans brume")
+	assert_lt(p.amount, int(p.get_meta(&"nombre_voulu")), "Économie : moins de poussière")
+	Reglages.choisir_qualite(Reglages.Qualite.NORMALE)
+	assert_true(brumes[0].visible)
+	assert_eq(p.amount, int(p.get_meta(&"nombre_voulu")))
+	Reglages.choisir_qualite(avant)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Reglages.chemin))
+	Reglages.chemin = chemin

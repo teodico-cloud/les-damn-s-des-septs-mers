@@ -446,6 +446,7 @@ func fondu(vers_noir: bool, duree: float) -> void:
 func afficher_resultats(reussite: bool, lignes: Array, objets: Array = [], titre_force := "") -> void:
 	if panneau_fin:
 		return
+	Sons.jingle(&"victoire" if reussite else &"defaite")
 	relacher_tout()
 	label_mort.visible = false
 	label_message.visible = false

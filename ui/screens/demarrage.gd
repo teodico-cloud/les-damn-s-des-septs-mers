@@ -319,6 +319,7 @@ func ouvrir_reglages() -> void:
 	panneau_reglages = PanneauReglages.new()
 	panneau_reglages.ferme.connect(fermer_reglages)
 	add_child(panneau_reglages)
+	Sons.jouer(&"parchemin")
 	var ombre := ColorRect.new()   # (le menu s'assombrit derrière le parchemin, comme le repaire derrière un lieu)
 	ombre.color = Color(0.02, 0.015, 0.01, 0.62)
 	ombre.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -332,6 +333,7 @@ func ouvrir_reglages() -> void:
 func fermer_reglages() -> void:
 	if panneau_reglages == null:
 		return
+	Sons.jouer(&"parchemin_ferme")
 	panneau_reglages.queue_free()
 	panneau_reglages = null
 	# (plus tard : Godot décide de quitter après avoir prévenu les nœuds du retour qui ferme ce panneau)

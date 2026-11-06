@@ -51,6 +51,7 @@ var _rune: Node3D                   ## rune verte au-dessus de la tête quand il
 var _chaines: Node3D                ## chaînes spectrales visibles quand il est immobilisé
 var marionnette := false            ## coop, invité : affiché d'après l'hôte, sans IA ni règles
 var _vitesse_anim := 1.0            ## vitesse demandée (pas celle figée un instant par l'arrêt sur image)
+var _n_geste := 0                   ## change à chaque geste : le son prévu d'un geste interrompu n'est pas joué
 var _liste_anims := PackedStringArray()
 var _nom_tueur := ""
 var releve := false                 ## relevé par un prêtre noyé : il ne le sera pas une seconde fois
@@ -572,6 +573,7 @@ func _on_mort(source: Node) -> void:
 	_effacer_marque()
 	collision_layer = 0
 	collision_mask = Combat.COUCHE_MONDE
+	_n_geste += 1   # (vaincu : ses sons prévus, la hache du Bosco par exemple, se taisent)
 	_changer(Etat.MORT)
 	_eclater(source as Node3D)
 	remove_from_group("ennemis")
@@ -598,6 +600,7 @@ func appliquer_mort(tueur: Node3D) -> void:
 	if etat == Etat.MORT:
 		return
 	_changer(Etat.MORT)
+	_n_geste += 1
 	remove_from_group("ennemis")
 	_effacer_marque()
 	collision_layer = 0
@@ -625,6 +628,7 @@ func appliquer_instantane(etat_recu: int, anim_recue: Variant, vitesse: float, p
 				_chaines = _creer_chaines()
 				add_child(_chaines)
 			Etat.MORT:
+				_n_geste += 1
 				remove_from_group("ennemis")
 				_effacer_marque()
 				_eclater(null)
@@ -664,7 +668,7 @@ func nom_anim(code: Variant) -> String:
 
 ## Joue une animation reçue de l'hôte, à l'endroit où elle en est chez lui.
 func _jouer_cale(nom: String, vitesse: float, t_etat: float) -> void:
-	_jouer(nom, vitesse, 0.06, true)
+	_jouer(nom, vitesse, 0.06, true, t_etat)
 	var duree := anim.get_animation(nom).length
 	var pos := t_etat * vitesse
 	if anim.get_animation(nom).loop_mode != Animation.LOOP_NONE:
@@ -688,6 +692,7 @@ func _eclater(tueur: Node3D) -> void:
 	var depuis := tueur.global_position if tueur and is_instance_valid(tueur) else global_position + Vector3(randf_range(-1, 1), 0, randf_range(-1, 1))
 	var parent := get_parent().get_parent() if get_parent() is GenerateurEnnemis else get_parent()
 	EffetsMagie.eclater(parent, parties, visuel.global_transform, depuis, EQ.debris_force, EQ.debris_duree, echelles)
+	Sons.jouer(&"os", global_position)
 	visuel.visible = false
 	_montrer_annonce(false)
 	if _rune:
@@ -699,9 +704,31 @@ func flash_coup() -> void:
 	Combat.flash(visuel)
 
 
-func _jouer(nom: String, vitesse := 1.0, fondu := 0.12, rejouer := false) -> void:
+func _jouer(nom: String, vitesse := 1.0, fondu := 0.12, rejouer := false, ecoule := 0.0) -> void:
 	_vitesse_anim = vitesse
 	var deja := anim.current_animation == nom
 	anim.play(nom, fondu, vitesse)
 	if deja and rejouer:
 		anim.seek(0.0, true)
+	if not deja or rejouer:
+		_sons_du_geste(nom, vitesse, ecoule)
+
+
+## Comme pour les héros (Heros._sons_du_geste) : les sons d'un geste, coupés s'il est interrompu.
+func _sons_du_geste(nom: String, vitesse: float, ecoule := 0.0) -> void:
+	_n_geste += 1
+	var sons := sons_animation(nom, maxf(vitesse, 0.01))
+	if sons.is_empty():
+		return
+	var n := _n_geste
+	for s in sons:
+		var delai: float = s[1] - ecoule
+		if delai < -0.15:
+			continue
+		Sons.jouer_plus_tard(s[0], delai, self, n, s[2] if s.size() > 2 else 1.0)
+
+
+## Les sons d'une animation : [[son, délai en secondes, (hauteur)], …] (le Bosco a les siens ; les coups des
+## squelettes sonnent quand ils touchent : voir Sons).
+func sons_animation(_nom: String, _vitesse: float) -> Array:
+	return []

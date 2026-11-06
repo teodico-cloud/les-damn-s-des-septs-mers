@@ -53,6 +53,7 @@ var compteur_fps := 0.0
 func _ready() -> void:
 	get_tree().set_quit_on_go_back(false)
 	_environnement()
+	Sons.ambiance([&"torches"])
 	_salle()
 	_heros()
 	_camera()

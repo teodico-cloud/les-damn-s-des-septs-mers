@@ -29,7 +29,8 @@ Dernière mise à jour : 4 novembre 2026.
   (voir plus bas) ; APK 0.5.22.
 - **Jalon 6 — refonte de l'interface (05/11, demande de Téo)** : tous les écrans existants refaits (voir plus bas) ;
   APK 0.5.23. Puis l'écran Réglages (qualité graphique) et le carnet de bord du repaire (choix de Téo du 05/11) ;
-  APK 0.5.24. Reste : les sons.
+  APK 0.5.24. Puis l'identité visuelle façon Diablo IV (APK 0.5.26 à 0.5.31) et les sons, la brume et la
+  poussière (voir plus bas).
 
 ## Travail en cours — jalon 1
 Arène d'entraînement (bouton « Combat d'entraînement » de l'écran titre) : le Bretteur contre deux
@@ -339,7 +340,50 @@ Jalon 6 réordonné par Téo : la refonte d'abord (elle remplace « écrans rest
   zéro. Le workflow écrit maintenant les tests en échec en annotations (on saura lequel au prochain échec).
   Trouvé à l'APK 0.5.30 : `test_chaque_heros_a_sa_lumiere_qui_le_suit_sans_tourner` (le héros du test tombait sans
   sol, sa chute pouvait arriver entre le suivi de la lumière et la mesure) ; le héros du test reste immobile.
-- Annexes proposées (pas encore retenues) : brume au ras du sol, poussière dans la lumière des torches.
+- Annexes proposées puis retenues avec les sons : brume au ras du sol, poussière dans la lumière (voir ci-dessous).
+
+## Sons, brume et poussière (06/11, jalon 6 — choix de Téo)
+- Choix de Téo : **pas de musique continue**, des ambiances (mer, vent, torches…) et deux petites musiques de fin
+  (victoire, défaite) ; les sons arrivent **directement dans le jeu** (pas de page d'écoute) ; en plus : **brume au ras
+  du sol** et **poussière dans la lumière**. Pas retenus : un son d'alerte quand un squelette repère le héros, les
+  vibrations.
+- Sons : `tools/sons/fabriquer_sons.py` fabrique par calcul (bruits filtrés, sons purs, enveloppes ; aucun
+  enregistrement) ce que les packs libres n'ont pas : souffles de lame (3) et moulinet, os qui éclatent (2), magie de
+  l'Occultiste (tir, explosion, téléportation, chaînes, marque), tonneau de poudre, canon, essence ; et 5 ambiances de
+  20 s en boucle, en stéréo (ressac, houle, vent, gouttes de la grotte, torches). Il copie aussi 35 sons Kenney (CC0 ;
+  `tools/sons/telecharger_kenney.sh`), ramenés à la même crête (les originaux allaient de 0,2 à 1,08) et en mono.
+  Vérifiés sans les écouter : crêtes, durées, spectres regardés en image (`build/apercus/spectres_sons.png`).
+- Petites musiques : Kenney « pizzicato » (cordes pincées, plus « pirate maudit » que le 8-bit, le saxophone ou les
+  steel-drums). Choisies d'après leurs notes, relevées par calcul : victoire `jingles_pizzi_10` (ré mi fa# sol : monte
+  et se pose sur la tonique), défaite `jingles_pizzi_7` (fa mi ré# ré : descend d'un demi-ton à chaque note). Courtes
+  (environ 1 s) : ce sont des « ponctuations », pas des morceaux.
+- `Sons` (service global) : voix placées dans le monde (plus fortes près de la caméra, à gauche ou à droite de l'écran ;
+  pleine force à 13 m, la distance de la caméra) et voix d'interface ; un même son relancé plus de 1 ou 2 fois en
+  0,07 s est ignoré (la horde qui éclate d'un moulinet ne sature pas) ; hauteur un peu variée à chaque fois ;
+  ambiances en couches qui se fondent d'un lieu à l'autre (une couche déjà là continue). Canaux « Effets » et
+  « Ambiances » (créés au démarrage) ; volumes Général / Effets / Ambiances en haut de l'écran Réglages (curseurs ;
+  la qualité graphique passe dessous, ses boutons restent visibles sans faire défiler ; un coup d'essai sonne quand on
+  règle les effets ; écrits dans `reglages.json` une fois le doigt arrêté).
+- Où ça sonne : les gestes (souffle de la lame juste avant l'impact, moulinet, fente, riposte, roulade, chute, sorts,
+  hache et tourbillon du Bosco) partent des animations (`sons_animation()` de chaque archétype ; un geste coupé fait
+  taire ses sons pas encore joués) ; les chocs partent de `EventBus.coup_porte` (coup, coup lourd, critique, héros
+  touché ; rien pour un coup « discret » ni pour la flaque maudite) et `parade_parfaite` (cloche) ; os, explosions,
+  tir, carreau, canon (un par boulet : la bordée), téléportation ; butin ramassé (pièces, bois, fer, essence, objet,
+  cloche dès Rare) ; portes, coffre ; boutons (« toc » au relâcher), parchemins des panneaux, forge (enclume,
+  marteau), chantier, équipement ; petites musiques à l'écran de fin. Ambiances : écran titre (ressac, vent), repaire
+  (ressac, gouttes, torches), salles et arène (torches, vent), quai (houle qui monte avec le compte à rebours de la
+  chaloupe, vent, torches), vitrine (torches).
+- Coop : **rien de neuf sur le réseau**. Chaque téléphone joue les sons de ce qu'il affiche : les animations du héros
+  de l'autre (marionnette ; un son déjà passé quand l'instantané arrive n'est pas joué en retard), les coups envoyés
+  par l'hôte, les effets déjà partagés.
+- Brume au ras du sol : deux nappes transparentes (0,16 et 0,55 m) qui roulent lentement, éclairées sommet par sommet
+  par les torches et la lumière des héros (`brume.gdshader`) ; dessinées avant les annonces au sol (les zones rouges
+  et dorées restent nettes). Poussière : de petits grains qui flottent devant chaque torche et autour de chaque héros,
+  éclairés comme le reste (on ne les voit que dans la lumière). Qualité Économie : sans brume, 40 % de la poussière
+  (ligne ajoutée au tableau de l'écran Réglages).
+- Vérifié : 360 tests, 4 essais de la coop (Wi-Fi parfait, découverte automatique, moyen, mauvais), captures.
+- Premier réglage des volumes fait sans écouter : **Téo juge à l'oreille** (trop fort, trop faible, un son qui ne
+  colle pas) ; chaque son se retouche dans `Sons.CATALOGUE` ou dans `fabriquer_sons.py`.
 
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)
 Téo : « le gameplay pas assez proche de Diablo, c'est peut-être l'attaque de base ». Ce qui le gênait : frapper dans le

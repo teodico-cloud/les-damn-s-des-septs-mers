@@ -17,6 +17,7 @@ var _cible := Vector3(-7.2, 2.4, -1.6)
 
 
 func _ready() -> void:
+	Sons.ambiance([&"ressac", &"vent"])   # (le navire amarré, la nuit, au bord de la mer)
 	var we := WorldEnvironment.new()
 	var e := Environment.new()
 	e.background_mode = Environment.BG_COLOR

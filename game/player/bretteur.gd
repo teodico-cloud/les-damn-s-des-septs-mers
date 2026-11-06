@@ -154,6 +154,23 @@ func _vitesse_coup(index: int) -> float:
 	return _vitesse_combo() * (EQ.combo_vitesse_moulinet if index == MOULINET else 1.0)
 
 
+## Sons des gestes du Bretteur : le souffle de la lame arrive juste avant l'impact (il culmine au moment du choc).
+func sons_animation(nom: String, vitesse: float) -> Array:
+	var i := EQ.combo_animations.find(nom)
+	if i == MOULINET:
+		return [[&"moulinet", maxf(EQ.combo_instant_impact[i] / vitesse - 0.15, 0.0)]]
+	if i >= 0:
+		return [[&"lame", maxf(EQ.combo_instant_impact[i] / vitesse - 0.1, 0.0)]]
+	match nom:
+		"Block_Attack":   # riposte : le coup paré sonne, puis la lame repart
+			return [[&"parade", 0.0], [&"lame", maxf(EQ.riposte_instant_impact / vitesse - 0.1, 0.0)]]
+		"Block_Hit":      # carreau paré
+			return [[&"parade", 0.0]]
+		"1H_Melee_Attack_Stab":   # fente : un souffle bref et plus aigu
+			return [[&"lame", 0.0, 1.25]]
+	return super(nom, vitesse)
+
+
 # ---------------------------------------------------------------- esquive (roulade)
 func _commencer_esquive() -> bool:
 	var joy := commandes.deplacement

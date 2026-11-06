@@ -36,6 +36,7 @@ var reapparition_auto := true
 var progres_reanimation := 0.0
 var _zone_reanimation: Node3D
 var _vitesse_anim := 1.0     ## vitesse demandée (pas celle figée un instant par l'arrêt sur image)
+var _n_geste := 0            ## change à chaque geste : le son prévu d'un geste interrompu n'est pas joué
 var _liste_anims := PackedStringArray()
 ## Équipement (jalon 4) : les objets portés et leurs effets additionnés (voir Equipement, b()).
 var objets_equipes: Array = []
@@ -524,7 +525,7 @@ func appliquer_instantane(etat_recu: int, anim_recue: Variant, vitesse: float, p
 	var nouvel_etat := etat_recu != int(etat) or reentre
 	etat = etat_recu as Etat
 	if nom_anim != "" and anim.has_animation(nom_anim) and (anim.current_animation != nom_anim or reentre):
-		_jouer(nom_anim, vitesse, 0.08 if nouvel_etat else 0.1, true)
+		_jouer(nom_anim, vitesse, 0.08 if nouvel_etat else 0.1, true, t_etat)
 		var duree := anim.get_animation(nom_anim).length
 		var pos := t_etat * vitesse
 		if anim.get_animation(nom_anim).loop_mode != Animation.LOOP_NONE:
@@ -535,6 +536,8 @@ func appliquer_instantane(etat_recu: int, anim_recue: Variant, vitesse: float, p
 	if visible_recu != visuel.visible:
 		visuel.visible = visible_recu
 		EffetsMagie.fumee(get_parent(), global_position)   # téléportation de l'Occultiste
+		if not visible_recu:
+			Sons.jouer(&"teleport", self)
 
 
 ## Coop : une animation voyage sous forme de numéro (sa place dans la liste des animations du
@@ -656,9 +659,35 @@ func ajouter_anneau(couleur: Color) -> void:
 # ---------------------------------------------------------------- animations
 ## Joue une animation en fondu depuis la pose actuelle ; `rejouer` la reprend au début si c'est
 ## déjà celle-ci. (Ne pas appeler anim.stop() avant : le fondu partirait de rien et la pose sauterait.)
-func _jouer(nom: String, vitesse := 1.0, fondu := 0.12, rejouer := false) -> void:
+## `ecoule` : marionnette, temps déjà passé dans ce geste chez l'hôte (ses sons sont avancés d'autant).
+func _jouer(nom: String, vitesse := 1.0, fondu := 0.12, rejouer := false, ecoule := 0.0) -> void:
 	_vitesse_anim = vitesse
 	var deja := anim.current_animation == nom
 	anim.play(nom, fondu, vitesse)
 	if deja and rejouer:
 		anim.seek(0.0, true)
+	if not deja or rejouer:
+		_sons_du_geste(nom, vitesse, ecoule)
+
+
+## Les sons d'un geste (souffle de la lame, roulade…), chacun à son instant. Joués des deux côtés en coop : le
+## héros de l'autre joueur lance les mêmes animations chez nous (marionnette). Un geste coupé (coup reçu, autre
+## geste) fait taire ses sons pas encore joués.
+func _sons_du_geste(nom: String, vitesse: float, ecoule := 0.0) -> void:
+	_n_geste += 1
+	var n := _n_geste
+	for s in sons_animation(nom, maxf(vitesse, 0.01)):
+		var delai: float = s[1] - ecoule
+		if delai < -0.15:
+			continue   # (marionnette arrivée bien après ce son : trop tard pour le jouer)
+		Sons.jouer_plus_tard(s[0], delai, self, n, s[2] if s.size() > 2 else 1.0)
+
+
+## Les sons d'une animation : [[son, délai en secondes, (hauteur)], …]. Chaque archétype ajoute les siens.
+func sons_animation(nom: String, _vitesse: float) -> Array:
+	match nom:
+		"Dodge_Forward":
+			return [[&"roulade", 0.0]]
+		"Death_A":
+			return [[&"tomber", 0.0], [&"terre", 0.55]]
+	return []

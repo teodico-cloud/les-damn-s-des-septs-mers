@@ -18,6 +18,7 @@ Partie="*res://autoload/partie.gd"
 Reseau="*res://autoload/reseau.gd"
 Sauvegarde="*res://autoload/sauvegarde.gd"
 Reglages="*res://autoload/reglages.gd"
+Sons="*res://autoload/sons.gd"
 
 [display]
 

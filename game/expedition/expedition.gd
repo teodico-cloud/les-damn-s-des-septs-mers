@@ -32,6 +32,7 @@ var bosco: Bosco                  ## antre (hôte) : le Bosco Maudit
 var _bosco_debut_ms := -1
 var _bosco_fin_ms := -1
 const SCENE_REPAIRE := "res://game/repaire/repaire.tscn"
+const NIVEAU_HOULE_CALME := 0.55   ## volume de la houle sur le quai avant que la chaloupe se prépare (sons)
 var sacs := {}                    ## butin non sécurisé : nom du héros -> sac (voir _sac_vide ; hôte : les deux)
 var butin_au_sol: Node3D           ## objets et doublons tombés dans la salle (à deux : ceux de l'autre sont invisibles)
 var _rng_butin := RandomNumberGenerator.new()
@@ -174,6 +175,11 @@ func _construire_salle(n: int, t: StringName, m: String, portes: Array) -> void:
 	salle = Salle.creer(m, portes)
 	add_child(salle)
 	move_child(salle, 0)
+	# le quai : la mer et ses vagues (plus fortes à mesure que la chaloupe se prépare) ; ailleurs, torches et vent
+	var quai := salle.zone_chaloupe != Vector3.INF
+	Sons.ambiance([&"houle", &"vent", &"torches"] if quai else [&"torches", &"vent"])
+	if quai:
+		Sons.niveau_ambiance(&"houle", NIVEAU_HOULE_CALME)
 
 
 ## Squelettes debout à la fois dans la salle en cours (salle piège : moins ; malédiction 2 : +1).
@@ -431,8 +437,9 @@ func _lancer_vague(i: int) -> void:
 		synchro.envoyer_lieu("vague", [numero, sortis])   # les gerbes là où ils sortent vraiment
 
 
-## Le compte à rebours de la chaloupe, en haut de l'écran (hôte et invité).
+## Le compte à rebours de la chaloupe, en haut de l'écran (hôte et invité) ; la houle monte avec lui.
 func _afficher_chaloupe() -> void:
+	Sons.niveau_ambiance(&"houle", lerpf(NIVEAU_HOULE_CALME, 1.0, salle.houle))
 	if chaloupe_restant < 0.0:
 		hud.afficher_salle(_texte_salle())
 	elif a_bord:
@@ -765,11 +772,22 @@ func _mettre_au_sac(proprietaire: String, objet: Dictionary, quantite: int, mati
 	elif matiere in Butin.MATIERES or matiere == "doublons":
 		sac[matiere] = int(sac.get(matiere, 0)) + quantite
 	if proprietaire == String(heros.name):
+		Sons.jouer(_son_butin(objet, matiere), heros)
 		if objet.is_empty():
 			hud.afficher_ramasse("+" + Butin.texte_tas(matiere, quantite), Butin.COULEURS_TAS.get(matiere, Color.WHITE))
 		else:
 			hud.afficher_ramasse(Butin.nom_complet(objet), Butin.couleur(objet))
 		hud.afficher_sac(sac["objets"].size(), sac["doublons"], cale, sac)
+
+
+## Le son d'un butin ramassé : pièces, bois, fer, essence ; un objet (une cloche s'il est Rare ou mieux).
+static func _son_butin(objet: Dictionary, matiere: String) -> StringName:
+	if not objet.is_empty():
+		return &"objet_rare" if int(objet.get("rarete", 0)) >= Butin.Rarete.RARE else &"objet"
+	match matiere:
+		"bois", "fer", "essence":
+			return StringName(matiere)
+	return &"pieces"
 
 
 # ---------------------------------------------------------------- bordée (jalon 5, visée au joystick)

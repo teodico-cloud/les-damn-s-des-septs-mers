@@ -39,6 +39,7 @@ static func tirer(monde: Node, par: Node3D, depart: Vector3, dir: Vector3, eq: E
 	p.cible = cible_devant(monde, depart, p.direction, eq.occ_tir_portee, eq.occ_tir_guidage_angle)
 	monde.add_child(p)
 	EventBus.projectile_tire.emit(par, depart, p.direction, &"orbe")
+	Sons.jouer(&"tir_maudit", depart)   # (chez l'invité aussi : il refait ce tir pour l'afficher)
 	return p
 
 

@@ -90,6 +90,7 @@ func _physics_process(delta: float) -> void:
 		_parti = true
 		_zone.visible = true
 		_remplissage.visible = true
+		Sons.jouer(&"canon")   # (le navire tire, au loin : sans position ; un coup par boulet, c'est la bordée)
 	var f := clampf(a / EQ.bordee_annonce, 0.0, 1.0)
 	_remplissage.scale = Vector3(maxf(f, 0.01), 1, maxf(f, 0.01))
 	var debut_chute := EQ.bordee_annonce - CHUTE

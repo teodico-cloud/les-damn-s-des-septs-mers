@@ -6,13 +6,15 @@ extends RefCounted
 const DUREE_FONDU := 0.25
 
 
-## Le bouton s'enfonce un peu sous le doigt (et la planche s'assombrit : style « pressed » du thème).
+## Le bouton s'enfonce un peu sous le doigt (et la planche s'assombrit : style « pressed » du thème) ; un petit
+## « toc » de bois quand il est appuyé (sons, jalon 6).
 static func animer_bouton(b: Control) -> void:
 	b.pivot_offset = b.size / 2.0
 	b.resized.connect(func(): b.pivot_offset = b.size / 2.0)
 	if b is BaseButton:
 		b.button_down.connect(func(): _echelle(b, 0.96, 0.05))
 		b.button_up.connect(func(): _echelle(b, 1.0, 0.12))
+		b.pressed.connect(func(): Sons.jouer(&"clic"))   # (au relâcher : un doigt qui fait défiler une liste ne clique pas)
 
 
 static func _echelle(n: Control, e: float, d: float) -> void:

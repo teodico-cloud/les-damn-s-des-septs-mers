@@ -85,6 +85,7 @@ func ameliorer(id: String, rarete: int) -> void:
 	if not appui_accepte():
 		return
 	if Sauvegarde.ameliorer_objet(id, rarete):
+		Sons.jouer(&"enclume")
 		var o := Sauvegarde.objet(id)
 		dernier = "%s : maintenant %s" % [Butin.nom(o), Butin.NOMS_RARETES[int(o["rarete"])]]
 		change.emit()
@@ -133,6 +134,7 @@ func recycler(id: String) -> void:
 	var o := Sauvegarde.objet(id)
 	var r := Sauvegarde.recycler(id)
 	if not r.is_empty():
+		Sons.jouer(&"marteau")
 		dernier = "%s recyclé : +%s" % [Butin.nom(o), Butin.texte_matieres(r["gardees"])]
 		if Butin.texte_matieres(r["perdues"]) != "":
 			dernier += " (%s : entrepôt plein)" % _texte_perdues(r["perdues"])
@@ -189,6 +191,7 @@ func relancer(id: String, effet: String) -> void:
 	var avant := Equipement.texte(effet, float(o.get("effets", {}).get(effet, 0.0)))
 	var nouveau := Sauvegarde.relancer_effet(id, effet)
 	if nouveau != "":
+		Sons.jouer(&"enclume")
 		dernier = "%s : %s → %s" % [Butin.nom(o), avant, Equipement.texte(nouveau, float(o["effets"][nouveau]))]
 		change.emit()
 	rafraichir()
@@ -198,6 +201,7 @@ func agrandir() -> void:
 	if not appui_accepte():
 		return
 	if Sauvegarde.agrandir("forge"):
+		Sons.jouer(&"marteau")
 		dernier = "La forge est agrandie : on peut relancer un effet."
 		change.emit()
 	rafraichir()

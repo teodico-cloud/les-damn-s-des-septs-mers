@@ -76,6 +76,7 @@ func equiper_selection() -> void:
 	if selection.is_empty():
 		return
 	if Sauvegarde.equiper(heros_affiche, emplacement, selection["id"]):
+		Sons.jouer(&"fer")   # (l'arme ou l'objet pris en main)
 		_poser_modele()
 	_rafraichir()
 

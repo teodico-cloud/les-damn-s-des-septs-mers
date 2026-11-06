@@ -151,6 +151,7 @@ func _commencer_esquive() -> bool:
 	sante.rendre_invulnerable(EQ.occ_tele_invulnerabilite)
 	collision_mask = Combat.COUCHE_MONDE   # traverse les ennemis, pas les murs
 	EffetsMagie.fumee(get_parent(), global_position)
+	Sons.jouer(&"teleport", self)   # (chez l'autre joueur : quand il voit le héros disparaître, Heros.appliquer_instantane)
 	visuel.visible = false
 	_changer(Etat.ESQUIVE)
 	return true
@@ -168,6 +169,16 @@ func _etat_teleportation() -> void:
 	_collisions_normales()
 	_jouer("Idle", 1.0, 0.0, true)
 	_changer(Etat.LIBRE)
+
+
+## Sons des sorts (le tir sonne avec le projectile : Projectile.tirer).
+func sons_animation(nom: String, vitesse: float) -> Array:
+	match nom:
+		"Spellcasting":
+			return [[&"marque", EQ.occ_marque_instant]]
+		"Spellcast_Raise":
+			return [[&"chaines", maxf(EQ.occ_chaines_instant - 0.05, 0.0)]]
+	return super(nom, vitesse)
 
 
 # ---------------------------------------------------------------- Marque maudite

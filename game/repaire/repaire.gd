@@ -49,6 +49,7 @@ func _ready() -> void:
 	get_tree().set_quit_on_go_back(false)
 	Engine.time_scale = 1.0
 	_ambiance()
+	Sons.ambiance([&"ressac", &"gouttes", &"torches"])   # (la grotte au bord de la mer)
 	_construire()
 	_poser_heros(Partie.heros_local, _arrivee(Partie.lieu_repaire))
 	Partie.lieu_repaire = &""
@@ -241,6 +242,7 @@ func _poser_heros(archetype: StringName, pos: Vector3) -> void:
 func _ambiance() -> void:
 	add_child(Ambiance.environnement())
 	add_child(Ambiance.lune(0.25, 34.0))
+	add_child(Ambiance.brume(Vector2(24.0, 16.0), Vector3(-0.5, 0, 0.2)))   # (le quai, la grotte et l'eau du port)
 
 
 func _construire() -> void:
@@ -296,6 +298,7 @@ func _construire() -> void:
 	for x in [-9.6, -1.6, 3.0, 8.0]:
 		_objet("torch_mounted", Vector3(x, 1.8, -6.4), 0)
 		var l := Ambiance.torche(Vector3(x, 2.35, -5.95), premiere)
+		Ambiance.poussiere_torche(l, Vector3(l.position.x, 0, 0))   # (vers le quai, devant le mur du fond)
 		premiere = false
 		add_child(l)
 		_torches.append(l)

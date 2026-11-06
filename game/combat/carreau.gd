@@ -51,6 +51,7 @@ static func image(monde: Node, par: Node3D, depart: Vector3, dir: Vector3, p_ren
 
 
 func _ready() -> void:
+	Sons.jouer(&"carreau", self)   # (tiré, ou son image chez l'invité)
 	if _forme == null:
 		_forme = SphereShape3D.new()
 		_forme.radius = 0.3

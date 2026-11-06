@@ -70,5 +70,6 @@ func acheter(a: String, niveau: int) -> void:
 	if not appui_accepte():
 		return
 	if Sauvegarde.ameliorer_bateau(a, niveau):
+		Sons.jouer(&"marteau")
 		achete.emit(a)
 	rafraichir()

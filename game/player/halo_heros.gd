@@ -17,6 +17,10 @@ func _ready() -> void:
 	omni_range = 6.5
 	omni_attenuation = 1.1
 	shadow_enabled = false
+	# poussière dans la lumière (06/11) : autour du héros, du sol à la lumière ; elle reste où elle flotte quand il bouge
+	var p := Ambiance.poussiere(Vector3(2.2, 1.1, 2.2), 26, true)
+	p.position.y = -HAUTEUR * 0.5
+	add_child(p)
 	_suivre()
 
 
