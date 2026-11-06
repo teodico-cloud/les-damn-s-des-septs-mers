@@ -226,12 +226,15 @@ func test_le_squelette_annonce_puis_frappe() -> void:
 func test_les_yeux_rougeoient_pendant_l_annonce() -> void:
 	heros.set_physics_process(false)
 	var e := _ennemi(Vector3(0, 0, 1.6), false)
-	assert_null(e._yeux.material_override, "Yeux normaux au départ")
+	# (06/11, façon Diablo IV : les yeux « normaux » sont verts ; rouges pendant l'annonce, comme avant)
+	assert_eq(e._yeux.material_override, Ennemi._mat_yeux_maudits, "Yeux verts au départ")
 	await _secondes(0.2)
 	assert_eq(e.etat, Ennemi.Etat.PREPARATION)
-	assert_not_null(e._yeux.material_override, "Yeux rouges pendant l'annonce")
+	assert_eq(e._yeux.material_override, Ennemi._mat_yeux_rouges, "Yeux rouges pendant l'annonce")
+	assert_gt(Ennemi._mat_yeux_rouges.emission.r, Ennemi._mat_yeux_rouges.emission.g)
 	await _secondes(EQ.squelette_preparation + EQ.squelette_duree_frappe)
-	assert_null(e._yeux.material_override, "Redeviennent normaux après le coup")
+	assert_eq(e._yeux.material_override, Ennemi._mat_yeux_maudits, "Redeviennent verts après le coup")
+	assert_gt(Ennemi._mat_yeux_maudits.emission.g, Ennemi._mat_yeux_maudits.emission.r)
 
 
 func test_coup_leger_n_interrompt_pas_l_annonce_mais_coup_lourd_oui() -> void:

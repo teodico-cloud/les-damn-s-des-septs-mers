@@ -313,6 +313,10 @@ Jalon 6 réordonné par Téo : la refonte d'abord (elle remplace « écrans rest
   brume, lune froide et faible, torches orangées qui s'éteignent vite), `HaloHeros` (une lumière chaude suit chaque
   héros, côté caméra), bords d'écran sombres ; palette KayKit du donjon assombrie (`kaykit_dungeon.tres`). Zones
   d'annonce, visée et carreau en rouge « au-delà du blanc » pour rester lisibles ; braises de la forge moins vives.
+- **Étape 2, personnages (version rapide)** : `OsProportions` (modificateur d'os après l'animation) : crânes des
+  squelettes à 0,64 (capuche, chapeau, casque suivent ; les os qui volent gardent cette taille), tête des héros à 0,8 ;
+  os jaunis et mats (`kaykit_squelette.tres`) ; yeux verts (rouges pendant l'annonce, comme avant). Chiffres de dégâts :
+  le contour s'efface avec le chiffre (il restait un chiffre noir en fin de course, plus visible dans le noir).
 - Annexes proposées (pas encore retenues) : brume au ras du sol, poussière dans la lumière des torches.
 
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)

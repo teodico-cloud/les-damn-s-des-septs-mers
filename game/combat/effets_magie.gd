@@ -287,7 +287,8 @@ static func _maillage_arc(r_int: float, r_ext: float, ouverture: float, pas: int
 
 ## Squelette vaincu : il éclate en os qui volent et rebondissent au sol, puis s'effacent.
 ## `parties` : maillages du squelette (crâne, mâchoire, bras, jambes, buste) en pose de repos.
-static func eclater(parent: Node, parties: Array, origine: Transform3D, depuis: Vector3, force: float, duree: float) -> void:
+static func eclater(parent: Node, parties: Array, origine: Transform3D, depuis: Vector3, force: float, duree: float,
+		echelles := {}) -> void:   # (echelles : partie -> facteur, la tête plus petite des squelettes)
 	if parent == null or not parent.is_inside_tree():
 		return
 	for partie in parties:
@@ -296,7 +297,7 @@ static func eclater(parent: Node, parties: Array, origine: Transform3D, depuis: 
 			continue
 		var boite := mi.mesh.get_aabb()
 		# un squelette agrandi (Bosco ×1,6) : l'échelle va à l'image, jamais au corps physique
-		var echelle := origine.basis.get_scale()
+		var echelle := origine.basis.get_scale() * float(echelles.get(partie, 1.0))
 		var corps := RigidBody3D.new()
 		corps.collision_layer = 0                      # personne ne s'y cogne…
 		corps.collision_mask = Combat.COUCHE_MONDE      # …mais ils tombent sur le sol et les murs

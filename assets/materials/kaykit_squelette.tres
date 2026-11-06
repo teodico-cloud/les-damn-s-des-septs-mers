@@ -4,5 +4,6 @@
 
 [resource]
 resource_name = "kaykit_squelette"
+albedo_color = Color(0.66, 0.6, 0.5, 1)
 albedo_texture = ExtResource("1")
-roughness = 0.5
+roughness = 0.85

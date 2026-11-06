@@ -192,4 +192,5 @@ func _chiffre(pos: Vector3, degats: float, lourd: bool, cible_est_heros: bool, c
 		t.tween_property(l, "scale", Vector3.ONE, 0.18).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 	t.tween_property(l, "global_position", l.global_position + Vector3(0, 1.1, 0), 0.75).set_ease(Tween.EASE_OUT)
 	t.tween_property(l, "modulate:a", 0.0, 0.75).set_delay(0.25)
+	t.tween_property(l, "outline_modulate:a", 0.0, 0.75).set_delay(0.25)   # (sinon il reste un chiffre noir)
 	t.chain().tween_callback(l.queue_free)

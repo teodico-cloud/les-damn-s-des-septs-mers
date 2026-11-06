@@ -43,3 +43,34 @@ func test_les_annonces_restent_vives() -> void:
 	assert_gt(Ennemi.COULEUR_ZONE.r, 1.0)
 	assert_gt(Ennemi.COULEUR_ZONE_DOREE.g, 1.0)
 	assert_gt(Ennemi.COULEUR_MARQUE_DOREE.g, 0.75, "Doré (la parade le reconnaît)")
+
+
+## Le rapport tête / buste dans la pose dessinée (lu quand le modificateur vient d'agir : Godot remet la pose ensuite).
+func _rapport_tete(visuel: Node3D) -> float:
+	var sk: Skeleton3D = visuel.find_children("*", "Skeleton3D", true, false)[0]
+	var mod := sk.get_children().filter(func(c): return c is OsProportions)
+	if mod.is_empty():
+		return 1.0
+	var mesure := {"r": 1.0}
+	var lire := func():
+		var t := sk.get_bone_global_pose(sk.find_bone("head")).basis.get_scale().x
+		var b := sk.get_bone_global_pose(sk.find_bone("chest")).basis.get_scale().x
+		mesure["r"] = t / b
+	mod[0].modification_processed.connect(lire)
+	await wait_process_frames(2)
+	mod[0].modification_processed.disconnect(lire)
+	return mesure["r"]
+
+
+func test_cranes_et_tetes_plus_petits() -> void:
+	# (06/11, version rapide : moins « jouets »), après l'animation, pour chaque type de squelette et le héros
+	for type in [&"matelot", &"arbaletrier", &"pretre", &"bosco"]:
+		var e := Ennemi.creer_type(type, true)
+		e.position = Vector3(20, 0, 0)
+		add_child_autofree(e)
+		await wait_process_frames(2)
+		assert_almost_eq(await _rapport_tete(e.visuel), Ennemi.ECHELLE_TETE, 0.01, "Crâne plus petit : %s" % type)
+	var h := Heros.creer(&"occultiste")
+	add_child_autofree(h)
+	await wait_process_frames(2)
+	assert_almost_eq(await _rapport_tete(h.visuel), Heros.ECHELLE_TETE, 0.01, "Tête du héros")

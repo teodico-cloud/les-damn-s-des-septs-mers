@@ -6,6 +6,8 @@ extends CharacterBody3D
 ## ajoute son attaque, son esquive et ses deux compétences. Réglages : data/equilibrage.tres.
 
 const EQ: Equilibrage = preload("res://data/equilibrage.tres")
+## Tête un peu plus petite (06/11, identité visuelle façon Diablo IV, version rapide ; le tricorne suit).
+const ECHELLE_TETE := 0.8
 const ARCHETYPES := {
 	&"bretteur": "res://game/player/bretteur.gd",
 	&"occultiste": "res://game/player/occultiste.gd",
@@ -69,6 +71,7 @@ func _ready() -> void:
 
 	visuel = modele.instantiate()
 	add_child(visuel)
+	OsProportions.poser(visuel, {"head": Vector3.ONE * ECHELLE_TETE})   # (façon Diablo IV, version rapide)
 	anim = visuel.find_child("AnimationPlayer", true, false)
 	for boucle in ["Idle", "Running_A"]:
 		anim.get_animation(boucle).loop_mode = Animation.LOOP_LINEAR

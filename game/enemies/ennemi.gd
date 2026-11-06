@@ -22,6 +22,11 @@ const PREFIXES := {&"matelot": "Squelette", &"arbaletrier": "Arbaletrier", &"pre
 		&"allie": "Allie"}
 
 static var _mat_yeux_rouges: StandardMaterial3D
+static var _mat_yeux_maudits: StandardMaterial3D
+## Identité visuelle façon Diablo IV (06/11, version rapide) : crâne plus petit (OsProportions), yeux d'un vert maudit.
+const ECHELLE_TETE := 0.64
+## Ce qui est porté par l'os de la tête (pour que les os qui volent gardent la taille vue) :
+const PARTIES_TETE := ["Head", "Jaw", "Skull", "Hood", "Hat", "Helmet"]
 static var _mat_chaine: StandardMaterial3D
 static var _maillon: CylinderMesh
 
@@ -186,6 +191,8 @@ func _ready() -> void:
 	_attacher_lame()
 	_creer_marque()
 	_yeux = visuel.find_child(_prefixe() + "_Eyes", true, false) as MeshInstance3D
+	_yeux_rouges(false)   # (les yeux verts)
+	OsProportions.poser(visuel, {"head": Vector3.ONE * ECHELLE_TETE})
 	_preparer_modele()
 
 	sante = Sante.new()
@@ -535,13 +542,19 @@ func _creer_chaines() -> Node3D:
 func _yeux_rouges(actif: bool) -> void:
 	if _yeux == null:
 		return
+	if _mat_yeux_maudits == null:
+		_mat_yeux_maudits = StandardMaterial3D.new()
+		_mat_yeux_maudits.albedo_color = Color(0.1, 0.6, 0.25)
+		_mat_yeux_maudits.emission_enabled = true
+		_mat_yeux_maudits.emission = Color(0.15, 1.0, 0.38)
+		_mat_yeux_maudits.emission_energy_multiplier = 1.8   # (plus fort, l'étalonnage les blanchit)
 	if actif and _mat_yeux_rouges == null:
 		_mat_yeux_rouges = StandardMaterial3D.new()
 		_mat_yeux_rouges.albedo_color = Color(0.6, 0.02, 0.0)
 		_mat_yeux_rouges.emission_enabled = true
 		_mat_yeux_rouges.emission = Color(1.0, 0.08, 0.02)
 		_mat_yeux_rouges.emission_energy_multiplier = 4.0
-	_yeux.material_override = _mat_yeux_rouges if actif else null
+	_yeux.material_override = _mat_yeux_rouges if actif else _mat_yeux_maudits
 
 
 func etourdir(duree: float) -> void:
@@ -667,12 +680,16 @@ func _eclater(tueur: Node3D) -> void:
 	if not visuel.visible:
 		return
 	var parties := []
+	var echelles := {}   # (la tête et ce qu'elle porte : plus petites, voir ECHELLE_TETE)
 	for m in visuel.find_children(_prefixe() + "_*", "MeshInstance3D", true, false):
 		if not String(m.name).ends_with("Eyes"):
 			parties.append(m)
+			for t in PARTIES_TETE:
+				if String(m.name).ends_with("_" + t):
+					echelles[m] = ECHELLE_TETE
 	var depuis := tueur.global_position if tueur and is_instance_valid(tueur) else global_position + Vector3(randf_range(-1, 1), 0, randf_range(-1, 1))
 	var parent := get_parent().get_parent() if get_parent() is GenerateurEnnemis else get_parent()
-	EffetsMagie.eclater(parent, parties, visuel.global_transform, depuis, EQ.debris_force, EQ.debris_duree)
+	EffetsMagie.eclater(parent, parties, visuel.global_transform, depuis, EQ.debris_force, EQ.debris_duree, echelles)
 	visuel.visible = false
 	_montrer_annonce(false)
 	if _rune:

@@ -117,6 +117,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Lumière façon Diablo IV (06/11) : `game/commun/ambiance.gd` (`Ambiance` : environnement, lune, torches ; partagé
   par l'arène, les salles et le repaire), `game/player/halo_heros.gd` (`HaloHeros` : la lumière qui suit chaque héros),
   bords sombres (`EffetsUI.vignette` dans les HUD). Planche d'essai du style : `tools/capture_style.gd`.
+  Proportions : `game/commun/os_proportions.gd` (`OsProportions.poser(visuel, {"head": …})`, après l'animation) ;
+  crânes des squelettes `Ennemi.ECHELLE_TETE`, têtes des héros `Heros.ECHELLE_TETE` (en attendant les modèles refaits).
 - Réglages (jalon 6) : `autoload/reglages.gd` (Reglages) : qualité graphique économie / normale / belle, rangée dans
   `user://reglages.json` (à part de la sauvegarde) ; appliquée à l'image (finesse, bords lissés, ombres douces) et à
   chaque lumière ou environnement qui entre en scène (ce que la scène voulait est gardé en méta `ombre_voulue` /
