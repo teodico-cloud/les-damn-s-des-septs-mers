@@ -271,6 +271,7 @@ func _objet(nom: String, pos: Vector3, rot_y: float) -> Node3D:
 		push_error("Décor introuvable : " + nom)
 		return null
 	var n: Node3D = scene.instantiate()
+	Matieres.habiller(n, nom)   # (textures réalistes, façon Diablo IV)
 	n.position = pos
 	n.rotation_degrees.y = rot_y
 	n.scale = Vector3.ONE * ECHELLE

@@ -20,6 +20,7 @@ var _cycle_touche := -1   ## n° du cycle où les dégâts ont déjà été port
 
 func _ready() -> void:
 	var modele: Node3D = load("res://assets/models/decor/floor_tile_big_spikes.glb").instantiate()
+	Matieres.habiller(modele, "floor_tile_big_spikes")
 	modele.scale = Vector3.ONE * 0.8
 	add_child(modele)
 	_pics = modele.find_child("spikes", true, false) as Node3D

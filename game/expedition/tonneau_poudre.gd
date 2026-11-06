@@ -26,6 +26,7 @@ func _ready() -> void:
 	forme.position.y = 0.42
 	add_child(forme)
 	_modele = load("res://assets/models/decor/barrel_small.glb").instantiate()
+	Matieres.habiller(_modele, "barrel_small")
 	_modele.scale = Vector3.ONE * 0.85
 	add_child(_modele)
 	if _mat_poudre == null:

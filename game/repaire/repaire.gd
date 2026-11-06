@@ -392,6 +392,7 @@ func _forge() -> void:
 	mp.albedo_color = Color(0.25, 0.24, 0.26)
 	mp.roughness = 0.95
 	pierre.material_override = mp
+	Matieres.habiller(pierre, "wall")   # (pierre taillée, façon Diablo IV)
 	pierre.position.y = 0.45
 	foyer.add_child(pierre)
 	var braises := MeshInstance3D.new()
@@ -469,6 +470,7 @@ func _enseigne(texte: String, pos: Vector3) -> Label3D:
 
 func _objet(nom: String, pos: Vector3, rot_y: float) -> Node3D:
 	var n: Node3D = load(DECOR + nom + ".glb").instantiate()
+	Matieres.habiller(n, nom)   # (textures réalistes, façon Diablo IV)
 	n.position = pos
 	n.rotation_degrees.y = rot_y
 	n.scale = Vector3.ONE * ECHELLE

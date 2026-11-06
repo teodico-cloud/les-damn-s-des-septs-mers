@@ -6,6 +6,8 @@
 | KayKit Character Pack : Skeletons 1.0 | Kay Lousberg | CC0 1.0 | Ennemis dans `assets/models/enemies/`, copiés tels quels : Matelot squelette (`Skeleton_Minion`, lame `Skeleton_Blade`), Arbalétrier (`Skeleton_Rogue`, `Skeleton_Crossbow`), Prêtre noyé (`Skeleton_Mage`, `Skeleton_Staff` ; verdi en jeu par une matière teintée), Bosco Maudit (`Skeleton_Warrior`, `Skeleton_Axe` ; agrandis en jeu) |
 | KayKit Dungeon Remastered 1.0 | Kay Lousberg | CC0 1.0 | Décors (sol, murs, torches, tonneaux, coffre, dalle à pics…) dans `assets/models/decor/` ; reliques et doublons du butin (clé, trousseau, fioles, chandelle, pièces) ; essence maudite (fiole verte) ; repaire (table, malles, mur d'échafaudage, bouclier, étagère, bannières) |
 
+| Poly Haven : Cobblestone Floor 001, Stone Brick Wall 001, Weathered Brown Planks, Rust Coarse 01 | Poly Haven (polyhaven.com) | CC0 1.0 | Textures réalistes des décors (06/11, identité visuelle façon Diablo IV) dans `assets/textures/polyhaven/`, en 1K : couleur, relief, rugosité ; pour le bois et la rouille, un « grain » en gris tiré de la couleur (`tools/style_textures.py`). Envoyées par Téo depuis polyhaven.com |
+
 Les packs sont téléchargés par `tools/fetch_kaykit.sh` depuis https://github.com/KayKit-Game-Assets.
 CC0 : utilisation libre, y compris commerciale, sans obligation de mention.
 

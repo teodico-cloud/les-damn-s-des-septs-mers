@@ -33,6 +33,7 @@ func configurer(p_type: StringName, p_index: int, pos: Vector3, rot_y: float) ->
 
 func _ready() -> void:
 	var modele: Node3D = load("res://assets/models/decor/wall_doorway.glb").instantiate()
+	Matieres.habiller(modele, "wall_doorway")   # (textures réalistes, façon Diablo IV)
 	modele.scale = Vector3.ONE * 0.8
 	add_child(modele)
 	_battant = modele.find_child("wall_doorway_door", true, false) as Node3D

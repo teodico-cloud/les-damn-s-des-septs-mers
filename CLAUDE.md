@@ -26,7 +26,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Style : packs KayKit (CC0) retravaillés : proportions élancées, visages durs, palette « pirates maudits »,
   ambiance sombre donnée par l'éclairage (torches, brume, lueurs vertes). Depuis le 06/11 (Téo, sur planche
   d'essai) : direction « façon Diablo IV », moins cartoon — lumière (fait), personnages, textures réalistes.
-- Assets : une seule famille (KayKit) pour la cohérence ; crédits dans `assets/CREDITS.md`.
+- Assets : une seule famille (KayKit) pour les formes ; depuis le 06/11 (choix de Téo), des textures réalistes
+  Poly Haven (CC0) pour les matières des décors ; crédits dans `assets/CREDITS.md`.
 
 ## Arborescence actuelle
 - `project.godot`, `export_presets.cfg` (Android arm64, paquet `fr.teodico.damnes`), `icon.svg`.
@@ -119,6 +120,9 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   bords sombres (`EffetsUI.vignette` dans les HUD). Planche d'essai du style : `tools/capture_style.gd`.
   Proportions : `game/commun/os_proportions.gd` (`OsProportions.poser(visuel, {"head": …})`, après l'animation) ;
   crânes des squelettes `Ennemi.ECHELLE_TETE`, têtes des héros `Heros.ECHELLE_TETE` (en attendant les modèles refaits).
+  Matières réalistes : `game/commun/matieres.gd` (`Matieres.habiller(decor, nom)` d'après le nom KayKit : sols en
+  pavés, murs en pierre, bois et métal en « grain » sur la palette KayKit) et `matiere_monde.gdshader` (texture posée en
+  mètres du monde, un tirage par carte) ; textures `assets/textures/polyhaven/` (préparées par `tools/style_textures.py`).
 - Réglages (jalon 6) : `autoload/reglages.gd` (Reglages) : qualité graphique économie / normale / belle, rangée dans
   `user://reglages.json` (à part de la sauvegarde) ; appliquée à l'image (finesse, bords lissés, ombres douces) et à
   chaque lumière ou environnement qui entre en scène (ce que la scène voulait est gardé en méta `ombre_voulue` /
@@ -408,6 +412,10 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   en combat (zones d'annonce, visée de l'arbalétrier, traînée du carreau) a une couleur « au-delà du blanc » (rouge à
   1,5–1,8, voir `Ennemi.COULEUR_ZONE`) ; un objet très lumineux (braises de la forge) vire au blanc : baisser son
   émission plutôt que d'éclaircir sa couleur. Vérifier toute nouvelle annonce sur capture.
+- Matières réalistes : tout nouveau décor KayKit passe par `Matieres.habiller` (les `_objet` de l'arène, des salles et
+  du repaire le font déjà) et son nom va dans une liste de `Matieres` (sinon il garde l'aspect KayKit). Textures :
+  `compress/mode=2` et mipmaps dans le `.import` ; reliefs `compress/normal_map=1` (deux canaux : le shader recalcule le
+  troisième, sinon tout devient noir). Un objet fait par code peut aussi les prendre (`Matieres.habiller(maillage, "wall")`).
 - Une scène règle ses lumières comme avant (ombre voulue ou non) : c'est `Reglages` qui les coupe en Économie. Ne pas
   remettre `shadow_enabled` à chaud ailleurs (Reglages ne le reverrait qu'au prochain changement de qualité).
 - Retour d'Android sur l'écran titre : il quitte le jeu (`quit_on_go_back`), sauf réglages ouverts ; Godot décide de

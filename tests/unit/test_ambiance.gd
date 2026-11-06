@@ -74,3 +74,36 @@ func test_cranes_et_tetes_plus_petits() -> void:
 	add_child_autofree(h)
 	await wait_process_frames(2)
 	assert_almost_eq(await _rapport_tete(h.visuel), Heros.ECHELLE_TETE, 0.01, "Tête du héros")
+
+
+func test_les_decors_prennent_les_matieres_realistes() -> void:
+	# (06/11, étape 3 : textures Poly Haven posées en mètres du monde)
+	assert_eq(Matieres.pour("floor_tile_large").get_shader_parameter("grain"), false, "Sol : pavés (pleine)")
+	assert_eq(Matieres.pour("wall").get_shader_parameter("grain"), false, "Mur : pierre (pleine)")
+	assert_eq(Matieres.pour("barrel_small").get_shader_parameter("grain"), true, "Bois : sur la couleur KayKit")
+	assert_eq(Matieres.pour("chest_gold").get_shader_parameter("grain"), true, "Métal : sur la couleur KayKit")
+	assert_null(Matieres.pour("bottle_A_green"), "Les fioles gardent leur matière")
+	for cle in ["floor_tile_large", "wall", "barrel_small", "chest_gold"]:
+		var m: ShaderMaterial = Matieres.pour(cle)
+		for p in ["tex_couleur", "tex_relief", "tex_rugosite"]:
+			assert_not_null(m.get_shader_parameter(p), "%s : %s chargée" % [cle, p])
+	# une porte : mur de pierre, battant de bois
+	var porte: Node3D = load("res://assets/models/decor/wall_doorway.glb").instantiate()
+	Matieres.habiller(porte, "wall_doorway")
+	for mi in porte.find_children("*", "MeshInstance3D", true, false):
+		var attendu := Matieres.pour("chair") if String(mi.name).contains("_door") else Matieres.pour("wall")
+		assert_eq(mi.material_override, attendu, String(mi.name))
+	porte.free()
+
+
+func test_une_salle_est_habillee() -> void:
+	Partie.destination = &"arene"
+	var a: Arene = load("res://game/arene/arene.tscn").instantiate()
+	a.changer_de_scene = false
+	add_child_autofree(a)
+	await wait_physics_frames(2)
+	var poses := 0
+	for mi in a.find_children("*", "MeshInstance3D", true, false):
+		if mi.material_override is ShaderMaterial and mi.material_override.shader == Matieres.SHADER:
+			poses += 1
+	assert_gt(poses, 20, "Sols, murs, bois et métal de l'arène")

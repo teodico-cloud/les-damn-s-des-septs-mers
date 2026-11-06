@@ -317,6 +317,15 @@ Jalon 6 réordonné par Téo : la refonte d'abord (elle remplace « écrans rest
   squelettes à 0,64 (capuche, chapeau, casque suivent ; les os qui volent gardent cette taille), tête des héros à 0,8 ;
   os jaunis et mats (`kaykit_squelette.tres`) ; yeux verts (rouges pendant l'annonce, comme avant). Chiffres de dégâts :
   le contour s'efface avec le chiffre (il restait un chiffre noir en fin de course, plus visible dans le noir).
+- **Étape 3, textures réalistes** (Poly Haven, CC0, envoyées par Téo) : `Matieres` + `matiere_monde.gdshader` : sols
+  en pavés boueux, murs, piliers et éboulis en pierre taillée (la texture remplace la couleur KayKit), bois et métal en
+  « grain » (veines et rouille sur la couleur KayKit), battants de porte en bois ; foyer de la forge en pierre. Posées en
+  mètres du monde (pas besoin de Blender : un tirage par carte, moins cher qu'une projection sur trois axes). Décision :
+  KayKit pour les formes, Poly Haven pour les matières. Pas encore : navire, chaloupe, enclume (faits par code),
+  écran titre et vitrine (leur propre lumière).
+- Au passage (suite complète) : deux squelettes sortis à 0,94 m l'un de l'autre, avec 4 squelettes seulement, contre
+  un mur. `GenerateurEnnemis._ecarter` cherche maintenant, en dernier recours, la place libre la plus proche dans toute
+  la salle (test fait exprès : salle pleine, une seule place, loin).
 - Annexes proposées (pas encore retenues) : brume au ras du sol, poussière dans la lumière des torches.
 
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)

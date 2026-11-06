@@ -611,6 +611,26 @@ func test_l_invite_voit_l_eau_et_le_sablier() -> void:
 	assert_eq(monde.get_child_count(), avant + 2, "Le cercle du Sablier, même pour notre héros (décidé par l'hôte)")
 
 
+## (06/11 : 0,94 m vu par la suite complète, avec 4 squelettes seulement) Salle pleine, une seule place libre, loin
+## du groupe : elle est trouvée (la recherche autour du point ne va qu'à 2,4 m).
+func test_une_place_libre_meme_loin() -> void:
+	var gen := GenerateurEnnemis.new()
+	gen.demarrage_auto = false
+	gen.nombre = 0
+	gen.demi_cote = 2.2
+	monde.add_child(gen)
+	for x in [-2.0, -1.0, 0.0, 1.0, 2.0]:
+		for z in [-2.0, -1.0, 0.0, 1.0, 2.0]:
+			if x == 2.0 and z == 2.0:
+				continue   # la seule place libre : le coin opposé
+			var e := Ennemi.creer(true)
+			e.position = Vector3(x, 0, z)
+			gen.add_child(e)
+			e.set_physics_process(false)
+	var q: Vector3 = gen._ecarter(Vector3(-2.0, 0, -2.0))
+	assert_true(gen._place_libre(q), "Une place à 1 m de tous (trouvée en %s)" % q)
+
+
 ## (Trouvé par l'essai coop du CI : deux squelettes sortis de terre l'un dans l'autre, contre un mur, se
 ## repoussaient d'un coup en sortant, 0,5 m en une image. Ils sortent maintenant écartés.)
 func test_les_squelettes_sortent_ecartes() -> void:
@@ -620,7 +640,7 @@ func test_les_squelettes_sortent_ecartes() -> void:
 	gen.demi_cote = 2.2   # petite salle : les groupes s'y serrent contre les murs
 	monde.add_child(gen)
 	var plus_proche := INF
-	for essai in 80:   # (beaucoup d'essais : le cas sans place tout près est rare, vu une fois en 15)
+	for essai in 300:   # (beaucoup d'essais : le cas sans place tout près est rare, vu une fois en 15, puis 0,94 m le 06/11)
 		for e in gen.get_children():
 			gen.remove_child(e)
 			e.free()

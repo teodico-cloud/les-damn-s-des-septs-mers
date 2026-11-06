@@ -298,6 +298,7 @@ func _ambiance() -> void:
 
 func _objet(nom: String, pos: Vector3, rot_y := 0.0) -> Node3D:
 	var n: Node3D = load(DECOR + nom + ".glb").instantiate()
+	Matieres.habiller(n, nom)   # (textures réalistes, façon Diablo IV)
 	n.position = pos
 	n.rotation_degrees.y = rot_y
 	n.scale = Vector3.ONE * ECHELLE_DECOR
