@@ -45,43 +45,49 @@ func test_les_annonces_restent_vives() -> void:
 	assert_gt(Ennemi.COULEUR_MARQUE_DOREE.g, 0.75, "Doré (la parade le reconnaît)")
 
 
-## Le rapport tête / buste dans la pose dessinée (lu quand le modificateur vient d'agir : Godot remet la pose ensuite).
-func _rapport_tete(visuel: Node3D) -> float:
-	var sk: Skeleton3D = visuel.find_children("*", "Skeleton3D", true, false)[0]
-	var mod := sk.get_children().filter(func(c): return c is OsProportions)
-	if mod.is_empty():
-		return 1.0
-	var mesure := {"r": 1.0}
-	var lire := func():
-		var t := sk.get_bone_global_pose(sk.find_bone("head")).basis.get_scale().x
-		var b := sk.get_bone_global_pose(sk.find_bone("chest")).basis.get_scale().x
-		mesure["r"] = t / b
-	mod[0].modification_processed.connect(lire)
-	await wait_process_frames(2)
-	mod[0].modification_processed.disconnect(lire)
-	return mesure["r"]
+## Hauteur du crâne / hauteur du corps, dans la pose de repos du modèle (KayKit : 0,39 ; refaits : 0,24).
+func _rapport_crane(visuel: Node) -> float:
+	var haut := 0.0
+	var tete := 0.0
+	for mi in visuel.find_children("*", "MeshInstance3D", true, false):
+		var a: AABB = mi.mesh.get_aabb()
+		var e: float = mi.transform.basis.get_scale().x
+		if String(mi.name).ends_with("_Head") or String(mi.name).ends_with("_Skull"):
+			tete = a.size.y * e
+		haut = maxf(haut, (a.position.y + a.size.y) * e)
+	return tete / maxf(haut, 0.001)
 
 
-func test_cranes_et_tetes_plus_petits() -> void:
-	# (06/11, version rapide : moins « jouets »), après l'animation, pour chaque type de squelette
+func test_squelettes_et_heros_refaits() -> void:
+	# (06/11, étape 4 : refaits dans Blender, « variante 3 + usure » ; plus aucune retouche d'os en jeu)
+	var mat: StandardMaterial3D = load("res://assets/materials/kaykit_squelette.tres")
+	assert_true(mat.vertex_color_use_as_albedo, "La matière des squelettes prend les ombres des creux")
 	for type in [&"matelot", &"arbaletrier", &"pretre", &"bosco"]:
 		var e := Ennemi.creer_type(type, true)
 		e.position = Vector3(20, 0, 0)
 		add_child_autofree(e)
 		await wait_process_frames(2)
-		assert_almost_eq(await _rapport_tete(e.visuel), Ennemi.ECHELLE_TETE, 0.01, "Crâne plus petit : %s" % type)
-	# les héros ont été refaits dans Blender (tête plus petite dans le modèle même) : plus de retouche en jeu, mais les
-	# ombres des creux (couleur des sommets) sont prises par toutes leurs pièces
+		assert_lt(_rapport_crane(e.visuel), 0.3, "Crâne plus petit : %s" % type)
+		var sk: Skeleton3D = e.visuel.find_children("*", "Skeleton3D", true, false)[0]
+		assert_eq(sk.get_children().filter(func(c): return c is SkeletonModifier3D).size(), 0, "Pas de retouche en jeu")
+		assert_true(e.anim.has_animation("Spawn_Ground_Skeletons") and e.anim.has_animation("Idle"), "Animations gardées")
+		var colores := 0
+		for mi in e.visuel.find_children("*", "MeshInstance3D", true, false):
+			var c = mi.mesh.surface_get_arrays(0)[Mesh.ARRAY_COLOR]
+			if c != null and c.size() > 0:
+				colores += 1
+		assert_gt(colores, 6, "Ombres des creux dans les sommets : %s" % type)
+	# les héros : ombres des creux prises par toutes leurs pièces
 	for arch in [&"bretteur", &"occultiste"]:
 		var h := Heros.creer(arch)
 		add_child_autofree(h)
 		await wait_process_frames(2)
-		var sk: Skeleton3D = h.visuel.find_children("*", "Skeleton3D", true, false)[0]
-		assert_eq(sk.get_children().filter(func(c): return c is OsProportions).size(), 0, "Pas de retouche en jeu")
+		var skh: Skeleton3D = h.visuel.find_children("*", "Skeleton3D", true, false)[0]
+		assert_eq(skh.get_children().filter(func(c): return c is SkeletonModifier3D).size(), 0, "Pas de retouche en jeu")
 		var pieces := 0
 		for mi in h.visuel.find_children("*", "MeshInstance3D", true, false):
-			for i in mi.mesh.get_surface_count():
-				var m := mi.mesh.surface_get_material(i) as BaseMaterial3D
+			for k in mi.mesh.get_surface_count():
+				var m := mi.mesh.surface_get_material(k) as BaseMaterial3D
 				if m:
 					pieces += 1
 					assert_true(m.vertex_color_use_as_albedo, "%s : %s" % [arch, mi.name])

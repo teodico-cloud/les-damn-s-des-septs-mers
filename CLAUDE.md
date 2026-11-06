@@ -98,7 +98,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   - `ui/hud/` : `HudCombat`, `JoystickFlottant`, `BoutonAction` (icône du héros + petit nom).
   - `assets/ui/icones/*.svg` : icônes des boutons de compétence (dessinées à la main en SVG ; importées à
     `svg/scale=2.0` pour rester nettes sur téléphone) ; chaque archétype les donne par `icones_boutons()`.
-  - `assets/models/enemies/` : squelette et lame KayKit ; `assets/materials/` : matières partagées.
+  - `assets/models/enemies/` : squelettes (refaits par `tools/blender/build_squelettes.py`) et armes KayKit ;
+    `assets/materials/` : matières partagées.
 - Repaire (jalon 5) : `game/repaire/repaire.gd` (`Repaire` : grotte, quai, lieux `LIEUX`, héros au joystick, ouvre les
   lieux ; arrivée selon `Partie.lieu_repaire`) ; `navire.gd` (`Navire`, fait par code) ; `ui/repaire/` : `HudRepaire`
   (joystick, ressources, raccourcis, « Ouvrir »), `PanneauRepaire` (cadre d'un lieu) et ses lieux (`PanneauCartes`,
@@ -118,8 +119,9 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Lumière façon Diablo IV (06/11) : `game/commun/ambiance.gd` (`Ambiance` : environnement, lune, torches ; partagé
   par l'arène, les salles et le repaire), `game/player/halo_heros.gd` (`HaloHeros` : la lumière qui suit chaque héros),
   bords sombres (`EffetsUI.vignette` dans les HUD). Planche d'essai du style : `tools/capture_style.gd`.
-  Proportions : `game/commun/os_proportions.gd` (`OsProportions.poser(visuel, {"head": …})`, après l'animation) ;
-  crânes des squelettes `Ennemi.ECHELLE_TETE`, têtes des héros `Heros.ECHELLE_TETE` (en attendant les modèles refaits).
+  Personnages refaits dans Blender (06/11, « variante 3 + usure ») : héros par `tools/blender/build_heroes.py`,
+  squelettes par `tools/blender/build_squelettes.py` (sortie dans `assets/models/enemies/`, mêmes noms, mêmes
+  animations ; la matière reste `kaykit_squelette.tres` par le `.import`).
   Matières réalistes : `game/commun/matieres.gd` (`Matieres.habiller(decor, nom)` d'après le nom KayKit : sols en
   pavés, murs en pierre, bois et métal en « grain » sur la palette KayKit) et `matiere_monde.gdshader` (texture posée en
   mètres du monde, un tirage par carte) ; textures `assets/textures/polyhaven/` (préparées par `tools/style_textures.py`).
@@ -138,7 +140,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - `assets/models/decor/` : décors KayKit Dungeon (CC0), copiés tels quels.
 - `assets/models/heroes/` : héros exportés (.glb, 76 animations chacun). Ne pas les modifier à la main :
   ils sont fabriqués par `tools/blender/build_heroes.py`.
-- `tools/blender/` : fabrication des modèles dans Blender (en script).
+- `tools/blender/` : fabrication des modèles dans Blender (en script) : héros (`build_heroes.py`) et squelettes
+  (`build_squelettes.py`).
 - `tools/preview/` : petit projet Godot qui rend des captures d'aperçu ; exemples dans `tools/preview/exemples/`.
 - `tools/fetch_kaykit.sh` : télécharge les packs KayKit dans `third_party/` (ignoré par git).
 - `build/` : fichiers générés (textures, aperçus), ignoré par git.

@@ -330,8 +330,11 @@ Jalon 6 réordonné par Téo : la refonte d'abord (elle remplace « écrans rest
   « variante 3 + usure » (encore plus poussée). `build_heroes.py` : tête 0,4, buste 1,65 / 1,35, bras 1,6, jambes 2,3,
   mains 0,58, pieds 0,66 ; usure : couleurs ternies (rouge → bordeaux, or → laiton terni, moins saturé, plus sombre ;
   lueurs épargnées) et ombres des creux cuites dans les sommets (Cycles, « AO », 60 %), que le jeu active sur toutes
-  les pièces (`Heros._ombres_des_creux`). Héros refaits ; plus de retouche de tête en jeu pour eux. Les squelettes
-  suivent (même traitement), puis l'Occultiste et le Bretteur seront vérifiés sur téléphone par Téo.
+  les pièces (`Heros._ombres_des_creux`). Héros refaits (APK 0.5.29) ; plus de retouche de tête en jeu pour eux.
+- Squelettes refaits (`tools/blender/build_squelettes.py`, même traitement) : crâne 0,62, buste 1,35 / 1,15, bras
+  1,35, jambes 1,7 ; capuche, chapeau, casque et cape (accrochés à un os) suivent la nouvelle taille de leur os ; ombres
+  des creux en couleur de sommets (prises par `kaykit_squelette.tres`) ; couleurs : celles de la matière partagée.
+  Crâne / hauteur : 0,39 (KayKit) → 0,24. `OsProportions` (la retouche en jeu) n'existe plus.
 - APK 0.5.28 (textures) : échec des tests sur GitHub, alors que la suite passe ici, même sur une copie neuve importée de
   zéro. Le workflow écrit maintenant les tests en échec en annotations (on saura lequel au prochain échec).
 - Annexes proposées (pas encore retenues) : brume au ras du sol, poussière dans la lumière des torches.

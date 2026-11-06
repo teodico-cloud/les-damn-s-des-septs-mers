@@ -23,10 +23,8 @@ const PREFIXES := {&"matelot": "Squelette", &"arbaletrier": "Arbaletrier", &"pre
 
 static var _mat_yeux_rouges: StandardMaterial3D
 static var _mat_yeux_maudits: StandardMaterial3D
-## Identité visuelle façon Diablo IV (06/11, version rapide) : crâne plus petit (OsProportions), yeux d'un vert maudit.
-const ECHELLE_TETE := 0.64
-## Ce qui est porté par l'os de la tête (pour que les os qui volent gardent la taille vue) :
-const PARTIES_TETE := ["Head", "Jaw", "Skull", "Hood", "Hat", "Helmet"]
+## Identité visuelle façon Diablo IV (06/11) : squelettes refaits dans Blender (tools/blender/build_squelettes.py :
+## crâne plus petit, corps plus long, ombres des creux), yeux d'un vert maudit.
 static var _mat_chaine: StandardMaterial3D
 static var _maillon: CylinderMesh
 
@@ -192,7 +190,6 @@ func _ready() -> void:
 	_creer_marque()
 	_yeux = visuel.find_child(_prefixe() + "_Eyes", true, false) as MeshInstance3D
 	_yeux_rouges(false)   # (les yeux verts)
-	OsProportions.poser(visuel, {"head": Vector3.ONE * ECHELLE_TETE})
 	_preparer_modele()
 
 	sante = Sante.new()
@@ -680,13 +677,14 @@ func _eclater(tueur: Node3D) -> void:
 	if not visuel.visible:
 		return
 	var parties := []
-	var echelles := {}   # (la tête et ce qu'elle porte : plus petites, voir ECHELLE_TETE)
+	var echelles := {}   # (capuche, chapeau, casque : accrochés à l'os de la tête, avec leur propre échelle)
+	var e0 := visuel.global_transform.basis.get_scale().x
 	for m in visuel.find_children(_prefixe() + "_*", "MeshInstance3D", true, false):
 		if not String(m.name).ends_with("Eyes"):
 			parties.append(m)
-			for t in PARTIES_TETE:
-				if String(m.name).ends_with("_" + t):
-					echelles[m] = ECHELLE_TETE
+			var e: float = m.global_transform.basis.get_scale().x / maxf(e0, 0.0001)
+			if absf(e - 1.0) > 0.01:
+				echelles[m] = e
 	var depuis := tueur.global_position if tueur and is_instance_valid(tueur) else global_position + Vector3(randf_range(-1, 1), 0, randf_range(-1, 1))
 	var parent := get_parent().get_parent() if get_parent() is GenerateurEnnemis else get_parent()
 	EffetsMagie.eclater(parent, parties, visuel.global_transform, depuis, EQ.debris_force, EQ.debris_duree, echelles)
