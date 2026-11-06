@@ -690,7 +690,7 @@ l'invité sous Wi-Fi moyen et mauvais). Corrigé (chaque correction a un test qu
 - **Question pour Téo** : l'explosion du tir de l'Occultiste blesse aussi les voisins, mais seule la cible directe
   remplit les Âmes (9). Le moulinet du Bretteur, lui, compte chaque squelette touché (plafond 22 par geste).
 - 374 tests ; essais coop : arène (Wi-Fi parfait et moyen), expédition (Wi-Fi moyen), départ de l'hôte, jauge (Wi-Fi
-  parfait, moyen, 120 ± 60 ms).
+  parfait, moyen, 120 ± 60 ms). APK 0.5.34 (fin du jalon 6), essais coop du CI réussis.
 
 ## Relecture de fin du jalon 5 (agent relecteur) et corrections — 05/11
 Aucune perte de sauvegarde ni coop cassée trouvée (conversion depuis l'APK 0.4.18, matériaux à deux, bateau, repaire,
