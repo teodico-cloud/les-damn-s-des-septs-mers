@@ -456,6 +456,21 @@ PROPS = {
 }
 CAPE_BOTTOM = 0.35
 
+# Essais de proportions sans toucher aux modèles du jeu (06/11, identité visuelle façon Diablo IV) :
+#   HEROS_SORTIE=<dossier>  écrit les .glb ailleurs que dans assets/models/heroes/
+#   HEROS_PROPS='{"HEAD_K": 0.5, "PROPS": {"spine": [0.78, 1.45, 0.78]}}'  remplace des proportions
+if os.environ.get("HEROS_PROPS"):
+    import json
+    _s = json.loads(os.environ["HEROS_PROPS"])
+    if "HEAD_K" in _s:
+        HEAD_K = float(_s["HEAD_K"])
+        PROPS["head"] = (HEAD_K, HEAD_K, HEAD_K)
+    for _os, _v in _s.get("PROPS", {}).items():
+        PROPS[_os] = tuple(_v)
+if os.environ.get("HEROS_SORTIE"):
+    OUT = os.path.abspath(os.environ["HEROS_SORTIE"]) + os.sep
+    os.makedirs(OUT, exist_ok=True)
+
 
 def action_fcurves(act):
     try:
@@ -534,12 +549,102 @@ def reshape(rig, skinned, capes):
     print("RESHAPE height", round(max(zs) - min(zs), 3), "ground shift", round(-zmin, 3))
 
 
+# ------------------------------------------------------------------ usure (06/11, façon Diablo IV)
+def _user_rgb(px):
+    """Couleurs usées : moins saturées, plus sombres ; l'or devient du laiton terni, le rouge du bordeaux.
+    `px` : tableau (..., 3) de couleurs d'affichage (0..1)."""
+    import colorsys
+    flat = px.reshape(-1, 3)
+    out = np.empty_like(flat)
+    for i, (r, g, b) in enumerate(flat):
+        h, sat, v = colorsys.rgb_to_hsv(float(r), float(g), float(b))
+        sat *= 0.62
+        v *= 0.86
+        deg = h * 360.0
+        if 28.0 <= deg <= 70.0:          # or, jaune -> laiton terni
+            sat *= 0.7
+            v *= 0.82
+        elif deg <= 18.0 or deg >= 335.0:  # rouge vif -> bordeaux
+            h = 350.0 / 360.0
+            v *= 0.78
+        out[i] = colorsys.hsv_to_rgb(h, sat, v)
+    return out.reshape(px.shape)
+
+
+def user_couleurs(objs):
+    """Ternit toutes les couleurs des héros (textures recolorées et matières faites par script), sauf les lueurs."""
+    faites = set()
+    for o in objs:
+        if o.type != "MESH":
+            continue
+        for m in o.data.materials:
+            if m is None or m.name in faites or not m.use_nodes:
+                continue
+            faites.add(m.name)
+            b = m.node_tree.nodes.get("Principled BSDF")
+            if b and b.inputs["Emission Strength"].default_value > 0.0:
+                continue   # (yeux, lanterne, verre maudit : ils doivent luire)
+            for n in m.node_tree.nodes:
+                if n.type == "TEX_IMAGE" and n.image and not n.image.name.endswith("_use"):
+                    im = n.image
+                    w, h = im.size
+                    px = np.array(im.pixels[:], dtype=np.float32).reshape(h, w, 4)
+                    # (la texture KayKit n'a que quelques dizaines de couleurs : on les traite une fois chacune)
+                    cles, inv = np.unique((px[..., :3] * 255).round().astype(np.int32).reshape(-1, 3), axis=0,
+                                          return_inverse=True)
+                    neuves = _user_rgb(cles.astype(np.float32) / 255.0)
+                    px[..., :3] = neuves[inv.reshape(-1)].reshape(h, w, 3)
+                    nu = bpy.data.images.new(im.name + "_use", w, h, alpha=True)
+                    nu.pixels.foreach_set(px.ravel())
+                    nu.filepath_raw = TEX + nu.name + ".png"
+                    nu.file_format = "PNG"
+                    nu.save()
+                    n.image = nu
+            if b:
+                c = b.inputs["Base Color"].default_value
+                lin2srgb = lambda x: 12.92 * x if x <= 0.0031308 else 1.055 * x ** (1 / 2.4) - 0.055
+                d = _user_rgb(np.array([[lin2srgb(c[0]), lin2srgb(c[1]), lin2srgb(c[2])]], dtype=np.float32))[0]
+                b.inputs["Base Color"].default_value = (*[srgb2lin(x * 255.0) for x in d], 1)
+                b.inputs["Roughness"].default_value = max(b.inputs["Roughness"].default_value, 0.75)
+
+
+def user_ombres(objs, force=0.75):
+    """Ombres des creux (sous le chapeau, sous les bras, entre les jambes) cuites dans les sommets (« AO » de
+    Cycles), en pose de repos ; exportées comme couleur de sommet, que Godot multiplie à la couleur."""
+    sc = bpy.context.scene
+    sc.render.engine = "CYCLES"
+    sc.cycles.device = "CPU"
+    sc.cycles.samples = 48
+    vl = bpy.context.view_layer
+    for o in objs:
+        if o.type != "MESH":
+            continue
+        for x in bpy.context.selected_objects:
+            x.select_set(False)
+        vl.objects.active = o
+        o.select_set(True)
+        ca = o.data.color_attributes.get("AO") or o.data.color_attributes.new("AO", "BYTE_COLOR", "POINT")
+        o.data.color_attributes.active_color = ca
+        o.data.color_attributes.render_color_index = o.data.color_attributes.active_color_index
+        bpy.ops.object.bake(type="AO", target="VERTEX_COLORS")
+        for d in ca.data:
+            ao = d.color[0]
+            v = 1.0 - (1.0 - ao) * force
+            d.color = (v, v, v, 1.0)
+    print("USURE ombres cuites sur", sum(1 for o in objs if o.type == "MESH"), "maillages")
+
+
 def export(rig, keep_objs, name):
     for o in list(bpy.data.objects):
         if o not in keep_objs and o is not rig:
             bpy.data.objects.remove(o, do_unlink=True)
+    usure = os.environ.get("HEROS_USURE") == "1"
+    if usure:
+        user_couleurs(keep_objs)
+        user_ombres(keep_objs)
     bpy.ops.export_scene.gltf(filepath=OUT + name + ".glb", export_format="GLB",
-                              export_animation_mode="ACTIONS", export_yup=True)
+                              export_animation_mode="ACTIONS", export_yup=True,
+                              export_vertex_color="ACTIVE" if usure else "MATERIAL")
     print("EXPORTED", name, "objects", len(keep_objs), "actions", len(bpy.data.actions))
 
 
