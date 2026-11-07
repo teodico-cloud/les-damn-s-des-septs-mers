@@ -13,6 +13,7 @@ var lieu_repaire: StringName = &""         ## où le héros réapparaît dans le
 var debug_sante_infinie := false
 var debug_depart: StringName = &""          ## &"" (salle 1), &"tresor", &"bosco" ou &"chaloupe"
 var debug_tout_debloque := false            ## jalon 5 : toutes les malédictions, quelle que soit la coque
+var debug_heros_meshy := false              ## 07/11 : les héros faits par Téo sur Meshy (Heros.MODELES_MESHY)
 
 
 const SCENES := {

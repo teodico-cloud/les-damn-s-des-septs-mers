@@ -14,6 +14,11 @@ CC0 : utilisation libre, y compris commerciale, sans obligation de mention.
 Les modèles de `assets/models/heroes/` sont des dérivés de ces packs (recoloration, proportions,
 accessoires modélisés par script dans `tools/blender/build_heroes.py`).
 
+Héros Meshy (07/11, à l'essai, `assets/models/heroes_meshy/`) : le Bretteur et l'Occultiste ont été faits par Téo
+lui-même sur Meshy (meshy.ai), avec un abonnement payant : les modèles lui appartiennent, aucune mention n'est
+obligatoire. Ils sont posés sur l'ossature et les animations KayKit (CC0) ; leur arme de départ, le bâton et la
+lanterne restent ceux de KayKit.
+
 Sons faits par calcul, sans enregistrement (06/11, jalon 6, `tools/sons/fabriquer_sons.py`, dans
 `assets/sons/fabriques/`) : souffles de la lame et moulinet, os qui éclatent, magie de l'Occultiste (tir, explosion,
 téléportation, chaînes, marque), tonneau de poudre, canon de la bordée, essence maudite, et les ambiances en boucle

@@ -4,7 +4,7 @@ extends Control
 ## le menu en planches cerclées de fer clouées le long d'une corde, un peu de travers comme posées à la main.
 ## En haut à droite, la bourse (doublons, objets des coffres) ; en bas à droite, la version et le Mode test.
 ## « Réglages » (jalon 6) ouvre l'écran Réglages par-dessus (PanneauReglages).
-## Mode test (APK de test) : santé infinie, salle de départ de l'expédition, malédiction, coffres de test (des
+## Mode test (APK de test) : santé infinie, salle de départ de l'expédition, malédiction, héros Meshy, coffres de test (des
 ## objets pour essayer l'équipement tout de suite), ressources de test (doublons et matériaux pour les achats).
 
 const SCENE_VITRINE := "res://game/vitrine/vitrine.tscn"
@@ -28,6 +28,7 @@ var panneau_test: PanelContainer
 var bouton_sante: Button
 var bouton_depart: Button
 var bouton_coque: Button
+var bouton_meshy: Button   ## Mode test (07/11) : les héros Meshy de Téo
 var label_test: Label
 var changer_de_scene := true   ## faux dans les tests : `scene_demandee` dit où l'on serait allé
 var scene_demandee := ""
@@ -212,13 +213,14 @@ func _mode_test() -> void:
 	bouton_sante = Button.new()
 	bouton_depart = Button.new()
 	bouton_coque = Button.new()
+	bouton_meshy = Button.new()
 	var bouton_coffres := Button.new()
 	bouton_coffres.text = "Coffres de test"
 	bouton_coffres.pressed.connect(remplir_coffres_de_test)
 	var bouton_ressources := Button.new()
 	bouton_ressources.text = "Ressources de test"
 	bouton_ressources.pressed.connect(remplir_ressources_de_test)
-	for b in [bouton_sante, bouton_depart, bouton_coque, bouton_coffres, bouton_ressources]:
+	for b in [bouton_sante, bouton_depart, bouton_coque, bouton_meshy, bouton_coffres, bouton_ressources]:
 		b.theme_type_variation = &"BoutonPetit"
 		b.custom_minimum_size = Vector2(360, 60)
 		liste.add_child(b)
@@ -230,6 +232,9 @@ func _mode_test() -> void:
 		_textes_test())
 	bouton_coque.pressed.connect(func():
 		Partie.debug_tout_debloque = not Partie.debug_tout_debloque
+		_textes_test())
+	bouton_meshy.pressed.connect(func():
+		Partie.debug_heros_meshy = not Partie.debug_heros_meshy
 		_textes_test())
 	label_test = Label.new()
 	label_test.theme_type_variation = &"LabelGras"
@@ -277,7 +282,9 @@ func _textes_test() -> void:
 	bouton_sante.text = "Santé infinie : %s" % ("oui" if Partie.debug_sante_infinie else "non")
 	bouton_depart.text = "Départ : %s" % NOMS_DEPARTS.get(Partie.debug_depart, "?")
 	bouton_coque.text = "Malédiction : %s" % ("toutes" if Partie.debug_tout_debloque else "selon la coque")
-	var actif := Partie.debug_sante_infinie or Partie.debug_depart != &"" or Partie.debug_tout_debloque
+	bouton_meshy.text = "Héros Meshy : %s" % ("oui" if Partie.debug_heros_meshy else "non")
+	var actif := Partie.debug_sante_infinie or Partie.debug_depart != &"" or Partie.debug_tout_debloque \
+			or Partie.debug_heros_meshy
 	label_test.text = "Mode test actif" if actif else ""
 
 

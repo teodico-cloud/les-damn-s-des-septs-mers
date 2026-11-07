@@ -412,6 +412,28 @@ Jalon 6 réordonné par Téo : la refonte d'abord (elle remplace « écrans rest
 - 07/11 (choix de Téo) : l'**explosion** du tir de l'Occultiste compte aussi : 9 Âmes par squelette voisin touché, avec
   le même plafond de 22 par geste (`Projectile._exploser`, test `test_l_explosion_du_tir_remplit_aussi_les_ames`).
 
+## Héros Meshy à l'essai (07/11, Mode test — choix de Téo)
+Téo a fait ses deux héros lui-même sur Meshy (modèles réalistes « façon Diablo IV », **abonnement payant** : ils sont à
+lui, aucune mention obligatoire), allégés par Meshy (Remesh, ~25 000 triangles).
+- `tools/blender/build_heroes_meshy.py` les pose sur l'ossature du héros actuel : corps KayKit retiré, maillage Meshy
+  mis à la taille (2,45 m), os déplacés aux articulations mesurées sur le maillage, poids calculés par le script
+  (distance aux os, sans passer d'un côté à l'autre, lissés ; les « automatic weights » de Blender échouaient), images
+  réduites (couleur 2048, relief et rugosité 1024, JPEG). Gardés du héros actuel : les 76 animations, le sabre, le
+  bâton et la lanterne, les attaches (équipement, coop).
+- Sortie : `assets/models/heroes_meshy/` (textures `compress/mode=2`, reliefs `compress/normal_map=1`). Les fichiers
+  Meshy d'origine ne sont pas dans le dépôt (trop lourds) : `build/meshy/` ici, et dans le compte Meshy de Téo.
+- Choix de Téo : les essayer sur son téléphone par un interrupteur du **Mode test** (« Héros Meshy : oui / non »,
+  `Partie.debug_heros_meshy`, pas gardé d'un lancement à l'autre comme les autres réglages du Mode test) ; les héros
+  actuels restent ceux du jeu tant qu'il n'a pas décidé. L'interrupteur change le héros en combat, en expédition, au
+  repaire et sur l'écran du choix du héros (`Heros.modele_meshy`) ; la vitrine garde les héros KayKit.
+- Coop : chaque téléphone affiche les héros selon son propre réglage ; les animations voyagent par numéro, les deux
+  modèles ont la même liste dans le même ordre (testé).
+- Vu sur captures (07/11) : toutes les animations jouent, armes en main ; plus détaillés, mais plus fins et plus
+  sombres en vue de jeu (l'Occultiste surtout) ; style réaliste à côté des squelettes KayKit. Proposé, pas fait :
+  yeux verts lumineux et robe moins noire pour l'Occultiste ; plus tard, les squelettes sur Meshy.
+- Sabre fait par Téo sur Meshy (07/11, prompt « pirate cutlass ») : reçu, à mettre dans la main du Bretteur Meshy.
+- Tests : `test_heros_meshy.gd`. Captures : `build/meshy/capture_meshy.gd` (même combat, héros actuel ou Meshy).
+
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)
 Téo : « le gameplay pas assez proche de Diablo, c'est peut-être l'attaque de base ». Ce qui le gênait : frapper dans le
 vide, se sentir planté, pas assez de squelettes touchés ; modèle Diablo 3/4 ; les deux héros ; nerf de la téléportation.
@@ -565,6 +587,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 30/10/2026 | Jalon 2 : coop essayée par Téo sur ses deux téléphones, « ça marche » (porte franchie). |
 | 30/10/2026 | Jalon 3, choix de Téo : expédition courte (4 salles, puis le Bosco, puis la chaloupe) ; PV gardés d'une salle à l'autre + orbes de vie lâchées par les squelettes (façon Diablo) ; en coop, la porte s'ouvre quand les deux héros sont devant la même. Ordre : 0) relecture des ajouts du jalon 2, 1) l'expédition (salles, portes, coop, mode debug ; APK), 2) arbalétrier, prêtre noyé, pièges (APK), 3) Bosco, malédiction, chaloupe sous les vagues, écran de fin (relecture, APK). |
 | 07/11/2026 | Jauge (choix de Téo) : l'explosion du tir de l'Occultiste remplit aussi les Âmes, pour chaque squelette voisin touché, avec le même plafond de 22 par geste que le moulinet. |
+| 07/11/2026 | Héros Meshy (faits par Téo, abonnement payant) : à l'essai par un interrupteur du Mode test, les héros actuels restent ceux du jeu tant qu'il n'a pas décidé (choix de Téo : « le 1 »). |
 
 ## Relecture du jalon 0 (agent relecteur) et corrections
 - Le CI refuse désormais un script ou un fichier de test cassé (chargement de tous les scripts + contrôle du

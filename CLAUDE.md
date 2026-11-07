@@ -32,7 +32,7 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 ## Arborescence actuelle
 - `project.godot`, `export_presets.cfg` (Android arm64, paquet `fr.teodico.damnes`), `icon.svg`.
 - `ui/screens/` : écrans (écran titre `demarrage.tscn` = scène principale : « Le repaire », combat d'entraînement,
-  « Jouer à deux », vitrine ; « Mode test » : santé infinie, salle de départ, coffres et ressources de test ;
+  « Jouer à deux », vitrine ; « Mode test » : santé infinie, salle de départ, héros Meshy, coffres et ressources de test ;
   `choix_heros.tscn` avant l'arène (et pour l'hôte à deux) ; `coop.tscn` « Jouer à deux » :
   héberger / rejoindre, parties trouvées sur le Wi-Fi, code de secours, lancer l'expédition ou l'arène ;
   `choix_malediction.gd` : le choix du niveau de malédiction, sur l'écran du héros en solo et pour l'hôte).
@@ -153,6 +153,9 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - `assets/models/decor/` : décors KayKit Dungeon (CC0), copiés tels quels.
 - `assets/models/heroes/` : héros exportés (.glb, 76 animations chacun). Ne pas les modifier à la main :
   ils sont fabriqués par `tools/blender/build_heroes.py`.
+- `assets/models/heroes_meshy/` (07/11, à l'essai) : les héros faits par Téo sur Meshy, posés sur la même ossature et
+  les mêmes animations par `tools/blender/build_heroes_meshy.py <bretteur|occultiste> <meshy.glb> <héros_actuel.glb>` ;
+  en jeu seulement si le Mode test le demande (`Partie.debug_heros_meshy`, `Heros.MODELES_MESHY` / `modele_meshy`).
 - `tools/blender/` : fabrication des modèles dans Blender (en script) : héros (`build_heroes.py`) et squelettes
   (`build_squelettes.py`).
 - `tools/preview/` : petit projet Godot qui rend des captures d'aperçu ; exemples dans `tools/preview/exemples/`.
@@ -393,6 +396,12 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   Après une refabrication, Godot **ne réécrit pas** les textures extraites à côté du .glb : supprimer les `*.png` et
   leurs `.import` (garder une copie des `.import`), importer, remettre les `.import` (compression `compress/mode=2`),
   vider `.godot/imported/<Héros>*`, importer encore. Une matière et son image portent souvent le même nom.
+- Héros Meshy : leur liste d'animations doit rester **la même, dans le même ordre**, que celle des héros KayKit (en coop
+  les animations voyagent par numéro, et l'autre téléphone peut avoir l'autre modèle) : `test_heros_meshy.gd` le vérifie.
+  Refaire un héros Meshy : relancer `build_heroes_meshy.py` (le héros actuel du jeu sert de base : `git show
+  HEAD:assets/models/heroes/<Héros>.glb`), puis la marche à suivre des textures extraites de `build_heroes.py` ;
+  textures en `compress/mode=2`, reliefs en `compress/normal_map=1`. Les fichiers Meshy d'origine (trop lourds) ne sont
+  pas dans le dépôt : les redemander à Téo.
 - `build_heroes.py` : tout ce qui touche la tête est multiplié par `HEAD_K`. Ne jamais réutiliser `k`
   comme variable de boucle (un tel bug a multiplié les cheveux par 12).
 - `bpy.ops.wm.read_factory_settings` efface les matériaux : les créer après (`init_mats()`).

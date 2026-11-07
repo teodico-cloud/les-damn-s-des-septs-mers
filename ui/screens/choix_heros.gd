@@ -98,7 +98,10 @@ func _monde() -> void:
 	camera.current = true
 
 	for cle in HEROS:
-		var n: Node3D = load(HEROS[cle]["modele"]).instantiate()
+		var chemin := Heros.modele_meshy(cle)   # (Mode test : les héros Meshy)
+		if chemin == "":
+			chemin = HEROS[cle]["modele"]
+		var n: Node3D = load(chemin).instantiate()
 		n.position = Vector3(HEROS[cle]["x"], 0, -0.6)
 		add_child(n)
 		n.rotation.y = -0.18 * signf(HEROS[cle]["x"])   # légèrement tournés l'un vers l'autre

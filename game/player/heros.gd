@@ -10,6 +10,12 @@ const ARCHETYPES := {
 	&"bretteur": "res://game/player/bretteur.gd",
 	&"occultiste": "res://game/player/occultiste.gd",
 }
+## Mode test (07/11, essai de Téo) : les héros qu'il a faits sur Meshy, posés sur la même ossature et les mêmes
+## 76 animations que les héros KayKit (tools/blender/build_heroes_meshy.py). Seule l'image change.
+const MODELES_MESHY := {
+	&"bretteur": "res://assets/models/heroes_meshy/Bretteur.glb",
+	&"occultiste": "res://assets/models/heroes_meshy/Occultiste.glb",
+}
 
 ## Tous les états possibles ; chaque archétype n'en utilise qu'une partie.
 enum Etat { LIBRE, ATTAQUE, ESQUIVE, PARADE, RIPOSTE, FENTE, TOUCHE, MORT, INCANTATION }
@@ -59,6 +65,11 @@ static func creer(nom: StringName) -> Heros:
 	return load(ARCHETYPES[nom]).new()
 
 
+## Le modèle Meshy de cet archétype si le Mode test le demande (`Partie.debug_heros_meshy`), sinon "".
+static func modele_meshy(nom: StringName) -> String:
+	return MODELES_MESHY.get(nom, "") if Partie.debug_heros_meshy else ""
+
+
 ## Les héros refaits dans Blender (06/11, « variante 3 + usure ») portent les ombres de leurs creux dans la couleur de
 ## leurs sommets ; l'import glTF de Godot ne s'en sert que sur certaines pièces : on l'active sur toutes.
 static func _ombres_des_creux(modele: Node) -> void:
@@ -83,6 +94,8 @@ func _ready() -> void:
 	forme.position.y = 1.0
 	add_child(forme)
 
+	if modele_meshy(archetype) != "":
+		modele = load(modele_meshy(archetype))
 	visuel = modele.instantiate()
 	add_child(visuel)
 	_ombres_des_creux(visuel)
