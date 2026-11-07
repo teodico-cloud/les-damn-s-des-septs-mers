@@ -426,7 +426,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - Recharge à charges (`Recharge.new(duree, n)`, téléportation) : `prete()` = il reste une charge ; mettre `restant = 0`
   ne rend une charge qu'à une recharge simple (Parade rendue). La pastille du bouton suit seule les charges.
 - Tir de l'Occultiste : sa cible est choisie au départ par `Projectile.cible_devant` (chez l'invité aussi, pour l'image :
-  même règle, aucun message) ; l'explosion passe par `porter_coup_discret` (pas d'arrêt sur image par voisin).
+  même règle, aucun message) ; l'explosion passe par `porter_coup_discret` (pas d'arrêt sur image par voisin) ;
+  la jauge compte la cible et chaque voisin touché en un seul `jauge_coups(touches)` (plafond du geste).
 - Interface : ne pas régler couleurs et boîtes une à une ; passer par le thème (`theme_type_variation` : BoutonPetit,
   BoutonOnglet/BoutonOngletActif, LabelEncre, PanelParchemin…). Sur un parchemin on écrit à l'encre (`StyleRepaire`) ;
   une couleur pensée pour le noir (rareté, matériau) passe par `StyleRepaire.encre()`. Changer une matière : modifier

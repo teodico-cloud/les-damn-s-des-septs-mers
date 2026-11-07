@@ -87,6 +87,29 @@ func test_le_tir_de_l_occultiste_remplit_les_ames() -> void:
 	assert_almost_eq(h.jauge, EQ.jauge_gain_coup, 0.01, "Le tir qui touche")
 
 
+func test_l_explosion_du_tir_remplit_aussi_les_ames() -> void:
+	# (choix de Téo du 07/11 : chaque voisin pris dans l'explosion compte, avec le plafond du geste)
+	var h := await _heros(&"occultiste")
+	var cible := _squelette(Vector3(0, 0, 4.0))
+	var voisin := _squelette(Vector3(0.9, 0, 4.4))
+	Projectile.tirer(monde, h, Vector3(0, 1.25, 0.6), Vector3(0, 0, 1), EQ)
+	await _secondes(0.6)
+	assert_lt(cible.sante.pv, 500.0, "La cible est touchée")
+	assert_lt(voisin.sante.pv, 500.0, "Son voisin aussi, par l'explosion")
+	assert_almost_eq(h.jauge, 2 * EQ.jauge_gain_coup, 0.01, "Deux squelettes touchés : deux parts d'Âmes")
+	# de l'autre côté, une cible au milieu de trois voisins : le geste est plafonné
+	var groupe := [_squelette(Vector3(0, 0, -4.0))]
+	for p in [Vector3(0.9, 0, -4.4), Vector3(-0.9, 0, -4.4), Vector3(0.0, 0, -4.9)]:
+		groupe.append(_squelette(p))
+	var avant := h.jauge
+	Projectile.tirer(monde, h, Vector3(0, 1.25, -0.6), Vector3(0, 0, -1), EQ)
+	await _secondes(0.6)
+	for e in groupe:
+		assert_lt(e.sante.pv, 500.0, "Pris dans l'explosion : %s" % e.position)
+	assert_almost_eq(h.jauge - avant, minf(4 * EQ.jauge_gain_coup, EQ.jauge_gain_geste_max), 0.01, "Plafonné")
+	assert_lt(h.jauge - avant, 4 * EQ.jauge_gain_coup)
+
+
 func test_la_parade_parfaite_remplit_beaucoup() -> void:
 	var h := await _heros(&"bretteur")
 	var e := _squelette(Vector3(0, 0, 1.5))

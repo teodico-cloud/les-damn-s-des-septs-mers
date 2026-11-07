@@ -409,6 +409,8 @@ Jalon 6 réordonné par Téo : la refonte d'abord (elle remplace « écrans rest
 - Captures : `tools/capture_jauge.gd`. Tests : `test_jauge.gd` (et les anciens tests de Fente et Chaînes remplissent la
   jauge avant).
 - Vérifié : 371 tests ; 4 essais de la coop (Wi-Fi parfait, découverte automatique, Wi-Fi moyen, expédition à deux).
+- 07/11 (choix de Téo) : l'**explosion** du tir de l'Occultiste compte aussi : 9 Âmes par squelette voisin touché, avec
+  le même plafond de 22 par geste (`Projectile._exploser`, test `test_l_explosion_du_tir_remplit_aussi_les_ames`).
 
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)
 Téo : « le gameplay pas assez proche de Diablo, c'est peut-être l'attaque de base ». Ce qui le gênait : frapper dans le
@@ -562,6 +564,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 30/10/2026 | Réglages (choix de Téo) : le joystick ne coupe plus le 3e coup du combo (le lourd va au bout) ; fenêtre de la parade parfaite 0,35 s (zone dorée 0,4 s avant le coup). Étape 2 du jalon 3 lancée. |
 | 30/10/2026 | Jalon 2 : coop essayée par Téo sur ses deux téléphones, « ça marche » (porte franchie). |
 | 30/10/2026 | Jalon 3, choix de Téo : expédition courte (4 salles, puis le Bosco, puis la chaloupe) ; PV gardés d'une salle à l'autre + orbes de vie lâchées par les squelettes (façon Diablo) ; en coop, la porte s'ouvre quand les deux héros sont devant la même. Ordre : 0) relecture des ajouts du jalon 2, 1) l'expédition (salles, portes, coop, mode debug ; APK), 2) arbalétrier, prêtre noyé, pièges (APK), 3) Bosco, malédiction, chaloupe sous les vagues, écran de fin (relecture, APK). |
+| 07/11/2026 | Jauge (choix de Téo) : l'explosion du tir de l'Occultiste remplit aussi les Âmes, pour chaque squelette voisin touché, avec le même plafond de 22 par geste que le moulinet. |
 
 ## Relecture du jalon 0 (agent relecteur) et corrections
 - Le CI refuse désormais un script ou un fichier de test cassé (chargement de tous les scripts + contrôle du

@@ -75,7 +75,7 @@ extends Resource
 @export_group("Jauge façon Diablo (06/11, choix de Téo)")
 ## L'attaque remplit la jauge (Fureur du Bretteur, Âmes de l'Occultiste), la compétence 2 (Fente, Chaînes) la dépense.
 @export var jauge_max := 100.0
-@export var jauge_gain_coup := 9.0          ## par squelette touché par l'attaque (taillades, moulinet, tir) ou la riposte
+@export var jauge_gain_coup := 9.0          ## par squelette touché par l'attaque (taillades, moulinet, tir et son explosion) ou la riposte
 @export var jauge_gain_geste_max := 22.0    ## au plus par geste : un moulinet dans la horde ne remplit pas tout
 @export var jauge_gain_parade_parfaite := 30.0
 @export var jauge_baisse_apres := 5.0       ## secondes sans coup porté ni reçu : la jauge baisse doucement…

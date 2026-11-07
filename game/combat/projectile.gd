@@ -132,12 +132,17 @@ func _virer(delta: float) -> void:
 ## image ni secousse de plus). Chez l'invité, Combat ne compte rien : l'image seulement.
 func _exploser(touche: Node3D) -> void:
 	var qui: Node3D = tireur if is_instance_valid(tireur) else null
+	var touches := 0
 	if touche.has_method("recevoir_coup"):
-		if Combat.porter_coup(qui, touche, degats, false) > 0.0 and qui is Heros:
-			qui.jauge_coups(1)   # (jauge façon Diablo : le tir qui touche remplit les Âmes)
+		if Combat.porter_coup(qui, touche, degats, false) > 0.0:
+			touches += 1
 	for e in Combat.cibles_dans_sphere(get_world_3d(), global_position, explosion_rayon, Combat.COUCHE_ENNEMIS, [touche]):
-		if e != touche:
-			Combat.porter_coup_discret(qui, e, explosion_degats)
+		if e != touche and Combat.porter_coup_discret(qui, e, explosion_degats) > 0.0:
+			touches += 1
+	# jauge façon Diablo : le tir qui touche remplit les Âmes, et chaque voisin pris dans l'explosion aussi
+	# (choix de Téo du 07/11), avec le même plafond par geste que le moulinet
+	if qui is Heros:
+		qui.jauge_coups(touches)
 	EffetsMagie.explosion_maudite(get_parent(), global_position, explosion_rayon)
 	queue_free()
 
