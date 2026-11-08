@@ -21,7 +21,11 @@ var bouton_repaire: Button
 var bouton_combat: Button
 var bouton_coop: Button
 var bouton_reglages: Button
+var bouton_aide: Button         ## « Comment jouer » (jalon 6, écrans restants, 08/11)
+var bouton_credits: Button
 var panneau_reglages: Control   ## l'écran Réglages ouvert par-dessus (null sinon)
+var panneau_aide: Control       ## « Comment jouer » ouvert par-dessus (null sinon)
+var panneau_credits: Control    ## « Crédits » ouvert par-dessus (null sinon)
 var label_doublons: Label
 var bouton_test: Button
 var panneau_test: PanelContainer
@@ -121,17 +125,22 @@ func _menu() -> void:
 	corde.rotation = PI / 2.0
 	corde.position = Vector2(76, 226)
 	add_child(corde)
-	var y := 270.0
+	# (08/11 : rangées un peu resserrées pour la 2e rangée de petites planches, « Comment jouer » et « Crédits »)
+	var y := 262.0
 	bouton_repaire = _planche("Le repaire", &"BoutonPrincipal", Vector2(480, 100), Vector2(54, y), -0.8, 0.35)
 	bouton_repaire.pressed.connect(_ouvrir_repaire)
-	bouton_coop = _planche("Jouer à deux", &"", Vector2(430, 84), Vector2(78, y + 118), 0.6, 0.43)
+	bouton_coop = _planche("Jouer à deux", &"", Vector2(430, 84), Vector2(78, y + 110), 0.6, 0.43)
 	bouton_coop.pressed.connect(_ouvrir_coop)
-	bouton_combat = _planche("Combat d'entraînement", &"", Vector2(430, 84), Vector2(62, y + 218), -0.4, 0.51)
+	bouton_combat = _planche("Combat d'entraînement", &"", Vector2(430, 84), Vector2(62, y + 202), -0.4, 0.51)
 	bouton_combat.pressed.connect(_ouvrir_arene)
-	bouton_vitrine = _planche("Voir les héros", &"BoutonPetit", Vector2(300, 68), Vector2(86, y + 318), 0.9, 0.59)
+	bouton_vitrine = _planche("Voir les héros", &"BoutonPetit", Vector2(300, 60), Vector2(86, y + 296), 0.9, 0.59)
 	bouton_vitrine.pressed.connect(_ouvrir_vitrine)
-	bouton_reglages = _planche("Réglages", &"BoutonPetit", Vector2(220, 68), Vector2(398, y + 322), -0.7, 0.65)
+	bouton_reglages = _planche("Réglages", &"BoutonPetit", Vector2(220, 60), Vector2(398, y + 300), -0.7, 0.65)
 	bouton_reglages.pressed.connect(ouvrir_reglages)
+	bouton_aide = _planche("Comment jouer", &"BoutonPetit", Vector2(300, 60), Vector2(74, y + 366), -0.5, 0.71)
+	bouton_aide.pressed.connect(ouvrir_aide)
+	bouton_credits = _planche("Crédits", &"BoutonPetit", Vector2(220, 60), Vector2(392, y + 368), 0.8, 0.77)
+	bouton_credits.pressed.connect(ouvrir_credits)
 
 
 func _planche(texte: String, variation: StringName, taille: Vector2, pos: Vector2, degres: float, delai: float) -> Button:
@@ -319,37 +328,66 @@ func _ouvrir_vitrine() -> void:
 	_aller(SCENE_VITRINE)
 
 
-## Les réglages (jalon 6), par-dessus l'écran titre ; le retour d'Android les referme au lieu de quitter le jeu.
+## Les réglages (jalon 6), « Comment jouer » et « Crédits » (08/11), par-dessus l'écran titre, un seul à la fois ;
+## le retour d'Android les referme au lieu de quitter le jeu.
 func ouvrir_reglages() -> void:
-	if panneau_reglages:
+	if _parchemin_ouvert() == null:
+		panneau_reglages = _ouvrir_parchemin(PanneauReglages.new())
+
+
+func ouvrir_aide() -> void:
+	if _parchemin_ouvert() == null:
+		panneau_aide = _ouvrir_parchemin(PanneauCommentJouer.new())
+
+
+func ouvrir_credits() -> void:
+	if _parchemin_ouvert() == null:
+		panneau_credits = _ouvrir_parchemin(PanneauCredits.new())
+
+
+func fermer_reglages() -> void:
+	fermer_parchemin()
+
+
+## Referme le parchemin ouvert (Réglages, Comment jouer ou Crédits).
+func fermer_parchemin() -> void:
+	var p := _parchemin_ouvert()
+	if p == null:
 		return
-	panneau_reglages = PanneauReglages.new()
-	panneau_reglages.ferme.connect(fermer_reglages)
-	add_child(panneau_reglages)
+	Sons.jouer(&"parchemin_ferme")
+	p.queue_free()
+	panneau_reglages = null
+	panneau_aide = null
+	panneau_credits = null
+	# (plus tard : Godot décide de quitter après avoir prévenu les nœuds du retour qui ferme ce panneau)
+	get_tree().set_quit_on_go_back.call_deferred(true)
+
+
+func _parchemin_ouvert() -> Control:
+	for p in [panneau_reglages, panneau_aide, panneau_credits]:
+		if p != null:
+			return p
+	return null
+
+
+func _ouvrir_parchemin(p: PanneauRepaire) -> PanneauRepaire:
+	p.ferme.connect(fermer_parchemin)
+	add_child(p)
 	Sons.jouer(&"parchemin")
 	var ombre := ColorRect.new()   # (le menu s'assombrit derrière le parchemin, comme le repaire derrière un lieu)
 	ombre.color = Color(0.02, 0.015, 0.01, 0.62)
 	ombre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ombre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	panneau_reglages.add_child(ombre)
-	panneau_reglages.move_child(ombre, 0)
+	p.add_child(ombre)
+	p.move_child(ombre, 0)
 	move_child(voile, -1)   # (le fondu reste au-dessus de tout)
 	get_tree().set_quit_on_go_back(false)
-
-
-func fermer_reglages() -> void:
-	if panneau_reglages == null:
-		return
-	Sons.jouer(&"parchemin_ferme")
-	panneau_reglages.queue_free()
-	panneau_reglages = null
-	# (plus tard : Godot décide de quitter après avoir prévenu les nœuds du retour qui ferme ce panneau)
-	get_tree().set_quit_on_go_back.call_deferred(true)
+	return p
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_GO_BACK_REQUEST and panneau_reglages:
-		fermer_reglages()
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and _parchemin_ouvert() != null:
+		fermer_parchemin()
 
 
 # ---------------------------------------------------------------- petits outils

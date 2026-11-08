@@ -28,3 +28,6 @@ Faits par code, sans asset (jalon 5) : le navire du repaire (`game/repaire/navir
 coque et les lingots de fer noir au sol, le foyer et l'enclume de la forge ; les améliorations visibles du navire
 (caisses, voiles, bandes de fer, canons) et les boulets de la bordée. Icône du bouton Bordée (`assets/ui/icones/canon.svg`) :
 dessinée à la main en SVG, comme les autres icônes.
+
+Dans le jeu (08/11) : l'écran « Crédits » de l'écran titre (`ui/commun/panneau_credits.gd`) reprend ces sources, la
+licence MIT de Godot en entier (obligatoire) et, sur demande, les composants du moteur et leurs licences.

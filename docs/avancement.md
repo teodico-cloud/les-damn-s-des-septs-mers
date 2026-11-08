@@ -598,6 +598,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 07/11/2026 | Jauge (choix de Téo) : l'explosion du tir de l'Occultiste remplit aussi les Âmes, pour chaque squelette voisin touché, avec le même plafond de 22 par geste que le moulinet. |
 | 07/11/2026 | Héros Meshy (faits par Téo, abonnement payant) : à l'essai par un interrupteur du Mode test, les héros actuels restent ceux du jeu tant qu'il n'a pas décidé (choix de Téo : « le 1 »). |
 | 08/11/2026 | Jalon 7 (coop par internet) : plan noté, pas commencé ; code de groupe à 4 chiffres, relais prévu dès le début. |
+| 08/11/2026 | Écrans « Comment jouer » et « Crédits » : boutons sur l'écran titre seulement, rien ne s'ouvre tout seul. |
 
 ## Relecture du jalon 0 (agent relecteur) et corrections
 - Le CI refuse désormais un script ou un fichier de test cassé (chargement de tous les scripts + contrôle du
@@ -764,6 +765,18 @@ forge, objets uniques vérifiés). Corrigé (chaque correction a un test qui éc
 - Question à Téo : peut-on porter deux fois le même objet unique (deux Talismans : +80 % de dégâts) ? Tranché le
   04/11 : **une fois par héros** (voir ci-dessous).
 - Tests : 256 en tout ; 18 nouveaux pour la relecture (`test_relecture_j4.gd`), vérifiés par sabotage.
+
+## Écrans restants du jalon 6 : « Comment jouer » et « Crédits » (08/11, choix de Téo)
+Choix de Téo : boutons sur l'écran titre seulement ; « Comment jouer » ne s'ouvre jamais tout seul.
+- Écran titre : deux petites planches de plus (« Comment jouer », « Crédits ») sous « Voir les héros » et « Réglages » ;
+  les rangées resserrées pour tenir dans 720 px de haut. Un seul parchemin à la fois ; le retour d'Android le referme.
+- « Comment jouer » : six onglets (Gestes, Bretteur, Occultiste, Expédition, Repaire, À deux), une ligne = le vrai
+  bouton du HUD (ou la porte) + un titre + une explication courte ; noms et dessins tirés des héros, nombres tirés de
+  l'équilibrage (le texte suit les réglages).
+- « Crédits » : le jeu (« Un jeu de Téo · programmé avec Claude (Anthropic) »), KayKit, héros Meshy de Téo, Poly Haven,
+  Kenney, polices (OFL), puis Godot : sa licence MIT en entier (obligatoire), et sur demande les 102 composants du
+  moteur et le texte complet des 19 licences.
+- Tests : `test_aide_credits.gd` (8, trois sabotages vérifiés) ; 391 tests. Captures : `tools/capture_aide.gd`.
 
 ## Plan du jalon 7 : coop par internet (proposé le 08/11 ; pas commencé, choix de Téo)
 Choix de Téo du 08/11 : code de groupe à **4 chiffres** ; **relais (TURN) prévu dès le début** (compte gratuit chez le

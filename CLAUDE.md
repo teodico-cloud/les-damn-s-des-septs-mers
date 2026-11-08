@@ -33,6 +33,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - `project.godot`, `export_presets.cfg` (Android arm64, paquet `fr.teodico.damnes`), `icon.svg`.
 - `ui/screens/` : écrans (écran titre `demarrage.tscn` = scène principale : « Le repaire », combat d'entraînement,
   « Jouer à deux », vitrine ; « Mode test » : santé infinie, salle de départ, héros Meshy, coffres et ressources de test ;
+  « Comment jouer » et « Crédits » (08/11, écrans restants du jalon 6 : `ui/commun/panneau_comment_jouer.gd`,
+  `panneau_credits.gd`, des PanneauRepaire ouverts par-dessus comme les Réglages, un seul à la fois) ;
   `choix_heros.tscn` avant l'arène (et pour l'hôte à deux) ; `coop.tscn` « Jouer à deux » :
   héberger / rejoindre, parties trouvées sur le Wi-Fi, code de secours, lancer l'expédition ou l'arène ;
   `choix_malediction.gd` : le choix du niveau de malédiction, sur l'écran du héros en solo et pour l'hôte).
@@ -477,7 +479,14 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   Son bord s'efface d'après la nappe entière (`centre`, `demi` du shader), pas d'après chaque morceau.
 - Brume : ses nappes ont une priorité de rendu négative pour que les annonces au sol (priorité 0 et 1) se dessinent
   par-dessus ; une nouvelle annonce transparente garde une priorité ≥ 0.
-- Retour d'Android sur l'écran titre : il quitte le jeu (`quit_on_go_back`), sauf réglages ouverts ; Godot décide de
+- « Comment jouer » : les noms et dessins des boutons viennent des héros (`noms_boutons`, `icones_boutons`) et les nombres
+  de l'équilibrage (`test_aide_credits.gd` le vérifie) ; un nouveau bouton, une nouvelle règle à expliquer : ajouter
+  sa ligne dans `PanneauCommentJouer.page()`. Six onglets en deux rangées : sur une seule, le parchemin débordait de
+  l'écran 16/9 (un conteneur grandit à la taille de ce qu'il contient). « Crédits » : la licence MIT de Godot doit
+  rester affichée en entier dans le jeu ; tout nouvel asset tiers s'ajoute à `PanneauCredits.SOURCES` et à
+  `assets/CREDITS.md`. Captures : `tools/capture_aide.gd -- <dossier>`.
+- Retour d'Android sur l'écran titre : il quitte le jeu (`quit_on_go_back`), sauf parchemin ouvert (Réglages, Comment
+  jouer, Crédits : `_parchemin_ouvert` de `demarrage.gd`) ; Godot décide de
   quitter **après** avoir prévenu les nœuds, d'où le `call_deferred` pour le réactiver en fermant les réglages.
 - Panneaux du repaire : après une action, le panneau se refait **tout de suite** et un autre bouton apparaît sous le
   doigt (niveau suivant, « Sûr ? Recycler ») ; le second toucher d'un vrai double appui le touchait (relecture : cale
