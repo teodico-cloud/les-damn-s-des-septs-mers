@@ -437,7 +437,7 @@ lui, aucune mention obligatoire), allégés par Meshy (Remesh, ~25 000 triangles
   acier sombre, la lame disparaissait (reflet d'une salle sombre, et sur les robes brunes des squelettes) : son métal
   ×0,3 et sa couleur ×2. Plus fine que la lame KayKit, elle se voit moins de loin. Le sabre d'origine n'est pas dans
   le dépôt (`build/meshy/sabre/` ici, et dans le compte Meshy de Téo).
-- Tests : `test_heros_meshy.gd`. Captures : `build/meshy/capture_meshy.gd` (même combat, héros actuel ou Meshy).
+- Tests : `test_heros_meshy.gd`. Captures : `tools/capture_meshy.gd -- <bretteur|occultiste> <essai|actuel> <dossier>` (même combat, héros actuel ou Meshy).
 
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)
 Téo : « le gameplay pas assez proche de Diablo, c'est peut-être l'attaque de base ». Ce qui le gênait : frapper dans le

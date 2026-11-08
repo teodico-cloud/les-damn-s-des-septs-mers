@@ -405,7 +405,7 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   pas dans le dépôt : les redemander à Téo.
 - Armes Meshy : en acier tout métallique, une lame ne renvoie que le reflet de la salle, presque noir chez nous (vu :
   lame invisible en jeu, alors qu'elle se voyait dans Blender sur fond clair). Baisser le métal et éclaircir l'acier
-  (`metal`, `eclat` de `ARMES_MESHY`) et vérifier **en jeu** (`build/meshy/capture_meshy.gd`), pas seulement dans Blender.
+  (`metal`, `eclat` de `ARMES_MESHY`) et vérifier **en jeu** (`tools/capture_meshy.gd`), pas seulement dans Blender.
 - `build_heroes.py` : tout ce qui touche la tête est multiplié par `HEAD_K`. Ne jamais réutiliser `k`
   comme variable de boucle (un tel bug a multiplié les cheveux par 12).
 - `bpy.ops.wm.read_factory_settings` efface les matériaux : les créer après (`init_mats()`).
