@@ -597,6 +597,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 30/10/2026 | Jalon 3, choix de Téo : expédition courte (4 salles, puis le Bosco, puis la chaloupe) ; PV gardés d'une salle à l'autre + orbes de vie lâchées par les squelettes (façon Diablo) ; en coop, la porte s'ouvre quand les deux héros sont devant la même. Ordre : 0) relecture des ajouts du jalon 2, 1) l'expédition (salles, portes, coop, mode debug ; APK), 2) arbalétrier, prêtre noyé, pièges (APK), 3) Bosco, malédiction, chaloupe sous les vagues, écran de fin (relecture, APK). |
 | 07/11/2026 | Jauge (choix de Téo) : l'explosion du tir de l'Occultiste remplit aussi les Âmes, pour chaque squelette voisin touché, avec le même plafond de 22 par geste que le moulinet. |
 | 07/11/2026 | Héros Meshy (faits par Téo, abonnement payant) : à l'essai par un interrupteur du Mode test, les héros actuels restent ceux du jeu tant qu'il n'a pas décidé (choix de Téo : « le 1 »). |
+| 08/11/2026 | Jalon 7 (coop par internet) : plan noté, pas commencé ; code de groupe à 4 chiffres, relais prévu dès le début. |
 
 ## Relecture du jalon 0 (agent relecteur) et corrections
 - Le CI refuse désormais un script ou un fichier de test cassé (chargement de tous les scripts + contrôle du
@@ -764,7 +765,10 @@ forge, objets uniques vérifiés). Corrigé (chaque correction a un test qui éc
   04/11 : **une fois par héros** (voir ci-dessous).
 - Tests : 256 en tout ; 18 nouveaux pour la relecture (`test_relecture_j4.gd`), vérifiés par sabotage.
 
-## Plan du jalon 7 : coop par internet (proposé le 08/11, en attente des choix de Téo)
+## Plan du jalon 7 : coop par internet (proposé le 08/11 ; pas commencé, choix de Téo)
+Choix de Téo du 08/11 : code de groupe à **4 chiffres** ; **relais (TURN) prévu dès le début** (compte gratuit chez le
+service de relais à créer par Téo) ; **pas encore de jalon 7** : le plan reste noté, rien n'est commencé. Avec
+4 chiffres (10 000 codes) : salon effacé à la connexion ou au bout de 10 min, et un code déjà pris est retiré.
 But : jouer à deux depuis deux réseaux (Wi-Fi de la maison ↔ 4G/5G), avec un code de groupe. Rien n'est codé.
 - Briques : WebRTC par l'extension officielle `webrtc-native` 1.2.2 (Godot 4.3+, binaires Android arm64 et Linux
   x86_64 dans la version publiée, ~3,4 Mo par bibliothèque Android) ; mise en relation par Firebase Realtime Database
@@ -779,7 +783,7 @@ But : jouer à deux depuis deux réseaux (Wi-Fi de la maison ↔ 4G/5G), avec un
   Firebase), l'essai coop du CI aussi par WebRTC ; (2) Firebase : code de groupe, salon créé par l'hôte, effacé à la
   connexion ou au bout de 10 min, règles de sécurité ; écran « Jouer à deux » : « Même Wi-Fi » / « Par internet » ;
   (3) tenir sur un vrai réseau : coupure par silence, essai coop « 4G simulée » (latence 60 ms, gigue 30 ms, pertes
-  3–5 %), connexion directe ou par relais affichée ; (4) relais si besoin ; (5) relecture et APK.
+  3–5 %), connexion directe ou par relais affichée ; (4) relais (dès le début, choix de Téo) ; (5) relecture et APK.
 - À faire par Téo : créer le projet Firebase (gratuit, ~10 min, pas à pas), activer la base et la connexion
   anonyme, donner l'adresse de la base et la clé web (publiques par nature : la protection vient des règles).
 - Relais si besoin : Metered Open Relay (20 Go/mois gratuits, compte et clé) ou Cloudflare (1 000 Go/mois gratuits,
