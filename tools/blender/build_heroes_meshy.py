@@ -48,6 +48,13 @@ ARMES_MESHY = {
                  "triangles": 3500, "image": 512, "metal": 0.3, "eclat": 2.0},
 }
 ARME = os.environ.get("HEROS_MESHY_ARME", "")
+# Couleur du corps éclaircie (08/11, choix de Téo) : chaque valeur v devient v ** GAMMA. L'Occultiste Meshy est presque
+# noir (médiane 0,12, contre ~0,37 pour l'Occultiste KayKit) et se perdait dans nos salles sombres ; 0,72 la porte à ~0,22.
+GAMMA_CORPS = {"bretteur": 1.0, "occultiste": 0.72}[HEROS]
+# Yeux luisants (08/11, choix de Téo, comme les « yeux maudits » de l'Occultiste KayKit) : les yeux verts sont peints dans
+# la texture Meshy mais ne luisent pas ; deux petites lueurs vertes sont posées devant, attachées à l'os de la tête.
+# Places (x, z) relevées sur un rendu de face de la tête (2,45 m de haut) ; la profondeur est trouvée par un rayon.
+YEUX = {"occultiste": [(-0.041, 2.259), (0.0525, 2.2565)]}.get(HEROS, [])
 
 # Os du corps (ceux qui déforment) ; les autres (racine, contrôles, IK, attaches) ne reçoivent pas de poids.
 CORPS = ["hips", "spine", "chest", "head"] + [b + s for s in (".l", ".r") for b in (
@@ -241,6 +248,11 @@ def reduire_images(m):
             t = TAILLE_IMAGES[cle]
             if n.image.size[0] > t:
                 n.image.scale(t, t)
+            if cle == "base" and GAMMA_CORPS != 1.0:
+                px = np.array(n.image.pixels[:], dtype=np.float32).reshape(-1, 4)
+                px[:, :3] = np.power(np.clip(px[:, :3], 0.0, 1.0), GAMMA_CORPS)
+                n.image.pixels[:] = px.ravel()
+                n.image.update()
             n.image.name = "%s_meshy_%s" % (HEROS, cle if cle != "autre" else "orm")
             print("IMAGE", n.image.name, tuple(n.image.size))
 
@@ -304,6 +316,35 @@ def arme_meshy(rig, garder):
     return reste + [a]
 
 
+def yeux_luisants(rig, m):
+    """Deux lueurs vertes devant les yeux peints, attachées à l'os de la tête ; renvoie les objets."""
+    lueur = bpy.data.materials.new("%s_yeux_luisants" % HEROS)
+    lueur.use_nodes = True
+    bsdf = lueur.node_tree.nodes["Principled BSDF"]
+    bsdf.inputs["Base Color"].default_value = (0.3, 1.0, 0.5, 1.0)
+    bsdf.inputs["Emission Color"].default_value = (0.31, 1.0, 0.51, 1.0)
+    bsdf.inputs["Emission Strength"].default_value = 4.0
+    objets = []
+    for i, (x, z) in enumerate(YEUX):
+        inv = m.matrix_world.inverted()
+        ok, ou, _n, _f = m.ray_cast(inv @ Vector((x, -3.0, z)), inv.to_3x3() @ Vector((0.0, 1.0, 0.0)))
+        y = (m.matrix_world @ ou).y - 0.004 if ok else -0.12
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=10, ring_count=6, radius=0.014, location=(x, y, z))
+        o = bpy.context.active_object
+        o.scale = (1.3, 0.5, 0.75)
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        o.data.materials.append(lueur)
+        o.name = "%s_Oeil_%d" % (NOM, i)
+        monde = o.matrix_world.copy()
+        o.parent = rig
+        o.parent_type = "BONE"
+        o.parent_bone = "head"
+        o.matrix_world = monde
+        objets.append(o)
+        print("OEIL", o.name, tuple(round(c, 3) for c in (x, y, z)), "touché" if ok else "pas touché")
+    return objets
+
+
 def principal():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     base = importer(BASE)
@@ -322,6 +363,8 @@ def principal():
     reduire_images(m)
     if ARME:
         garder = arme_meshy(rig, garder)
+    if YEUX:
+        garder = garder + yeux_luisants(rig, m)
     for o in list(bpy.data.objects):
         if o is not rig and o is not m and o not in garder:
             bpy.data.objects.remove(o, do_unlink=True)

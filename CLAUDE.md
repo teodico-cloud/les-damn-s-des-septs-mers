@@ -157,6 +157,7 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   les mêmes animations par `tools/blender/build_heroes_meshy.py <bretteur|occultiste> <meshy.glb> <héros_actuel.glb>` ;
   en jeu seulement si le Mode test le demande (`Partie.debug_heros_meshy`, `Heros.MODELES_MESHY` / `modele_meshy`).
   Le sabre du Bretteur Meshy est aussi fait sur Meshy : `HEROS_MESHY_ARME=<sabre.glb>` (réglages `ARMES_MESHY`).
+  Occultiste Meshy : couleur éclaircie (`GAMMA_CORPS`) et yeux luisants (`YEUX`, places relevées sur un rendu de face).
 - `tools/blender/` : fabrication des modèles dans Blender (en script) : héros (`build_heroes.py`) et squelettes
   (`build_squelettes.py`).
 - `tools/preview/` : petit projet Godot qui rend des captures d'aperçu ; exemples dans `tools/preview/exemples/`.
@@ -396,7 +397,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   l'usure (couleurs ternies, ombres des creux en couleur de sommets) est faite à l'export (`HEROS_USURE=0` l'enlève).
   Après une refabrication, Godot **ne réécrit pas** les textures extraites à côté du .glb : supprimer les `*.png` et
   leurs `.import` (garder une copie des `.import`), importer, remettre les `.import` (compression `compress/mode=2`),
-  vider `.godot/imported/<Héros>*`, importer encore. Une matière et son image portent souvent le même nom.
+  vider `.godot/imported/<Héros>*` (le `.glb` compris : sinon il garde les anciens numéros des textures et les tests
+  échouent sur « invalid UID »), importer encore. Une matière et son image portent souvent le même nom.
 - Héros Meshy : leur liste d'animations doit rester **la même, dans le même ordre**, que celle des héros KayKit (en coop
   les animations voyagent par numéro, et l'autre téléphone peut avoir l'autre modèle) : `test_heros_meshy.gd` le vérifie.
   Refaire un héros Meshy : relancer `build_heroes_meshy.py` (le héros actuel du jeu sert de base : `git show

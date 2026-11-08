@@ -429,8 +429,12 @@ lui, aucune mention obligatoire), allégés par Meshy (Remesh, ~25 000 triangles
 - Coop : chaque téléphone affiche les héros selon son propre réglage ; les animations voyagent par numéro, les deux
   modèles ont la même liste dans le même ordre (testé).
 - Vu sur captures (07/11) : toutes les animations jouent, armes en main ; plus détaillés, mais plus fins et plus
-  sombres en vue de jeu (l'Occultiste surtout) ; style réaliste à côté des squelettes KayKit. Proposé, pas fait :
-  yeux verts lumineux et robe moins noire pour l'Occultiste ; plus tard, les squelettes sur Meshy.
+  sombres en vue de jeu (l'Occultiste surtout) ; style réaliste à côté des squelettes KayKit. Plus tard peut-être :
+  les squelettes sur Meshy (proposé, pas décidé).
+- Occultiste Meshy (08/11, choix de Téo) : robe moins noire (couleur du corps `v ** 0,72`, `GAMMA_CORPS` : médiane
+  0,12 → 0,22) et yeux luisants (`YEUX` : deux petites lueurs vertes devant les yeux peints par Meshy, attachées à
+  l'os de la tête, émission ×4). Vus de face (écran du choix du héros) ; vus d'en haut en combat, la capuche les cache
+  souvent. Bâton et lanterne : prompts Meshy envoyés à Téo, en attente de ses fichiers.
 - Sabre fait par Téo sur Meshy (07/11, prompt « pirate cutlass ») : dans la main du Bretteur Meshy (08/11),
   `HEROS_MESHY_ARME=<sabre.glb>` (réglages `ARMES_MESHY` : retourné, lame de la longueur de la lame KayKit, poignée
   au milieu de la poignée KayKit, allégé de 25 500 à 3 500 triangles, images 512). Vu en jeu : tout en métal et en
