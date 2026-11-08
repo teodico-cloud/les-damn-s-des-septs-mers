@@ -764,6 +764,29 @@ forge, objets uniques vérifiés). Corrigé (chaque correction a un test qui éc
   04/11 : **une fois par héros** (voir ci-dessous).
 - Tests : 256 en tout ; 18 nouveaux pour la relecture (`test_relecture_j4.gd`), vérifiés par sabotage.
 
+## Plan du jalon 7 : coop par internet (proposé le 08/11, en attente des choix de Téo)
+But : jouer à deux depuis deux réseaux (Wi-Fi de la maison ↔ 4G/5G), avec un code de groupe. Rien n'est codé.
+- Briques : WebRTC par l'extension officielle `webrtc-native` 1.2.2 (Godot 4.3+, binaires Android arm64 et Linux
+  x86_64 dans la version publiée, ~3,4 Mo par bibliothèque Android) ; mise en relation par Firebase Realtime Database
+  (forfait gratuit Spark, connexion anonyme, accès par l'API REST : `HTTPRequest`, aucun module Firebase à ajouter) ;
+  STUN public gratuit ; relais (TURN) seulement si l'essai réel le demande.
+- Le jeu ne change pas : `multiplayer` et les `@rpc` marchent pareil sur `WebRTCMultiplayerPeer` ; `Reseau` reçoit un
+  second transport (Wi-Fi local ENet gardé tel quel, internet WebRTC). À reprendre : `_delai_court` (propre à ENet) →
+  coupure détectée par le silence (plus d'instantané / plus d'entrées pendant 3 à 5 s).
+- Taille des messages : sur WebRTC, un paquet porte ~1 200 octets utiles (à mesurer) au lieu de 1 392 ; l'instantané
+  (~1,1 ko à 8 squelettes) devra rester dessous, sinon il part en deux morceaux (un morceau perdu = tout perdu).
+- Étapes : (1) WebRTC dans le jeu, deux copies sur cette machine reliées par une mise en relation locale (fausse
+  Firebase), l'essai coop du CI aussi par WebRTC ; (2) Firebase : code de groupe, salon créé par l'hôte, effacé à la
+  connexion ou au bout de 10 min, règles de sécurité ; écran « Jouer à deux » : « Même Wi-Fi » / « Par internet » ;
+  (3) tenir sur un vrai réseau : coupure par silence, essai coop « 4G simulée » (latence 60 ms, gigue 30 ms, pertes
+  3–5 %), connexion directe ou par relais affichée ; (4) relais si besoin ; (5) relecture et APK.
+- À faire par Téo : créer le projet Firebase (gratuit, ~10 min, pas à pas), activer la base et la connexion
+  anonyme, donner l'adresse de la base et la clé web (publiques par nature : la protection vient des règles).
+- Relais si besoin : Metered Open Relay (20 Go/mois gratuits, compte et clé) ou Cloudflare (1 000 Go/mois gratuits,
+  mais identifiants à fabriquer par un petit service). Estimation : ~120 Mo par heure de jeu à deux par relais.
+- Pas encore vérifié ici : le chargement de l'extension dans Godot 4.7.2 (lancer un binaire téléchargé demande
+  l'accord de Téo) — premier point de l'étape 1.
+
 ## Prochaines étapes
 0. Essai de Téo de l'APK 0.5.21 (fin du jalon 5 : repaire, chantier, bordée, forge) ; jalon 6 seulement après son feu
    vert. Proposé, pas fait : un bandeau sombre derrière les ressources en haut du repaire (l'enseigne « Salle des
