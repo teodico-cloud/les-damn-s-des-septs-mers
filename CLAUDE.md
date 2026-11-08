@@ -156,6 +156,7 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
 - `assets/models/heroes_meshy/` (07/11, à l'essai) : les héros faits par Téo sur Meshy, posés sur la même ossature et
   les mêmes animations par `tools/blender/build_heroes_meshy.py <bretteur|occultiste> <meshy.glb> <héros_actuel.glb>` ;
   en jeu seulement si le Mode test le demande (`Partie.debug_heros_meshy`, `Heros.MODELES_MESHY` / `modele_meshy`).
+  Le sabre du Bretteur Meshy est aussi fait sur Meshy : `HEROS_MESHY_ARME=<sabre.glb>` (réglages `ARMES_MESHY`).
 - `tools/blender/` : fabrication des modèles dans Blender (en script) : héros (`build_heroes.py`) et squelettes
   (`build_squelettes.py`).
 - `tools/preview/` : petit projet Godot qui rend des captures d'aperçu ; exemples dans `tools/preview/exemples/`.
@@ -402,6 +403,9 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   HEAD:assets/models/heroes/<Héros>.glb`), puis la marche à suivre des textures extraites de `build_heroes.py` ;
   textures en `compress/mode=2`, reliefs en `compress/normal_map=1`. Les fichiers Meshy d'origine (trop lourds) ne sont
   pas dans le dépôt : les redemander à Téo.
+- Armes Meshy : en acier tout métallique, une lame ne renvoie que le reflet de la salle, presque noir chez nous (vu :
+  lame invisible en jeu, alors qu'elle se voyait dans Blender sur fond clair). Baisser le métal et éclaircir l'acier
+  (`metal`, `eclat` de `ARMES_MESHY`) et vérifier **en jeu** (`build/meshy/capture_meshy.gd`), pas seulement dans Blender.
 - `build_heroes.py` : tout ce qui touche la tête est multiplié par `HEAD_K`. Ne jamais réutiliser `k`
   comme variable de boucle (un tel bug a multiplié les cheveux par 12).
 - `bpy.ops.wm.read_factory_settings` efface les matériaux : les créer après (`init_mats()`).

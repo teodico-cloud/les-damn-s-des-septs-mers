@@ -431,7 +431,12 @@ lui, aucune mention obligatoire), allégés par Meshy (Remesh, ~25 000 triangles
 - Vu sur captures (07/11) : toutes les animations jouent, armes en main ; plus détaillés, mais plus fins et plus
   sombres en vue de jeu (l'Occultiste surtout) ; style réaliste à côté des squelettes KayKit. Proposé, pas fait :
   yeux verts lumineux et robe moins noire pour l'Occultiste ; plus tard, les squelettes sur Meshy.
-- Sabre fait par Téo sur Meshy (07/11, prompt « pirate cutlass ») : reçu, à mettre dans la main du Bretteur Meshy.
+- Sabre fait par Téo sur Meshy (07/11, prompt « pirate cutlass ») : dans la main du Bretteur Meshy (08/11),
+  `HEROS_MESHY_ARME=<sabre.glb>` (réglages `ARMES_MESHY` : retourné, lame de la longueur de la lame KayKit, poignée
+  au milieu de la poignée KayKit, allégé de 25 500 à 3 500 triangles, images 512). Vu en jeu : tout en métal et en
+  acier sombre, la lame disparaissait (reflet d'une salle sombre, et sur les robes brunes des squelettes) : son métal
+  ×0,3 et sa couleur ×2. Plus fine que la lame KayKit, elle se voit moins de loin. Le sabre d'origine n'est pas dans
+  le dépôt (`build/meshy/sabre/` ici, et dans le compte Meshy de Téo).
 - Tests : `test_heros_meshy.gd`. Captures : `build/meshy/capture_meshy.gd` (même combat, héros actuel ou Meshy).
 
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)

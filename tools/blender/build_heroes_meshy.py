@@ -39,9 +39,13 @@ TAILLE_IMAGES = {"base": 2048, "normal": 1024, "autre": 1024}
 # en +z, coquille côté +x comme l'arc de garde KayKit, pour que les phalanges soient dedans), mis à l'échelle (lame
 # de la longueur de la lame KayKit, ~1,2 m) et sa poignée (z = « poignee » chez Meshy) posée au milieu de la poignée
 # KayKit (z = « poignee_main »). Mesures : profil des deux armes tranche par tranche le long de leur axe.
+# « metal » : le métal de la lame (canal bleu de l'image ORM) est multiplié par ce nombre : tout en métal, la lame ne
+# renvoie que le reflet de la salle, presque noir dans nos salles sombres (vu en jeu le 07/11 : un trait noir).
+# « eclat » : la couleur de ces parties en métal est multipliée par ce nombre (acier sombre de Meshy, ~0,25 : en jeu la
+# lame se perdait sur les robes brunes des squelettes ; la lame KayKit, claire, se voyait).
 ARMES_MESHY = {
     "bretteur": {"objet": "Bretteur_Sabre", "echelle": 0.89, "poignee": 0.63, "poignee_main": -0.17,
-                 "triangles": 3500, "image": 512},
+                 "triangles": 3500, "image": 512, "metal": 0.3, "eclat": 2.0},
 }
 ARME = os.environ.get("HEROS_MESHY_ARME", "")
 
@@ -261,6 +265,7 @@ def arme_meshy(rig, garder):
         d = a.modifiers.new("alleger", "DECIMATE")
         d.ratio = r["triangles"] / avant
         bpy.ops.object.modifier_apply(modifier=d.name)
+    images = {}
     for slot in a.material_slots:
         if slot.material is None or not slot.material.use_nodes:
             continue
@@ -273,6 +278,19 @@ def arme_meshy(rig, garder):
                 cle = "base" if lien and lien[0].to_socket.name == "Base Color" else (
                     "normal" if lien and lien[0].to_node.type == "NORMAL_MAP" else "orm")
                 n.image.name = "%s_arme_meshy_%s" % (HEROS, cle)
+                images[cle] = n.image
+    if "orm" in images and "base" in images:
+        # les parties en métal (canal bleu de l'ORM) : moins métalliques, et leur couleur éclaircie
+        orm = np.array(images["orm"].pixels[:]).reshape(-1, 4)
+        base = np.array(images["base"].pixels[:]).reshape(-1, 4)
+        if len(orm) == len(base):
+            masque = np.clip((orm[:, 2] - 0.3) / 0.4, 0.0, 1.0)[:, None]
+            base[:, :3] = np.clip(base[:, :3] * (1.0 + (r["eclat"] - 1.0) * masque), 0.0, 1.0)
+            images["base"].pixels[:] = base.ravel()
+            images["base"].update()
+        orm[:, 2] *= r["metal"]
+        images["orm"].pixels[:] = orm.ravel()
+        images["orm"].update()
     a.parent = rig
     a.parent_type = "BONE"
     a.parent_bone = ancienne.parent_bone
