@@ -599,6 +599,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 07/11/2026 | Héros Meshy (faits par Téo, abonnement payant) : à l'essai par un interrupteur du Mode test, les héros actuels restent ceux du jeu tant qu'il n'a pas décidé (choix de Téo : « le 1 »). |
 | 08/11/2026 | Jalon 7 (coop par internet) : plan noté, pas commencé ; code de groupe à 4 chiffres, relais prévu dès le début. |
 | 08/11/2026 | Écrans « Comment jouer » et « Crédits » : boutons sur l'écran titre seulement, rien ne s'ouvre tout seul. |
+| 10/11/2026 | Pas des héros et des squelettes (pierre ou bois) et flammes des torches. |
 
 ## Relecture du jalon 0 (agent relecteur) et corrections
 - Le CI refuse désormais un script ou un fichier de test cassé (chargement de tous les scripts + contrôle du
@@ -765,6 +766,20 @@ forge, objets uniques vérifiés). Corrigé (chaque correction a un test qui éc
 - Question à Téo : peut-on porter deux fois le même objet unique (deux Talismans : +80 % de dégâts) ? Tranché le
   04/11 : **une fois par héros** (voir ci-dessous).
 - Tests : 256 en tout ; 18 nouveaux pour la relecture (`test_relecture_j4.gd`), vérifiés par sabotage.
+
+## Pas et flammes des torches (10/11, choix de Téo)
+- Pas : chaque héros et chaque squelette a un enfant `PasSonores` qui joue un pas quand l'animation pose un pied. Instants
+  mesurés sur les animations (hauteur des os des pieds, `tools/sonde_pas.gd`) : course des héros et du Bosco enragé
+  (`Running_A`) 10 % et 60 % de la boucle, course des squelettes (`Running_C`) 12 % et 63 %, marche du Bosco 18 % et 69 %.
+  Sons Kenney (CC0, pack Impact) : `footstep_concrete` (pierre) et `footstep_wood` (bois), 5 de chaque ; héros −16 dB,
+  squelettes −21 dB et plus aigus (×1,25), Bosco plus grave (×0,75) ; au plus 2 pas en 0,07 s par sorte de pas.
+  Sol : pierre partout, bois sur les dalles de bois des salles, dans la chaloupe (au-dessus de l'eau) et sur le quai du
+  repaire. En coop, chaque téléphone joue les pas de ce qu'il affiche (marionnettes comprises) : rien de neuf sur le réseau.
+- Flammes : 16 petites langues de feu par torche (particules), qui montent du fond du panier, jaunes puis rouges ; mélange
+  normal (en additif : une boule blanche) et `billboard_keep_scale` (sans lui : une boule de 60 cm). La lumière des
+  torches vacillait déjà.
+- Réglages faits sans écouter ni voir le téléphone : Téo juge les volumes et la taille des flammes.
+- Tests : `test_pas_torches.gd` (11, deux sabotages vérifiés) ; `test_ambiance` compte la poussière seule ; 402 tests.
 
 ## Écrans restants du jalon 6 : « Comment jouer » et « Crédits » (08/11, choix de Téo)
 Choix de Téo : boutons sur l'écran titre seulement ; « Comment jouer » ne s'ouvre jamais tout seul.

@@ -64,6 +64,10 @@ func _pv() -> float:
 	return EQ.bosco_pv * (EQ.bosco_pv_coop if Reseau.est_en_coop() else 1.0)
 
 
+func _hauteur_pas() -> float:
+	return 0.75   # (lourd, grave)
+
+
 func _boucles() -> Array:
 	return ["Idle_Combat", "2H_Melee_Idle", "Walking_D_Skeletons", "2H_Melee_Attack_Spinning", "Running_A"]
 

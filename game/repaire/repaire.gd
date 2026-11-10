@@ -74,6 +74,11 @@ func _notification(what: int) -> void:
 			retour_menu()
 
 
+## Le sol sous `pos` (bruits de pas, 10/11) : la première colonne de dalles est le quai, en bois (x < -3,2).
+func sol_a(pos: Vector3) -> String:
+	return "bois" if pos.x < -4.8 + PAS * 0.5 else "pierre"
+
+
 func _process(delta: float) -> void:
 	_temps += delta
 	for i in _torches.size():

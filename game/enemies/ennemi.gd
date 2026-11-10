@@ -111,6 +111,11 @@ func _pv() -> float:
 	return EQ.squelette_pv_max
 
 
+## Hauteur de ses pas (1 = celle des héros) : des os, plus aigus ; le Bosco, plus grave.
+func _hauteur_pas() -> float:
+	return 1.25
+
+
 func _boucles() -> Array:
 	return ["Idle_Combat", "Running_C"]
 
@@ -195,6 +200,7 @@ func _ready() -> void:
 	_yeux = visuel.find_child(_prefixe() + "_Eyes", true, false) as MeshInstance3D
 	_yeux_rouges(false)   # (les yeux verts)
 	_preparer_modele()
+	PasSonores.pour(self, anim, "pas_os", _hauteur_pas())   # (bruits de pas, 10/11)
 
 	sante = Sante.new()
 	sante.pv_max = _pv() * Malediction.mult_pv()   # (malédiction 1 « Os durcis » ; 1 hors expédition)

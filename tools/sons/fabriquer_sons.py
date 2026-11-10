@@ -393,6 +393,9 @@ KENNEY_CHOIX = {
     "clic": "impact_wood_light_000", "clic_2": "impact_wood_light_001",
     "enclume": "impact_metal_heavy_000", "marteau_1": "impact_plank_medium_001", "marteau_2": "impact_plank_medium_002",
     "objet_rare": "impact_bell_heavy_001",
+    # pas (10/11, choix de Téo : « pas et torches ») : pierre des salles, bois du quai et de la chaloupe
+    **{"pas_pierre_%d" % (i + 1): "footstep_concrete_%03d" % i for i in range(5)},
+    **{"pas_bois_%d" % (i + 1): "footstep_wood_%03d" % i for i in range(5)},
 }
 KENNEY_RPG = {
     "roulade_1": "cloth_1", "roulade_2": "cloth_2", "tomber": "cloth_belt",

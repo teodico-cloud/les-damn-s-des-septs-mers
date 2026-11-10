@@ -155,7 +155,8 @@ func test_brume_au_ras_du_sol_et_poussiere() -> void:
 			assert_eq(m.cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
 			assert_lt(m.material_override.render_priority, 0, "Dessinée avant les annonces au sol : elle ne cache aucun danger")
 	for t in a.torches:
-		assert_eq(t.find_children("*", "CPUParticles3D", true, false).size(), 1, "De la poussière dans la lumière de chaque torche")
+		# (depuis le 10/11, chaque torche a aussi sa flamme, d'autres particules : on compte la poussière seule)
+		assert_eq(t.find_children("Poussiere*", "CPUParticles3D", true, false).size(), 1, "De la poussière dans la lumière de chaque torche")
 	var halo: HaloHeros = a.heros.get_children().filter(func(c): return c is HaloHeros)[0]
 	var p: CPUParticles3D = halo.find_children("*", "CPUParticles3D", true, false)[0]
 	assert_false(p.local_coords, "Celle du héros reste où elle flotte quand il bouge")

@@ -61,7 +61,71 @@ static func torche(pos: Vector3, ombre: bool) -> OmniLight3D:
 	l.omni_attenuation = 1.25
 	l.shadow_enabled = ombre
 	l.omni_shadow_mode = OmniLight3D.SHADOW_DUAL_PARABOLOID
+	l.add_child(flamme())   # (10/11 : le panier de la torche KayKit n'a pas de flamme ; la lumière vacille déjà)
 	return l
+
+
+## La flamme d'une torche (10/11, choix de Téo : « pas et torches ») : une quinzaine de petites taches de feu qui
+## montent du panier, jaunes en bas, rouges puis éteintes en haut ; leur mélange les unes aux autres fait danser la
+## flamme. Mélange normal et couleurs franches : en mélange additif, les taches s'empilaient en une boule blanche (vu en
+## capture). Coût : 16 particules par torche.
+static func flamme() -> CPUParticles3D:
+	if not _ressources.has("flamme"):
+		var g := Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 0.55, 0.8, 1.0])   # (bord net : une langue de feu, pas un nuage)
+		g.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.9), Color(1, 1, 1, 0.3), Color(1, 1, 1, 0)])
+		var rond := GradientTexture2D.new()
+		rond.gradient = g
+		rond.fill = GradientTexture2D.FILL_RADIAL
+		rond.fill_from = Vector2(0.5, 0.5)
+		rond.fill_to = Vector2(0.5, 0.0)
+		rond.width = 32
+		rond.height = 32
+		var mat := StandardMaterial3D.new()
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		mat.vertex_color_use_as_albedo = true
+		mat.albedo_texture = rond
+		mat.billboard_keep_scale = true   # (sinon la taille de chaque particule est ignorée : une boule de 60 cm)
+		mat.albedo_color = Color(1.5, 1.5, 1.5)   # (un peu « au-delà du blanc », sans plus : l'étalonnage la blanchirait)
+		mat.disable_receive_shadows = true
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		var q := QuadMesh.new()
+		q.size = Vector2(0.65, 1.0)   # (des langues de feu, plus hautes que larges)
+		q.material = mat
+		_ressources["flamme"] = q
+		var vie := Gradient.new()   # (jaune au pied, orange, rouge sombre, puis plus rien)
+		vie.offsets = PackedFloat32Array([0.0, 0.12, 0.45, 0.8, 1.0])
+		vie.colors = PackedColorArray([Color(1.0, 0.62, 0.14, 0.0), Color(1.0, 0.45, 0.06, 0.9), Color(0.95, 0.22, 0.02, 0.75),
+				Color(0.5, 0.06, 0.01, 0.35), Color(0.2, 0.03, 0.01, 0.0)])
+		_ressources["vie_flamme"] = vie
+		var taille := Curve.new()   # (la tache grossit un instant, puis rétrécit en montant)
+		taille.add_point(Vector2(0.0, 0.55))
+		taille.add_point(Vector2(0.25, 1.0))
+		taille.add_point(Vector2(1.0, 0.1))
+		_ressources["taille_flamme"] = taille
+	var p := CPUParticles3D.new()
+	p.name = "Flamme"
+	p.mesh = _ressources["flamme"]
+	p.amount = 16
+	p.lifetime = 0.55
+	p.preprocess = 0.55
+	p.position = Vector3(0, -0.1, 0)   # (au fond du panier : la lumière est posée à son bord)
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 0.06
+	p.direction = Vector3.UP
+	p.spread = 12.0
+	p.initial_velocity_min = 0.35
+	p.initial_velocity_max = 0.55
+	p.gravity = Vector3(0, 0.6, 0)   # (l'air chaud monte)
+	p.scale_amount_min = 0.13
+	p.scale_amount_max = 0.2
+	p.scale_amount_curve = _ressources["taille_flamme"]
+	p.color_ramp = _ressources["vie_flamme"]
+	p.angle_min = -12.0
+	p.angle_max = 12.0
+	return p
 
 
 ## Brume au ras du sol (06/11, choix de Téo avec les sons) : deux nappes transparentes qui roulent lentement, de

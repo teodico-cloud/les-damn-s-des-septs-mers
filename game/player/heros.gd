@@ -102,6 +102,7 @@ func _ready() -> void:
 	anim = visuel.find_child("AnimationPlayer", true, false)
 	for boucle in ["Idle", "Running_A"]:
 		anim.get_animation(boucle).loop_mode = Animation.LOOP_LINEAR
+	PasSonores.pour(self, anim, "pas")   # (bruits de pas, 10/11)
 
 	sante = Sante.new()
 	sante.pv_max = pv_max_total()

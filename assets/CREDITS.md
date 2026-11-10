@@ -31,3 +31,6 @@ dessinée à la main en SVG, comme les autres icônes.
 
 Dans le jeu (08/11) : l'écran « Crédits » de l'écran titre (`ui/commun/panneau_credits.gd`) reprend ces sources, la
 licence MIT de Godot en entier (obligatoire) et, sur demande, les composants du moteur et leurs licences.
+
+Pas (10/11) : `assets/sons/kenney/pas_pierre_*` et `pas_bois_*` viennent du pack Kenney Impact Sounds (CC0)
+(`footstep_concrete_000` à `004`, `footstep_wood_000` à `004`), remis à la même crête par `tools/sons/fabriquer_sons.py`.

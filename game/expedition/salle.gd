@@ -17,6 +17,7 @@ var coffre: Node3D                  ## salle trésor
 var coffre_ouvert := false
 var chaloupe: Node3D                ## quai : la chaloupe qui ramène au navire
 var zone_chaloupe := Vector3.INF    ## quai : où se tenir pour monter dans la chaloupe
+var _sols := {}                     ## case (ix, iz) -> nom de la dalle posée (bruits de pas)
 var pics: Array[PiegePics] = []      ## salle piège : dalles à pics
 var tonneaux: Array[TonneauPoudre] = []   ## salle piège : tonneaux de poudre
 var _torches: Array[OmniLight3D] = []
@@ -153,6 +154,17 @@ func ouvrir_coffre() -> void:
 
 
 # ---------------------------------------------------------------- construction
+## Le sol sous `pos` (bruits de pas, 10/11) : « bois » sur les dalles de bois et dans la chaloupe (au-dessus de
+## l'eau), « pierre » ailleurs.
+func sol_a(pos: Vector3) -> String:
+	var local := to_local(pos)
+	var ix := floori((local.x + DEMI) / PAS)
+	var iz := floori((local.z + DEMI) / PAS)
+	if donnees.get("eau", false) and ix <= 0:
+		return "bois"
+	return "bois" if String(_sols.get(Vector2i(ix, iz), "")).contains("wood") else "pierre"
+
+
 func _sol() -> void:
 	var dalles: Array = donnees.get("sol", ["floor_tile_large"])
 	var cases: Dictionary = donnees.get("cases", {})
@@ -170,6 +182,7 @@ func _sol() -> void:
 			nom = cases.get(Vector2i(ix, iz), nom)
 			if _case_piegee(Vector2i(ix, iz)):
 				continue   # la dalle à pics a son propre sol
+			_sols[Vector2i(ix, iz)] = nom
 			_objet(nom, p, 0)
 	# sol et limites de la salle (les côtés vers la caméra n'ont pas de mur visible)
 	var x0 := -DEMI - 1.0 if not eau else -DEMI + PAS

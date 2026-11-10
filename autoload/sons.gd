@@ -42,6 +42,12 @@ const CATALOGUE := {
 	&"teleport": [["fabriques/teleport"], -7.0, 0.05, 1],
 	&"carreau": [["kenney/carreau"], -7.0, 0.06, 2],
 	&"sol_lourd": [["kenney/sol_lourd"], -3.0, 0.04, 1],
+	# pas (10/11) : joués par PasSonores quand un pied touche le sol ; ceux des squelettes plus discrets (ils sont
+	# nombreux) et plus aigus (des os), voir Ennemi._hauteur_pas
+	&"pas_pierre": [["kenney/pas_pierre_1", "kenney/pas_pierre_2", "kenney/pas_pierre_3", "kenney/pas_pierre_4", "kenney/pas_pierre_5"], -16.0, 0.08, 2],
+	&"pas_bois": [["kenney/pas_bois_1", "kenney/pas_bois_2", "kenney/pas_bois_3", "kenney/pas_bois_4", "kenney/pas_bois_5"], -15.0, 0.08, 2],
+	&"pas_os_pierre": [["kenney/pas_pierre_1", "kenney/pas_pierre_2", "kenney/pas_pierre_3", "kenney/pas_pierre_4", "kenney/pas_pierre_5"], -21.0, 0.1, 2],
+	&"pas_os_bois": [["kenney/pas_bois_1", "kenney/pas_bois_2", "kenney/pas_bois_3", "kenney/pas_bois_4", "kenney/pas_bois_5"], -20.0, 0.1, 2],
 	# ennemis (06/11, choix de Téo) : plus discrets que les gestes du héros
 	&"lame_squelette": [["fabriques/lame_1", "fabriques/lame_2", "fabriques/lame_3"], -11.0, 0.08, 2],
 	&"sortie_terre": [["fabriques/sortie_terre"], -8.0, 0.1, 2],

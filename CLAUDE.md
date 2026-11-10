@@ -139,9 +139,14 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   (faits par `tools/sons/fabriquer_sons.py`) et `assets/sons/kenney/` (CC0, copiés par le même script depuis
   `third_party/sons/`, téléchargés par `tools/sons/telecharger_kenney.sh`). Les gestes sonnent par
   `sons_animation(nom, vitesse)` (Heros, Bretteur, Occultiste, Ennemi, Bosco), les chocs par `EventBus.coup_porte`.
+  Pas (10/11) : `game/commun/pas_sonores.gd` (`PasSonores`, un enfant « Pas » de chaque héros et squelette) joue un pas
+  quand l'animation de course ou de marche pose un pied (`CONTACTS`, mesurés par `tools/sonde_pas.gd`), selon le sol du
+  lieu : `sol_a(position)` de l'Arene (pierre), de l'Expedition (sa salle : dalles en bois, chaloupe) et du Repaire (quai).
 - Jauge façon Diablo (06/11) : `Heros.jauge` (Fureur, Âmes), `cout_jauge(action)`, `jauge_coups(touches)`,
   `gagner_jauge`, `depenser_jauge`, `definir_jauge` (invité) ; réglages « Jauge façon Diablo » dans l'équilibrage ;
   globe `ui/hud/globe_jauge.gd` (`GlobeJauge`, `globe.gdshader`) ; captures `tools/capture_jauge.gd -- <dossier>`.
+- Flammes des torches (10/11) : `Ambiance.flamme()`, ajoutée par `Ambiance.torche()` à chaque torche (le panier KayKit
+  n'a pas de flamme ; l'éclat de la lumière vacillait déjà, dans le `_process` des lieux).
 - Brume au ras du sol et poussière dans la lumière (06/11) : `Ambiance.brume(taille, centre)` (`game/commun/brume.gdshader`,
   groupe `brume`), `Ambiance.poussiere(...)` / `poussiere_torche(lumiere)` (groupe `poussiere`) ; réduites en Économie
   par Reglages. Captures : `tools/capture_brume.gd -- <dossier>`.
@@ -475,6 +480,11 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   `heros.jauge`. Elle ne se gagne que seul ou chez l'hôte (`gagner_jauge` ne fait rien chez l'invité ni sur une
   marionnette) : tout nouveau gain passe par elle. Un nouveau coût : `cout_jauge(action)` de l'archétype et le test
   de `Heros._essayer_actions_prioritaires`.
+- Particules en billboard (`BILLBOARD_PARTICLES`) : mettre `billboard_keep_scale = true`, sinon la taille de chaque
+  particule (`scale_amount_*`) est ignorée et le quadrilatère garde la taille du maillage (vu : flamme en boule de 60 cm ;
+  la poussière, elle, règle la taille du maillage). Une flamme en mélange additif s'empile en boule blanche : mélange
+  normal, couleurs franches. Un nouveau mouvement en boucle (course, marche) : ses instants de pas dans
+  `PasSonores.CONTACTS` (sinon il est muet).
 - Brume : faite de morceaux de 6 m au plus (`Ambiance.MORCEAU_BRUME`) ; sur téléphone un objet ne reçoit que 8 lumières.
   Son bord s'efface d'après la nappe entière (`centre`, `demi` du shader), pas d'après chaque morceau.
 - Brume : ses nappes ont une priorité de rendu négative pour que les annonces au sol (priorité 0 et 1) se dessinent

@@ -308,6 +308,11 @@ func _objet(nom: String, pos: Vector3, rot_y := 0.0) -> Node3D:
 	return n
 
 
+## Le sol sous `pos`, pour les bruits de pas (PasSonores) : « pierre » ou « bois ». L'arène est toute en pierre.
+func sol_a(_pos: Vector3) -> String:
+	return "pierre"
+
+
 func _obstacle(centre: Vector3, taille: Vector3) -> void:
 	var corps := StaticBody3D.new()
 	corps.collision_layer = Combat.COUCHE_MONDE

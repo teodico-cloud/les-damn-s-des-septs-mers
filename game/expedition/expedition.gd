@@ -335,6 +335,11 @@ static func _portes_texte(ps: Array) -> Array:
 
 
 # ---------------------------------------------------------------- chaque image
+## Le sol sous `pos` (bruits de pas) : celui de la salle en cours.
+func sol_a(pos: Vector3) -> String:
+	return salle.sol_a(pos) if is_instance_valid(salle) else "pierre"
+
+
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
 	if finie or salle == null:
