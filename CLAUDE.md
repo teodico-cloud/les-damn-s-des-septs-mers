@@ -132,7 +132,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   chaque lumière ou environnement qui entre en scène (ce que la scène voulait est gardé en méta `ombre_voulue` /
   `halo_voulu`). Écran `ui/commun/panneau_reglages.gd` (PanneauReglages, un PanneauRepaire plus petit), ouvert depuis
   l'écran titre et depuis le carnet de bord du repaire (`ui/repaire/carnet.gd` : Menu → Reprendre / Réglages / Écran titre).
-  Volumes Général / Effets / Ambiances (0 à 1) dans le même fichier ; curseurs dans l'écran Réglages.
+  Volumes Général / Effets / Ambiances (0 à 1) dans le même fichier ; curseurs dans l'écran Réglages. Le Mode test
+  « Héros Meshy » y est gardé aussi (10/11, `Reglages.choisir_heros_meshy`, donné à `Partie.debug_heros_meshy`).
 - Sons (jalon 6, 06/11) : `autoload/sons.gd` (Sons) : `jouer(nom, position|nœud|null)`, `jouer_plus_tard`,
   `ambiance([couches])`, `niveau_ambiance`, `jingle(nom)` ; catalogue des sons (fichiers, volume, variation, maximum
   en 0,07 s) en tête du fichier ; canaux « Effets » et « Ambiances » créés au démarrage. Fichiers : `assets/sons/fabriques/`
@@ -151,7 +152,8 @@ https://github.com/teodico-cloud/les-damn-s-des-septs-mers/releases/download/apk
   groupe `brume`), `Ambiance.poussiere(...)` / `poussiere_torche(lumiere)` (groupe `poussiere`) ; réduites en Économie
   par Reglages. Captures : `tools/capture_brume.gd -- <dossier>`.
 - `tests/unit/` : tests GUT (`test_*.gd`) ; `addons/gut/` : GUT 9.7.1 (exclu de l'APK) ; `tests/pre_run.gd` :
-  avant les tests, la sauvegarde passe dans `user://sauvegarde_tests.json` (jamais celle du jeu).
+  avant les tests, la sauvegarde passe dans `user://sauvegarde_tests.json` et les réglages dans
+  `user://reglages_tests.json` (jamais ceux du jeu), repartis de zéro.
   `test_scripts.gd` charge tous les scripts du jeu (remplace `--check-only`, voir pièges).
 - `android/cle_de_test.keystore` : clé de signature **de test** (mot de passe « android »), commune à
   tous les APK pour que les mises à jour s'installent. Jamais pour le Play Store.

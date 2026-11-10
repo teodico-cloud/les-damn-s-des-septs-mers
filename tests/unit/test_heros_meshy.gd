@@ -134,6 +134,7 @@ func test_le_bouton_du_mode_test() -> void:
 	assert_eq(ecran.label_test.text, "")
 	ecran.bouton_meshy.pressed.emit()
 	assert_true(Partie.debug_heros_meshy)
+	assert_true(Reglages.heros_meshy, "Gardé pour le prochain lancement (choix de Téo du 10/11)")
 	assert_eq(ecran.bouton_meshy.text, "Héros Meshy : oui")
 	assert_eq(ecran.label_test.text, "Mode test actif")
 	ecran.bouton_meshy.pressed.emit()

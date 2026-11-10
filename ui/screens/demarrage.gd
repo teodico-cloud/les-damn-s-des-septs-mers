@@ -243,7 +243,7 @@ func _mode_test() -> void:
 		Partie.debug_tout_debloque = not Partie.debug_tout_debloque
 		_textes_test())
 	bouton_meshy.pressed.connect(func():
-		Partie.debug_heros_meshy = not Partie.debug_heros_meshy
+		Reglages.choisir_heros_meshy(not Partie.debug_heros_meshy)   # (gardé d'un lancement à l'autre, choix de Téo)
 		_textes_test())
 	label_test = Label.new()
 	label_test.theme_type_variation = &"LabelGras"

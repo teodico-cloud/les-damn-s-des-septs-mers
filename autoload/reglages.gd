@@ -9,6 +9,8 @@ extends Node
 ## - BELLE : bords lissés (MSAA ×2) et ombres plus douces.
 ## Volumes (jalon 6, avec les sons) : Général, Effets, Ambiances, de 0 à 1 (le service Sons les applique). Pendant
 ## qu'un curseur glisse, le fichier n'est écrit qu'une fois le doigt arrêté (pas à chaque cran).
+## Mode test « Héros Meshy » (10/11, choix de Téo : il repassait à « non » à chaque lancement) : gardé ici aussi, et
+## donné à `Partie.debug_heros_meshy` à la lecture ; les autres réglages du Mode test ne sont pas gardés.
 ##
 ## Chaque scène continue de régler ses lumières comme avant : on note ce qu'elle voulait (méta « ombre_voulue »,
 ## « halo_voulu ») et on l'applique ou non selon la qualité, ce qui permet de revenir en arrière à chaud.
@@ -27,6 +29,7 @@ const DELAI_ECRITURE := 0.4
 var chemin := "user://reglages.json"
 var qualite: int = Qualite.NORMALE
 var volumes := {"general": 1.0, "effets": 1.0, "ambiances": 1.0}
+var heros_meshy := false   ## Mode test : les héros faits par Téo sur Meshy (Partie.debug_heros_meshy)
 var _ecriture_prevue: SceneTreeTimer
 
 
@@ -49,6 +52,8 @@ func charger() -> void:
 	qualite = Qualite.NORMALE
 	for c in CANAUX:
 		volumes[c] = 1.0
+	heros_meshy = false
+	Partie.debug_heros_meshy = false
 	if not FileAccess.file_exists(chemin):
 		return
 	var json := JSON.new()   # (et non JSON.parse_string : un fichier abîmé ne doit pas inonder le journal d'erreurs)
@@ -67,6 +72,9 @@ func charger() -> void:
 			var v = lus.get(c)
 			if v is float or v is int:
 				volumes[c] = clampf(float(v), 0.0, 1.0)
+	var meshy = d.get("heros_meshy", false)
+	heros_meshy = meshy is bool and meshy
+	Partie.debug_heros_meshy = heros_meshy
 
 
 ## Écrit les réglages (fichier temporaire puis renommé : une coupure ne laisse pas un fichier à moitié écrit).
@@ -76,7 +84,8 @@ func enregistrer() -> bool:
 	if f == null:
 		push_warning("Réglages : écriture impossible (%s)" % error_string(FileAccess.get_open_error()))
 		return false
-	f.store_string(JSON.stringify({"version": VERSION, "qualite": NOMS[qualite], "volumes": volumes}, "\t"))
+	f.store_string(JSON.stringify({"version": VERSION, "qualite": NOMS[qualite], "volumes": volumes,
+			"heros_meshy": heros_meshy}, "\t"))
 	f.close()
 	if DirAccess.rename_absolute(temporaire, chemin) == OK:   # (remplace l'ancien d'un coup, sur téléphone)
 		return true
@@ -92,6 +101,13 @@ func choisir_qualite(q: int) -> void:
 	enregistrer()
 	appliquer()
 	change.emit()
+
+
+## Mode test « Héros Meshy » : oui ou non, gardé pour les prochains lancements.
+func choisir_heros_meshy(oui: bool) -> void:
+	heros_meshy = oui
+	Partie.debug_heros_meshy = oui
+	enregistrer()
 
 
 func volume(canal: String) -> float:

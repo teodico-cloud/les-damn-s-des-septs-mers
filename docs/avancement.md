@@ -423,7 +423,7 @@ lui, aucune mention obligatoire), allégés par Meshy (Remesh, ~25 000 triangles
 - Sortie : `assets/models/heroes_meshy/` (textures `compress/mode=2`, reliefs `compress/normal_map=1`). Les fichiers
   Meshy d'origine ne sont pas dans le dépôt (trop lourds) : `build/meshy/` ici, et dans le compte Meshy de Téo.
 - Choix de Téo : les essayer sur son téléphone par un interrupteur du **Mode test** (« Héros Meshy : oui / non »,
-  `Partie.debug_heros_meshy`, pas gardé d'un lancement à l'autre comme les autres réglages du Mode test) ; les héros
+  `Partie.debug_heros_meshy` ; gardé d'un lancement à l'autre depuis le 10/11, voir plus bas) ; les héros
   actuels restent ceux du jeu tant qu'il n'a pas décidé. L'interrupteur change le héros en combat, en expédition, au
   repaire et sur l'écran du choix du héros (`Heros.modele_meshy`) ; la vitrine garde les héros KayKit.
 - Coop : chaque téléphone affiche les héros selon son propre réglage ; les animations voyagent par numéro, les deux
@@ -450,6 +450,10 @@ lui, aucune mention obligatoire), allégés par Meshy (Remesh, ~25 000 triangles
   vert pâle, la lueur virait au blanc. Vus en jeu : plus fins et plus discrets que ceux de KayKit, qui brillaient en
   entier (verre de la lanterne, tête du bâton) ; Téo juge sur son téléphone. Fichiers d'origine : `build/meshy/occ_armes/`
   ici, et dans le compte Meshy de Téo. Test : `test_le_baton_et_la_lanterne_meshy_luisent`.
+- Interrupteur gardé (10/11, choix de Téo : « Mémoriser le réglage ») : Téo voyait les héros KayKit après la mise à
+  jour, l'interrupteur repassant à « non » à chaque lancement. Il est rangé dans `user://reglages.json` avec la
+  qualité et les volumes (`Reglages.heros_meshy`, `choisir_heros_meshy`), pas dans la sauvegarde ; les autres
+  réglages du Mode test repartent toujours de zéro. Les tests ont leur propre fichier de réglages (`tests/pre_run.gd`).
 - Tests : `test_heros_meshy.gd`. Captures : `tools/capture_meshy.gd -- <bretteur|occultiste> <essai|actuel> <dossier>` (même combat, héros actuel ou Meshy).
 
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)
@@ -609,6 +613,7 @@ Téo a choisi : héros plus vif, hordes, coups qui claquent, coups critiques (pa
 | 08/11/2026 | Jalon 7 (coop par internet) : plan noté, pas commencé ; code de groupe à 4 chiffres, relais prévu dès le début. |
 | 08/11/2026 | Écrans « Comment jouer » et « Crédits » : boutons sur l'écran titre seulement, rien ne s'ouvre tout seul. |
 | 10/11/2026 | Pas des héros et des squelettes (pierre ou bois) et flammes des torches. |
+| 10/11/2026 | « Héros Meshy » du Mode test gardé d'un lancement à l'autre (choix de Téo : « Mémoriser le réglage »). |
 
 ## Relecture du jalon 0 (agent relecteur) et corrections
 - Le CI refuse désormais un script ou un fichier de test cassé (chargement de tous les scripts + contrôle du

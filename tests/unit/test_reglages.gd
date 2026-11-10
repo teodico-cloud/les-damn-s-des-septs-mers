@@ -26,6 +26,8 @@ func after_all() -> void:
 	Reglages.qualite = _qualite_avant
 	Reglages.appliquer()
 	Partie.destination = &"arene"
+	Reglages.heros_meshy = false
+	Partie.debug_heros_meshy = false
 
 
 func _ecrire(texte: String) -> void:
@@ -46,6 +48,22 @@ func test_le_choix_est_garde_a_part_de_la_sauvegarde() -> void:
 	Reglages.choisir_qualite(Reglages.Qualite.BELLE)
 	Reglages.charger()
 	assert_eq(Reglages.qualite, Reglages.Qualite.BELLE)
+
+
+func test_le_choix_heros_meshy_est_garde() -> void:
+	# (10/11, choix de Téo : le Mode test « Héros Meshy » repassait à « non » à chaque lancement)
+	Reglages.choisir_heros_meshy(true)
+	assert_true(Partie.debug_heros_meshy, "Tout de suite en jeu")
+	Reglages.heros_meshy = false
+	Partie.debug_heros_meshy = false
+	Reglages.charger()
+	assert_true(Partie.debug_heros_meshy, "Relu au prochain lancement")
+	Reglages.choisir_heros_meshy(false)
+	Reglages.charger()
+	assert_false(Partie.debug_heros_meshy)
+	_ecrire('{"version": 1, "qualite": "normale", "heros_meshy": "oui"}')
+	Reglages.charger()
+	assert_false(Partie.debug_heros_meshy, "Valeur bizarre : non")
 
 
 func test_sans_fichier_ou_fichier_abime_reglages_de_depart() -> void:
