@@ -60,6 +60,18 @@ func test_arme_et_lanterne_aux_memes_attaches() -> void:
 	assert_gt(gauche.find_children("*", "MeshInstance3D", true, false).size(), 0)
 
 
+func test_le_baton_et_la_lanterne_meshy_luisent() -> void:
+	# (10/11 : faits par Téo sur Meshy ; leurs parties vertes luisent, comme le bâton et la lanterne KayKit)
+	var occ := _instance(Heros.MODELES_MESHY[&"occultiste"])
+	for nom in ["Occultiste_Baton", "Occultiste_Lanterne"]:
+		var mi: MeshInstance3D = occ.find_child(nom, true, false)
+		assert_not_null(mi, nom)
+		assert_gt(mi.mesh.get_faces().size() / 3, 1000, "%s : celui de Meshy (KayKit : moins de 300 triangles)" % nom)
+		var mat: StandardMaterial3D = mi.mesh.surface_get_material(0)
+		assert_true(mat.emission_enabled, "%s : sa lueur" % nom)
+		assert_not_null(mat.emission_texture, "%s : seulement là où l'image est verte" % nom)
+
+
 func test_assez_legers_pour_un_telephone() -> void:
 	for cle in KAYKIT:
 		var t := _triangles(_instance(Heros.MODELES_MESHY[cle]))

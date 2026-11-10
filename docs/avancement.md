@@ -434,13 +434,22 @@ lui, aucune mention obligatoire), allégés par Meshy (Remesh, ~25 000 triangles
 - Occultiste Meshy (08/11, choix de Téo) : robe moins noire (couleur du corps `v ** 0,72`, `GAMMA_CORPS` : médiane
   0,12 → 0,22) et yeux luisants (`YEUX` : deux petites lueurs vertes devant les yeux peints par Meshy, attachées à
   l'os de la tête, émission ×4). Vus de face (écran du choix du héros) ; vus d'en haut en combat, la capuche les cache
-  souvent. Bâton et lanterne : prompts Meshy envoyés à Téo, en attente de ses fichiers.
+  souvent.
 - Sabre fait par Téo sur Meshy (07/11, prompt « pirate cutlass ») : dans la main du Bretteur Meshy (08/11),
   `HEROS_MESHY_ARME=<sabre.glb>` (réglages `ARMES_MESHY` : retourné, lame de la longueur de la lame KayKit, poignée
   au milieu de la poignée KayKit, allégé de 25 500 à 3 500 triangles, images 512). Vu en jeu : tout en métal et en
   acier sombre, la lame disparaissait (reflet d'une salle sombre, et sur les robes brunes des squelettes) : son métal
   ×0,3 et sa couleur ×2. Plus fine que la lame KayKit, elle se voit moins de loin. Le sabre d'origine n'est pas dans
   le dépôt (`build/meshy/sabre/` ici, et dans le compte Meshy de Téo).
+- Bâton et lanterne faits par Téo sur Meshy (10/11) : dans les mains de l'Occultiste Meshy, à la place de ceux de
+  KayKit (`HEROS_MESHY_ARME=<bâton.glb>`, `HEROS_MESHY_LANTERNE=<lanterne.glb>` ; `ARMES_MESHY` donne maintenant une
+  liste de pièces par héros). Même taille et même prise que ceux de KayKit (bâton 1,13 m tenu à 0,26 m du pied, il
+  pointe vers le sol en courant comme avant ; lanterne 0,55 m tenue par son anneau) ; allégés à 1 800 et 2 600
+  triangles (héros entier : ~30 300, sous les 32 000 du test), images 512. Lueur : les parties vertes de leur image
+  (cristal du bâton, flammes de la lanterne) luisent du vert de KayKit (`lueur` de `ARMES_MESHY`) ; avec leur propre
+  vert pâle, la lueur virait au blanc. Vus en jeu : plus fins et plus discrets que ceux de KayKit, qui brillaient en
+  entier (verre de la lanterne, tête du bâton) ; Téo juge sur son téléphone. Fichiers d'origine : `build/meshy/occ_armes/`
+  ici, et dans le compte Meshy de Téo. Test : `test_le_baton_et_la_lanterne_meshy_luisent`.
 - Tests : `test_heros_meshy.gd`. Captures : `tools/capture_meshy.gd -- <bretteur|occultiste> <essai|actuel> <dossier>` (même combat, héros actuel ou Meshy).
 
 ## Attaque de base façon Diablo (05/11, demande et choix de Téo)

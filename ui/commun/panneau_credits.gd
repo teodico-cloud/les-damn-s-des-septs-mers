@@ -8,7 +8,7 @@ extends PanneauRepaire
 ## [ce que c'est, de qui, licence]
 const SOURCES := [
 	["Personnages, ennemis, décors et armes", "KayKit, de Kay Lousberg (kaylousberg.com)", "CC0"],
-	["Héros Meshy (à l'essai) et sabre", "Faits par Téo sur Meshy (meshy.ai)", ""],
+	["Héros Meshy (à l'essai), sabre, bâton et lanterne", "Faits par Téo sur Meshy (meshy.ai)", ""],
 	["Textures des décors", "Poly Haven (polyhaven.com)", "CC0"],
 	["Sons", "Kenney (kenney.nl) ; les autres sons ont été fabriqués pour le jeu", "CC0"],
 	["Polices", "Alegreya Sans (The Alegreya Sans Project Authors, 2013) et IM Fell English (Igino Marini, 2010)",

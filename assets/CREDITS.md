@@ -16,8 +16,8 @@ accessoires modélisés par script dans `tools/blender/build_heroes.py`).
 
 Héros Meshy (07/11, à l'essai, `assets/models/heroes_meshy/`) : le Bretteur et l'Occultiste ont été faits par Téo
 lui-même sur Meshy (meshy.ai), avec un abonnement payant : les modèles lui appartiennent, aucune mention n'est
-obligatoire. Ils sont posés sur l'ossature et les animations KayKit (CC0) ; leur arme de départ, le bâton et la
-lanterne restent ceux de KayKit.
+obligatoire. Ils sont posés sur l'ossature et les animations KayKit (CC0). Le sabre du Bretteur (07/11), le bâton et
+la lanterne de l'Occultiste (10/11) sont aussi faits par Téo sur Meshy.
 
 Sons faits par calcul, sans enregistrement (06/11, jalon 6, `tools/sons/fabriquer_sons.py`, dans
 `assets/sons/fabriques/`) : souffles de la lame et moulinet, os qui éclatent, magie de l'Occultiste (tir, explosion,

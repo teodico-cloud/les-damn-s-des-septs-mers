@@ -13,7 +13,8 @@ Comment :
 
 Prérequis : Blender en module Python (pip install bpy) ; le maillage Meshy allégé (Remesh ~25 000 triangles, GLB).
 Usage : python tools/blender/build_heroes_meshy.py <bretteur|occultiste> <meshy.glb> <héros_actuel.glb>
-        (HEROS_MESHY_ARME=<arme.glb> : l'arme faite sur Meshy à la place de l'arme de départ, voir ARMES_MESHY)
+        (HEROS_MESHY_ARME=<arme.glb> : l'arme faite sur Meshy à la place de l'arme de départ ; Occultiste :
+         HEROS_MESHY_LANTERNE=<lanterne.glb> aussi ; voir ARMES_MESHY)
 Sortie : assets/models/heroes_meshy/<Héros>.glb (ou HEROS_MESHY_SORTIE=<dossier>)
 """
 import math
@@ -43,11 +44,34 @@ TAILLE_IMAGES = {"base": 2048, "normal": 1024, "autre": 1024}
 # renvoie que le reflet de la salle, presque noir dans nos salles sombres (vu en jeu le 07/11 : un trait noir).
 # « eclat » : la couleur de ces parties en métal est multipliée par ce nombre (acier sombre de Meshy, ~0,25 : en jeu la
 # lame se perdait sur les robes brunes des squelettes ; la lame KayKit, claire, se voyait).
+# Bâton et lanterne de l'Occultiste (10/11, faits par Téo sur Meshy) : même méthode, sans demi-tour (ils arrivent déjà
+# tête en haut, +z, comme ceux de KayKit) ; HEROS_MESHY_ARME=<bâton.glb> et HEROS_MESHY_LANTERNE=<lanterne.glb>.
+# Mis à la taille de ceux de KayKit, prise comprise : le bâton (1,9 m chez Meshy) fait 1,13 m, tenu à 0,26 m de son pied
+# (z = -0,52 chez Meshy) ; la lanterne (1,9 m) fait 0,55 m, la main au milieu de l'anneau du haut (z = 0,76 chez Meshy).
+# « lueur » : les parties vertes de l'image (cristal du bâton, flammes de la lanterne) luisent, comme la tête du bâton et
+# le verre de la lanterne KayKit : là où l'image est verte (teinte 95 à 190°, assez saturée « sat » et assez claire
+# « clair »), une lueur du vert de KayKit (« teinte », celles de lueur_maudite et verre_maudit dans build_heroes.py), plus
+# forte où l'image est claire. Avec la couleur de l'image elle-même (vert pâle), la lueur virait au blanc en jeu (10/11).
+# Triangles : le héros entier reste sous 32 000 (test_heros_meshy).
 ARMES_MESHY = {
-    "bretteur": {"objet": "Bretteur_Sabre", "echelle": 0.89, "poignee": 0.63, "poignee_main": -0.17,
-                 "triangles": 3500, "image": 512, "metal": 0.3, "eclat": 2.0},
+    "bretteur": [
+        {"objet": "Bretteur_Sabre", "variable": "HEROS_MESHY_ARME", "nom": "arme", "retourner": True,
+         "echelle": 0.89, "poignee": 0.63, "poignee_main": -0.17, "triangles": 3500, "image": 512,
+         "metal": 0.3, "eclat": 2.0},
+    ],
+    "occultiste": [
+        {"objet": "Occultiste_Baton", "variable": "HEROS_MESHY_ARME", "nom": "baton", "retourner": False,
+         "echelle": 0.595, "poignee": -0.52, "poignee_main": 0.0, "triangles": 1800, "image": 512,
+         "metal": 1.0, "eclat": 1.0,
+         "lueur": {"force": 2.2, "sat": 0.25, "clair": 0.12, "teinte": (50, 220, 110)}},
+        {"objet": "Occultiste_Lanterne", "variable": "HEROS_MESHY_LANTERNE", "nom": "lanterne", "retourner": False,
+         "echelle": 0.29, "poignee": 0.76, "poignee_main": 0.0, "triangles": 2600, "image": 512,
+         "metal": 0.3, "eclat": 1.0,
+         "lueur": {"force": 3.0, "sat": 0.10, "clair": 0.18, "teinte": (70, 240, 140)}},
+    ],
 }
-ARME = os.environ.get("HEROS_MESHY_ARME", "")
+# (seulement les pièces dont le fichier est donné)
+ARMES = [dict(r, fichier=os.environ[r["variable"]]) for r in ARMES_MESHY[HEROS] if os.environ.get(r["variable"])]
 # Couleur du corps éclaircie (08/11, choix de Téo) : chaque valeur v devient v ** GAMMA. L'Occultiste Meshy est presque
 # noir (médiane 0,12, contre ~0,37 pour l'Occultiste KayKit) et se perdait dans nos salles sombres ; 0,72 la porte à ~0,22.
 GAMMA_CORPS = {"bretteur": 1.0, "occultiste": 0.72}[HEROS]
@@ -257,20 +281,21 @@ def reduire_images(m):
             print("IMAGE", n.image.name, tuple(n.image.size))
 
 
-def arme_meshy(rig, garder):
-    """Met l'arme Meshy à la place de l'arme de départ (même attache) ; renvoie la liste des objets gardés."""
-    r = ARMES_MESHY[HEROS]
+def arme_meshy(rig, garder, r):
+    """Met la pièce Meshy `r` (arme, lanterne) à la place de celle de départ (même attache) ; renvoie les objets gardés."""
     ancienne = next(o for o in garder if o.name.split(".")[0] == r["objet"])
-    a = next(o for o in importer(ARME) if o.type == "MESH")
+    a = next(o for o in importer(r["fichier"]) if o.type == "MESH")
     bpy.context.view_layer.objects.active = a
     for o in bpy.context.selected_objects:
         o.select_set(False)
     a.select_set(True)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     e = r["echelle"]
-    c = r["poignee_main"] + e * r["poignee"]
     for v in a.data.vertices:
-        v.co = Vector((-e * v.co.x, e * v.co.y, -e * v.co.z + c))   # demi-tour autour de y, échelle, poignée en main
+        if r["retourner"]:   # demi-tour autour de y, échelle, poignée en main
+            v.co = Vector((-e * v.co.x, e * v.co.y, -e * (v.co.z - r["poignee"]) + r["poignee_main"]))
+        else:
+            v.co = Vector((e * v.co.x, e * v.co.y, e * (v.co.z - r["poignee"]) + r["poignee_main"]))
     a.data.update()
     avant = sum(len(f.vertices) - 2 for f in a.data.polygons)
     if avant > r["triangles"]:
@@ -278,10 +303,11 @@ def arme_meshy(rig, garder):
         d.ratio = r["triangles"] / avant
         bpy.ops.object.modifier_apply(modifier=d.name)
     images = {}
+    noeud_base = None
     for slot in a.material_slots:
         if slot.material is None or not slot.material.use_nodes:
             continue
-        slot.material.name = "%s_arme_meshy" % HEROS
+        slot.material.name = "%s_%s_meshy" % (HEROS, r["nom"])
         for n in slot.material.node_tree.nodes:
             if n.type == "TEX_IMAGE" and n.image is not None:
                 if n.image.size[0] > r["image"]:
@@ -289,8 +315,12 @@ def arme_meshy(rig, garder):
                 lien = n.outputs["Color"].links
                 cle = "base" if lien and lien[0].to_socket.name == "Base Color" else (
                     "normal" if lien and lien[0].to_node.type == "NORMAL_MAP" else "orm")
-                n.image.name = "%s_arme_meshy_%s" % (HEROS, cle)
+                n.image.name = "%s_%s_meshy_%s" % (HEROS, r["nom"], cle)
                 images[cle] = n.image
+                if cle == "base":
+                    noeud_base = (slot.material, n)
+    if r.get("lueur") and noeud_base is not None:
+        lueur(noeud_base[0], noeud_base[1], r)
     if "orm" in images and "base" in images:
         # les parties en métal (canal bleu de l'ORM) : moins métalliques, et leur couleur éclaircie
         orm = np.array(images["orm"].pixels[:]).reshape(-1, 4)
@@ -314,6 +344,47 @@ def arme_meshy(rig, garder):
     a.name = nom
     print("ARME", nom, "triangles", avant, "->", sum(len(f.vertices) - 2 for f in a.data.polygons))
     return reste + [a]
+
+
+def lueur(mat, noeud_base, r):
+    """Les parties vertes de l'image luisent : une image de lueur (vert KayKit × masque des verts) sur l'émission."""
+    g = r["lueur"]
+    img = noeud_base.image
+    w, h = img.size
+    px = np.array(img.pixels[:], dtype=np.float32).reshape(-1, 4)
+    # (image en octets : Blender donne les valeurs telles qu'enregistrées, sRGB, comme on les voit)
+    rgb = np.clip(px[:, :3], 0.0, 1.0)
+    mx, mn = rgb.max(1), rgb.min(1)
+    sat = np.where(mx > 0, (mx - mn) / np.maximum(mx, 1e-6), 0.0)
+    teinte = _teinte(rgb, mx, mn)
+    masque = np.clip((sat - g["sat"]) / 0.12, 0, 1) * np.clip((mx - g["clair"]) / 0.1, 0, 1) \
+        * ((teinte > 95) & (teinte < 190))
+    em = bpy.data.images.new("%s_%s_meshy_lueur" % (HEROS, r["nom"]), w, h)
+    out = np.zeros_like(px)
+    clarte = np.clip(mx / 0.5, 0.4, 1.0)
+    out[:, :3] = (masque * clarte)[:, None] * (np.array(g["teinte"], dtype=np.float32) / 255.0)[None]
+    out[:, 3] = 1.0
+    em.pixels[:] = out.ravel()
+    em.update()
+    em.pack()
+    nt = mat.node_tree
+    n = nt.nodes.new("ShaderNodeTexImage")
+    n.image = em
+    uv = noeud_base.inputs["Vector"].links
+    if uv:
+        nt.links.new(uv[0].from_socket, n.inputs["Vector"])
+    bsdf = next(x for x in nt.nodes if x.type == "BSDF_PRINCIPLED")
+    nt.links.new(n.outputs["Color"], bsdf.inputs["Emission Color"])
+    bsdf.inputs["Emission Strength"].default_value = g["force"]
+    print("LUEUR", r["nom"], "part de l'image qui luit %.1f %%" % (100 * float((masque > 0.5).mean())))
+
+
+def _teinte(c, mx, mn):
+    """Teinte en degrés (0 à 360) de chaque couleur (tableau n × 3)."""
+    d = np.maximum(mx - mn, 1e-6)
+    rr, gg, bb = c[:, 0], c[:, 1], c[:, 2]
+    t = np.where(mx == rr, (gg - bb) / d % 6, np.where(mx == gg, (bb - rr) / d + 2, (rr - gg) / d + 4))
+    return np.where(mx - mn > 1e-6, t * 60.0, 0.0)
 
 
 def yeux_luisants(rig, m):
@@ -361,8 +432,8 @@ def principal():
     deplacer_os(rig, deplacement(r))
     habiller(rig, m)
     reduire_images(m)
-    if ARME:
-        garder = arme_meshy(rig, garder)
+    for r_arme in ARMES:
+        garder = arme_meshy(rig, garder, r_arme)
     if YEUX:
         garder = garder + yeux_luisants(rig, m)
     for o in list(bpy.data.objects):
